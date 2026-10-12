@@ -35,7 +35,10 @@
     "biome:check": "biome ci --error-on-warnings .",
     "fix": "node tools/format-lint/fix.mts",
     "lint:types": "node tools/strict-lint/check-types.mts",
-    "lint:dead": "node tools/strict-lint/check-dead.mts"
+    "lint:dead": "node tools/strict-lint/check-dead.mts",
+    "worktree": "node tools/agent-workflow/new-worktree.mts",
+    "changelog": "node tools/agent-workflow/changelog.mts",
+    "agent-workflow:check": "node tools/agent-workflow/check.mts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
