@@ -5,14 +5,37 @@
       {
         "matcher": "apply_patch|Edit|Write",
         "hooks": [
-          { "type": "command", "command": "node tools/arch/hooks/after-edit.mts", "statusMessage": "Checking architecture rules", "timeout": 20 }
+          {
+            "type": "command",
+            "command": "node tools/arch/hooks/after-edit.mts",
+            "statusMessage": "Checking architecture rules",
+            "timeout": 20
+          }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "node tools/arch/hooks/before-stop.mts", "statusMessage": "Running the gate", "timeout": 600 }
+          {
+            "type": "command",
+            "command": "node tools/arch/hooks/before-stop.mts",
+            "statusMessage": "Running the gate",
+            "timeout": 600
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node tools/agent-workflow/hooks/split-outward-commands.mts",
+            "statusMessage": "Checking how the command is joined",
+            "timeout": 5
+          }
         ]
       }
     ]

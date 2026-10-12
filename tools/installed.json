@@ -156,5 +156,34 @@
       "tools/strict-lint/eslint.config.mts",
       "tools/strict-lint/knip.jsonc"
     ]
+  },
+  "agent-workflow": {
+    "files": {
+      ".agents/skills/workflow-changelog/SKILL.md": "03b0d90e1444276f27fb4328f6b23667c0c35e03589a8441baa02ca34d5b1673",
+      ".agents/skills/workflow-coverage-backfill/SKILL.md": "38134357f0d257f547bfac07c369ee6ab0ca19018e33b9e7d0e5c2f852f5c09e",
+      ".agents/skills/workflow-visual-tolerance-audit/SKILL.md": "e150f0c53b21a7ced1488a898f0ef6312617789691fc27e6b7c623a869e93d42",
+      ".claude/commands/workflow/changelog.md": "69905f2cdf7c5aeec1641428b86f7875e375336b9c989685d4323ed5c3554c5a",
+      ".claude/commands/workflow/coverage-backfill.md": "651990faa42bdec17e1635aed3b50c9828a21d59445eb4ccae2aec28e760deef",
+      ".claude/commands/workflow/visual-tolerance-audit.md": "a86b75092fece9b2058ebd48f1a43d73ebab83b8a3c6ed85d22617e71e3df3bb",
+      ".github/workflows/weekly-tag.yml": "16fee2035d4fe7ffa984b62d408c46e6c9307737fb4b64f197ce2f3c173ae7aa",
+      "tools/agent-workflow/changelog.mts": "718cf9de0e72c2d758d74af050d2c9d6d9422e77fb5eeca5b88812ed65e98a70",
+      "tools/agent-workflow/check.mts": "26ac377da540323845b557c9fff066639562d031084163df8993299d462cd02a",
+      "tools/agent-workflow/close-week.mts": "1111709ac7fa46d7f9b2c1a03181216350b1a890cf0fc88f766ec1b14da1b9c1",
+      "tools/agent-workflow/hooks/split-outward-commands.mts": "6d03f670f1a63b947e99a44a72c6a98e8881b4bd8e0fb2c561ec22cd7e1afc14",
+      "tools/agent-workflow/lib/changelog.mts": "4da87a7cc7620a754c20bc4d88519ba2f9c08aa3f7ab53f2e03cb2781f04f670",
+      "tools/agent-workflow/lib/hook-registration.mts": "a88ee68abbdaa63b8d733a0b97fa5102948e05a09ab7b7b07fcbbf97a44aa199",
+      "tools/agent-workflow/lib/host.mts": "db64fd5e7118f970f743fda71c8df34cd3f6d243b5a1d924439c5c8eadefe997",
+      "tools/agent-workflow/lib/main.mts": "b9510ffce92e72c31b519bffcd5b2d464d723a11e9d2755b065afb91bca5d54c",
+      "tools/agent-workflow/lib/outward.mts": "e9019562348751ce39d41dc7d196d5d505c0a6196b2447c8a359f519c64573b5",
+      "tools/agent-workflow/lib/shell.mts": "7427abeaadb0fadff16e41e6ea589cc56f707a9a7342592468d65d74f4ca2a01",
+      "tools/agent-workflow/lib/system.mts": "3604d709390ad2c8aca8797951160071668017460a5b43ab097068076baa4369",
+      "tools/agent-workflow/lib/week.mts": "4db4f77058b85b439fe7126a131d9cfea1c99b75027e39fc91c81d0e8cb934f0",
+      "tools/agent-workflow/new-worktree.mts": "cb968458e3b69081da54a395b295c3f9316d865dc1bdc4a11e8cf880d49a6627",
+      "tools/agent-workflow/requires.mts": "0d6555c1112fc35e211e77a85298ac31fbf033d95db56b5e992e69c877926dd3",
+      "tools/templates/agent-workflow.CHANGELOG.md.txt": "9b0fb93cadcc10a6075ef70ffa8e38bcc59655410bb2f07f3410677fbe3cf96d"
+    },
+    "starting": [
+      "CHANGELOG.md"
+    ]
   }
 }
