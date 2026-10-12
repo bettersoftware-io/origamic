@@ -503,4 +503,17 @@ change that touches no TypeScript file and no `package.json`.
 
 Do not edit `tools/strict-lint/eslint.typed.base.mts`; an update replaces it.
 A rule the project adds or changes goes in `tools/strict-lint/eslint.config.mts`.
+
+## Origamic
+
+Read docs/architecture/VISION.md and ARCHITECTURE.md before any change.
+The dependency rule: spec ← core ← runtime ← apps/web; catalog imports spec
+and React only; adapters are the only package that knows Supabase, SQL, HTTP
+or the LLM API. UI binds to the ontology only; every write is a named action;
+every spec is versioned and bindings carry versions.
+
+Two things agents get wrong in spec-driven systems: bypassing the schemas
+with `any`, and hand-writing a component when a catalog entry would do.
+Don't.
+
 <!-- /add-on: strict-lint -->
