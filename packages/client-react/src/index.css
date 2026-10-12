@@ -1,0 +1,40 @@
+:root {
+  /* Every colour has a name here, and a rule uses the name. `pnpm lint:css`,
+     where the project has it, fails a colour written in a rule. */
+  --color-up: #1a8f4c;
+  --color-down: #c0392b;
+
+  font-family: system-ui, sans-serif;
+  color-scheme: light dark;
+}
+
+table {
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+th,
+td {
+  padding: 0.4rem 1rem;
+  text-align: left;
+}
+
+tbody tr {
+  cursor: pointer;
+}
+
+tr[data-selected="true"] {
+  background: color-mix(in srgb, currentcolor 18%, transparent);
+}
+
+tr[data-stale="true"] {
+  opacity: 0.45;
+}
+
+td[data-movement="up"] {
+  color: var(--color-up);
+}
+
+td[data-movement="down"] {
+  color: var(--color-down);
+}

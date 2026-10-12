@@ -1,0 +1,19 @@
+{
+  "name": "@origamic/integration",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#/*": "./src/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@origamic/client-core": "workspace:*",
+    "@origamic/domain": "workspace:*",
+    "@origamic/server": "workspace:*",
+    "@origamic/shared": "workspace:*",
+    "rxjs": "^7.8.2"
+  }
+}

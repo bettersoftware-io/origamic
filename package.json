@@ -1,0 +1,55 @@
+{
+  "name": "origamic",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.6.0+sha512.3ef68f951cb111ac204b4a5a16f0b2ddf0da56a96e0413e81d855d9f0b55ef926714709028e1cd00c405c2c5fb7b9e8ec4dc46777c805d0373c2f2ff00fd20ec",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=26",
+      "onFail": "error"
+    }
+  },
+  "scripts": {
+    "dev": "pnpm --filter @origamic/client-react dev",
+    "dev:server": "pnpm --filter @origamic/server dev",
+    "dev:fs": "VITE_SERVER_URL=ws://localhost:4000/ws turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck && tsc --noEmit -p tsconfig.tooling.json",
+    "test": "turbo run test",
+    "lint": "eslint --flag unstable_native_nodejs_ts_config --max-warnings 0 .",
+    "gates": "node tools/arch/gates/run.mts",
+    "check:react-policies": "node tools/arch/check-react-policies.mts",
+    "check:compiler": "node tools/arch/check-compiler.mts",
+    "gate:fast": "pnpm gates && pnpm check:react-policies && pnpm check:compiler && pnpm lint && pnpm typecheck && pnpm check:dockerfiles && pnpm biome:check && pnpm lint:types && pnpm lint:dead",
+    "gate:full": "pnpm gate:fast && pnpm test && pnpm build && pnpm coverage",
+    "gate:fast:quiet": "node tools/arch/gates/quiet.mts gate:fast",
+    "gate:full:quiet": "node tools/arch/gates/quiet.mts gate:full",
+    "lint:workflows": "node tools/ci-security/lint-workflows.mts",
+    "check:dockerfiles": "node tools/ci-security/check-dockerfiles.mts",
+    "coverage": "node tools/coverage/run.mts",
+    "coverage:gaps": "node tools/coverage/gaps.mts",
+    "mutation-check": "node tools/coverage/mutation-check.mts",
+    "biome:format": "biome format --write .",
+    "biome:fix": "biome check --write .",
+    "biome:check": "biome ci --error-on-warnings .",
+    "fix": "node tools/format-lint/fix.mts",
+    "lint:types": "node tools/strict-lint/check-types.mts",
+    "lint:dead": "node tools/strict-lint/check-dead.mts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14",
+    "@types/node": "^26.2.0",
+    "@typescript-eslint/utils": "^8.70.1",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "@vitest/coverage-v8": "^5.0.3",
+    "dependency-cruiser": "^18.0.0",
+    "eslint": "^10.5.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "knip": "^6.17.1",
+    "turbo": "^2.4",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-eslint": "^8.61.1",
+    "vitest": "^5.0.3"
+  }
+}

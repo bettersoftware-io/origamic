@@ -1,0 +1,160 @@
+{
+  "kit": {
+    "files": {
+      "tools/arch/README.md": "b44856117077bfe4b1da7845a6a29ea58b98ebadbb11993b34215fb2421fa9da",
+      "tools/arch/check-compiler.mts": "e98d7c2d26d317e28061b59d909da00f887644f5fab67984f9d7b5c9f7eb7c04",
+      "tools/arch/check-react-policies.mts": "2c7376e49cef4368b946ad39c24784994b47965907f94a9a19c2e4f9157726e9",
+      "tools/arch/ci/corepack/package-lock.json": "e832aaa8d3c5beb67be8887533a3eaaa327beebbc6a6ab447eae0c2da39bab35",
+      "tools/arch/ci/corepack/package.json": "0e6a36f6156ab759f1237ca6ea293c88d3e5110265e28b2bb394d2b52be68cce",
+      "tools/arch/ci/enable-corepack.mts": "fb39770927805de1ac39d90fd00e0771959341b57f2f612e225daecbc5459c5a",
+      "tools/arch/ci/pin-package-manager.mts": "55244482902bbd2f4bac221b91c94f6b046e6144d10ce0c5da24806ce1d0296a",
+      "tools/arch/docs/handler-naming.md": "eb42398985e010ea302ee0bded7de227d334b0339d4d76694a70b7f95983a40f",
+      "tools/arch/docs/review.md": "c0cacc16c37e5060180af1ae48b9a3304279bcd7acd16488fbbff5e00c03d567",
+      "tools/arch/eslint-rules/class-filename-match.mts": "7255b0f1c69417b073465ccbb1546d6de3fe3881069e0df8dca50f07d4b9dbc5",
+      "tools/arch/eslint-rules/component-newspaper.mts": "e828328d38d160006d00fae660084fd2839897d8293487fca1458bdc5998ffd3",
+      "tools/arch/eslint-rules/json-fixtures-in-factories.mts": "6c4ef5b0dcb9c138c933eee98dfb0471a8f1a559c7ba7a70a34ab8c5ad065e30",
+      "tools/arch/eslint-rules/name-fixture-factories.mts": "ea0602adc4debcc4eace886dfd3411ee25ecf0defe7737632dfaf61354d2daa5",
+      "tools/arch/eslint-rules/name-functions-by-effect.mts": "058b3a9d359fb1b6f251e5d06d2bdb40ab5d037a171710c219631d7d425fcca0",
+      "tools/arch/eslint-rules/name-jsx-handlers.mts": "f2c7e5bd2139081579c46d16d4f9c2017c95cdc4394ba4d1df499eafc0269c39",
+      "tools/arch/eslint-rules/newspaper-order.mts": "ef43bc6e8ff64f734f486a2117108bc1f2bd0c9e81eee29358e4688b9b6cb03a",
+      "tools/arch/eslint-rules/no-browser-driver-in-specs.mts": "b4b1f56c5abf36dcad1f8f44f902ea0a5ae66855bad1479635039963d7316efd",
+      "tools/arch/eslint-rules/no-framework-calls-in-specs.mts": "9947f1dead91ba79e04ea31202d5c8231af83078bfd51675a4bea29b5c9eb328",
+      "tools/arch/eslint-rules/no-minified-json-literal.mts": "fc140d3e07108d7432f66dbc80919c05e1c5a2819a2437d2d7e44f4120e89022",
+      "tools/arch/eslint-rules/no-real-sleeps-in-tests.mts": "8b64014b43d31e3d70f219c1aa12549fcf49df062d0551bd2dbf8da5b07863fe",
+      "tools/arch/eslint-rules/no-render-functions.mts": "8a8fdd17c383f9b3bafb078b6103241dfdf30eea9f9146e4e4d214492cf604e9",
+      "tools/arch/eslint-rules/one-import-per-module.mts": "2ff9d8a85fb9a7ed4e0044050782584371fa4cd4d974e90614cd873fed4e6ea8",
+      "tools/arch/eslint-rules/page-objects-own-their-component.mts": "c149be0134a5839b50718ae4ee3cb4cb751094db376b9c1caf7e89f8c66836a3",
+      "tools/arch/eslint.config.mts": "93600eb881c8203f142eced17797fa7a7efd67d546b374fbbd1a36acc3ea2351",
+      "tools/arch/gates/fails-on.json": "c717d13531387518ce7df026905a2ef30d60edc741413c21bd3d9bd8d7ee7488",
+      "tools/arch/gates/gates.json": "09e7a7ba6a5934f08288ba7f4ea18ed6a776ce8286167185977e3983d6d8fa06",
+      "tools/arch/gates/lib/app-harness.mts": "eb5f70719281663aa6a414560d4cd3c907a346bc363ef6b75ddfce998ed1a42c",
+      "tools/arch/gates/lib/config.mts": "252dee5d09ab13f0634580a2e03a41ec929f191297909535b22a2144f59a72ca",
+      "tools/arch/gates/lib/contracts.mts": "334c6a06b512f59b6d645083bfd672eaa4047308b2e142436141af0b3a513efe",
+      "tools/arch/gates/lib/depcruise.mts": "80d2b93e819875d25b2cc83485248cefdd6880c5e72126dd7fbac83ebef7310c",
+      "tools/arch/gates/lib/files.mts": "c4594b2dcacb2681bd10d07c68fcc61909a1aed3a9b1b2188751c0e96b06d36e",
+      "tools/arch/gates/lib/instructions.mts": "c038d0c981033aaa976ee8d67ec0c01a04c62f4cb2601926eaf6c345fb65810f",
+      "tools/arch/gates/lib/language.mts": "f718fdddbc04a1058b78820a98e10fde2fcf1ae6ba338608319e06bfd8bcec32",
+      "tools/arch/gates/lib/node-floor.mts": "1212a8a39e1e05370b57db297a6251cece4f21134a8779ef71c6df04214b2725",
+      "tools/arch/gates/lib/package-manager.mts": "3a18d3589727b315f8200aefa1bd883bb333d0cd90a2c93114d1a016cfb80ec1",
+      "tools/arch/gates/lib/package-scripts.mts": "b3dc8ea6479acc48ce1e9873d2a0ef9557aa29d1227a801361ffef1a52c0385f",
+      "tools/arch/gates/lib/playwright-pin.mts": "d31048ef201f4f6fcc4dc482c298c230b60a07355c1dc11672bdf90dd86b243f",
+      "tools/arch/gates/lib/structure.mts": "8b82261835f556f048a035040df831f3878c15e4e207cd6e6bf897460ccd7ca2",
+      "tools/arch/gates/lib/task-cache.mts": "a25ea796f3e71f5e29bf13991a2a2dc90c24747cddadf323d2e1d94c28a8fe6c",
+      "tools/arch/gates/lib/test-ids.mts": "fb08ca4148b059fd411087c918064e11235c4af33e91c62d93375fe749d5bd33",
+      "tools/arch/gates/lib/types-only.mts": "fc3207813793f440ec3233e8183fba3f3e272dd296b570baa88244ebb8e5089f",
+      "tools/arch/gates/lib/ui-bans.mts": "b8aea78943e779a05913db1f0db0840ddfe45979fe8e39c4b7568d859e960357",
+      "tools/arch/gates/quiet.mts": "0b1bc587c460e39b831f21e0b78365d1ce914c4f828d651898e6e58561d3780a",
+      "tools/arch/gates/run.mts": "f2f44eee8fc39701a45f86504e10bf26b63f37a4c55cd2383d7fb4b467e82049",
+      "tools/arch/hooks/after-edit.mts": "1de0ed2f2bc8d104a09d250bcf8efc3e883d936c0a58ad407e868a0eb4d416ea",
+      "tools/arch/hooks/before-stop.mts": "b0271a46b7cd19346f7327dc467b30ffb3f9722f75de5de781899b58f077393f",
+      "tools/arch/hooks/claude.settings.json": "6e11703439c3bb4265b5c0bea7bf94a1962414db2f5617d5924d7047bd3ed7ea",
+      "tools/arch/hooks/codex.hooks.json": "14b3bc4e19d7ce1ef510a9e530dff00c25cbc9ddee830484bbba87c22e646545",
+      "tools/arch/lint-dependencies.mts": "41675af6a8a05207d002f587c027518bb69d89d9d3af28bf791b0722d2269672",
+      "tools/arch/templates/.github__workflows__ci.yml.txt": "4b44797e99310b8b1689162aa31075ac29694fb0a54eeb2fbfd9ebe588e3c7e4",
+      "tools/arch/templates/.gitignore.txt": "d09912b0a7ba2709ca533771ca4f91102e3ef0081769c8b57223506823fb3fc4",
+      "tools/arch/templates/.nvmrc.txt": "20d2add851bf39edcc6b5e830930f962db7e19dffa2cab8610eed551eda6c302",
+      "tools/arch/templates/AGENTS.md.txt": "3b41a8ddb919304fe5b18af927a9db4f855d750ab661afe5a53b341dac949481",
+      "tools/arch/templates/CLAUDE.md.txt": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49",
+      "tools/arch/templates/architecture.config.mts.txt": "cd31e9939135f78bae56b56940e914d018f9540c7e64510693b8fc12141f7d58",
+      "tools/arch/templates/eslint.config.mts.txt": "2e36ca2344ae2d9e4a45741f170630d908a89ccbe6a1fd4294d8523f753c6ddf",
+      "tools/arch/templates/package.json.txt": "1768b5efcc7591a9d7328d759d27ab6181a73ee68433761090629cc22b2d801f",
+      "tools/arch/templates/packages__client-core__package.json.txt": "96e51a5c9a4f242030a8c33fb0fbeca5e0acdc95091a6f1e8c3a717ca71be6de",
+      "tools/arch/templates/packages__client-core__tsconfig.json.txt": "73ef10dd56451d1370d6a043e8de139d96f69697c1a856a423a36bcf5c80aa29",
+      "tools/arch/templates/packages__client-react__index.html.txt": "f8d07dde313a5592fa96ddf36c2e522975ff140f0d81e3c2f5af2ad189aed0c6",
+      "tools/arch/templates/packages__client-react__package.json.txt": "9b40c0fe396ecca94b4fac89292c95b767b254d90e4164c5a6ee62dade944e22",
+      "tools/arch/templates/packages__client-react__tsconfig.json.txt": "17279dab255c7fb653915cda55790502ebcfdc0e73e84e4239a9efeb997d74d2",
+      "tools/arch/templates/packages__client-react__vite.config.ts.txt": "949dbe7c2440928b48c47556f997e1197c7b8af47d06bfefae24c76ff82a7231",
+      "tools/arch/templates/packages__client-react__vitest.config.ts.txt": "9f1ec5ee73aad0c44ca41ee0871e7bdcce66ba69167e38f12dd075a211527b48",
+      "tools/arch/templates/packages__client-react__vitest.setup.ts.txt": "50234d3b820588a4735cc60b7cd6dd9d48361fb47beaa8f31a7e11936599bea6",
+      "tools/arch/templates/packages__domain__package.json.txt": "151c0b5868b97c9346f5533edd3c4a12a8c4774de4bfa66a7da5317b10b5f7b0",
+      "tools/arch/templates/packages__domain__tsconfig.json.txt": "8f6e85eeaa8025fe7b2f01763e03f32540d3e2869ae857490d685098460f4e3a",
+      "tools/arch/templates/packages__integration__package.json.txt": "ca3057dba485c751a2067b503a1317dc15ef38fe38b92fc05716ad4cbd1954eb",
+      "tools/arch/templates/packages__integration__tsconfig.json.txt": "5ea8468220fc154c13695c6187f604d54fef4046f66d376908b3be1649319b8d",
+      "tools/arch/templates/packages__integration__turbo.json.txt": "7b3a9cd37a036c6ec3bbc6f76d07ffb76f6b4e417e2ec6d65f66d67e6a00dc47",
+      "tools/arch/templates/packages__integration__vitest.config.ts.txt": "26d87f11ae2717b90eef570f98b960c26e218e5871f20407e38eeed3126c377b",
+      "tools/arch/templates/packages__react-bindings__package.json.txt": "b8f10cea2f51e1a7862e3c4d9d98abe23351734212eadfa4781499fba89b9992",
+      "tools/arch/templates/packages__react-bindings__tsconfig.json.txt": "f54bf0046c58b5cef852e7e3adff8c6e37632f8d27dd6f269af656223d38fdd2",
+      "tools/arch/templates/packages__react-bindings__vitest.config.ts.txt": "9f1ec5ee73aad0c44ca41ee0871e7bdcce66ba69167e38f12dd075a211527b48",
+      "tools/arch/templates/packages__react-bindings__vitest.setup.ts.txt": "50234d3b820588a4735cc60b7cd6dd9d48361fb47beaa8f31a7e11936599bea6",
+      "tools/arch/templates/packages__server__package.json.txt": "8849866f03ad0480158d32dadc9bfd887bcec7183eed61065ad47d3e5a43cea0",
+      "tools/arch/templates/packages__server__tsconfig.json.txt": "0c4acb0145733c4650b93bfc2d1d9ce9af144212b06db483634fcb19d72b109f",
+      "tools/arch/templates/packages__server__turbo.json.txt": "7b3a9cd37a036c6ec3bbc6f76d07ffb76f6b4e417e2ec6d65f66d67e6a00dc47",
+      "tools/arch/templates/packages__server__vitest.config.ts.txt": "26d87f11ae2717b90eef570f98b960c26e218e5871f20407e38eeed3126c377b",
+      "tools/arch/templates/packages__shared__package.json.txt": "5d99c5288c89bd77cd8bf7ed4fee21f7bc0e346094f833e051d84cb272561fa1",
+      "tools/arch/templates/packages__shared__tsconfig.json.txt": "8f6e85eeaa8025fe7b2f01763e03f32540d3e2869ae857490d685098460f4e3a",
+      "tools/arch/templates/pnpm-workspace.yaml.txt": "83666e812d90f604de9c7cac243840f1b11bd9d904c5022bc76ca8a4794fa6ef",
+      "tools/arch/templates/tsconfig.base.json.txt": "c80384e889c0e3fe21187991aa30efe8629856f690c0d0cde39afff0c41c7c91",
+      "tools/arch/templates/tsconfig.tooling.json.txt": "65062f52a36db84c50496458ac21d5dedc4602913f6c879c48c9ad501b0613ea",
+      "tools/arch/templates/turbo.json.txt": "33cf5e86de524fa1337d7246aee32689654a8e5207c70b83fe8c7150a54b9657",
+      "tools/arch/testing/portTests.mts": "81fba3da26074db268fb24c81bf3d521cd68b39b61eb9c472304ef3642d8c1b5"
+    }
+  },
+  "ci-security": {
+    "files": {
+      ".github/workflows/ci-security.yml": "43e8b4770dc6274f4ff920344fbb5c84b21241d2d3dfc7c0784bea8c965b8f62",
+      ".github/workflows/dependency-review.yml": "775d67ae2fb061a8a5dd93b9acacdcfa8e85d3a90f08e36e385e29e0f56c6c7b",
+      ".github/workflows/scorecard.yml": "75971979909395745f4d7b7c8abe65da9985c868dc41d9766b8bfd2cf4db7dce",
+      "tools/ci-security/check-dockerfiles.mts": "932ac146a2defc999611db86ddcf7f5921ddf51adc6fc24c976bb3406e578bf7",
+      "tools/ci-security/lib/install.mts": "0dd644ee915bcd45cd32c1bc196d93cd0ee131460ba4fc70c9e945e12228a751",
+      "tools/ci-security/lib/lint.mts": "47f6d21e29513b78ae3bba5b0b68155f20121d86597e3b1c18336c219f37f097",
+      "tools/ci-security/lib/pins.mts": "f795c255b8bc1f8121cf3374a40d4a9a26a73dd8e8045f4a9bc14cfcb178b682",
+      "tools/ci-security/lib/system.mts": "c261036e909cef7ff1dce6b2d2634e0963fb1595e942a3d529e5ee6e28000cba",
+      "tools/ci-security/lint-workflows.mts": "e3cf7ddb033053576320cb9306219d001c20e6af58fb997b0b8e92ade8a8ac41",
+      "tools/templates/ci-security..github__dependabot.yml.txt": "35b9a68389c356c3a95959358055f7de6beec0bb3d7dca8d8c454dd6add9b918",
+      "tools/templates/ci-security.SECURITY.md.txt": "26f35258a2f70849dfcde6cf15374a94ebbd20bb71e93891f3ba836fe4925874"
+    },
+    "choice": "dependabot",
+    "starting": [
+      ".github/dependabot.yml",
+      "SECURITY.md"
+    ]
+  },
+  "coverage": {
+    "files": {
+      ".github/workflows/coverage.yml": "dd54cf763e8deee63c51ae448b2512e54c98ec2e9a51e0df5bbe436251cbb77d",
+      "tools/.gitignore": "4424513510f3bbbe04155cd812f9a7bb6731a8c06ccb25cd3b20de9512c556eb",
+      "tools/coverage/gaps.mts": "20f229aac0bfc5e42a69a8f6806f580382d5eabd1515f3b8f3a2880c1a423b86",
+      "tools/coverage/lib/config.mts": "106bf9ccecb16de01d8f08c7c238c9712c534788826a27460e8c4a7666320d29",
+      "tools/coverage/lib/ignores.mts": "0ee998bfa1dfce2c0b94255bdf7d929163c6225e53621603408c7e45dc8b51c3",
+      "tools/coverage/lib/judge.mts": "e74caf810d4560e98c17c808f1796bdb910593b41e332a3f1ca3c2fad9042bdb",
+      "tools/coverage/lib/listening.mts": "62a6af79ab1e5ecdd4e8c1872a23e9939e0ab7745a8c55f6c58d31306ddc4981",
+      "tools/coverage/lib/main.mts": "b9510ffce92e72c31b519bffcd5b2d464d723a11e9d2755b065afb91bca5d54c",
+      "tools/coverage/lib/measure.mts": "81b3e2c41f384790dcd09cc0b8845cf4517f3be08b73017f675bc70679a21450",
+      "tools/coverage/lib/report.mts": "de83c9b68d153fdbd25af2b224b42b31f9c6145b3c91ea8db6965caef0a77291",
+      "tools/coverage/lib/site.mts": "855e11fa5388cbe6f9022a79892bf2d14ad01c6fbf0dc1b98609f82117b203cf",
+      "tools/coverage/lib/workspace.mts": "5ebdd7291cfeb30d2ee4516dccf91bb02083c4c6558a6ec9f07a72ece6fddea8",
+      "tools/coverage/mutation-check.mts": "ccc959758bc44c68e2eedb990d1a6ef0ed96e969865fb59f1ebac8982d9ab43a",
+      "tools/coverage/publish-to-pages.mts": "005e5a8f60cbb66275b47a5bee7a636a6e848362ae492d86948f05a309ef9383",
+      "tools/coverage/run.mts": "71a720658afa7fb70a7cfbb5c7492756b54cde7a3572c17c43a3f573ad739039",
+      "tools/templates/coverage.tools__coverage.config.mts.txt": "c2a2446495d7557fb6ec7761ae199900e7a1744c025f32eaeda42c3fe848bb7f"
+    },
+    "starting": [
+      "tools/coverage.config.mts"
+    ]
+  },
+  "format-lint": {
+    "files": {
+      "tools/format-lint/biome.base.json": "1b5b85f0e43223731e8fa304d3a17e725653471b353c83dfd4b95e8ba5d9b2bd",
+      "tools/format-lint/fix.mts": "5c8418be9ea4890a8b11dafd6b935dc0b0ec1256553c7683515dea87d5cd7f94",
+      "tools/templates/format-lint.biome.json.txt": "837989065b90202735ec8a433beaeaab8610fe4bf2d3c4a6862282d0ea4dedbf"
+    },
+    "starting": [
+      "biome.json"
+    ]
+  },
+  "strict-lint": {
+    "files": {
+      "tools/strict-lint/check-dead.mts": "87a4fc27c69ef23161e33b4e4d7948780897dd21a46dfd2ab133edd76905f3e5",
+      "tools/strict-lint/check-types.mts": "09a1c69fb99307875dcd5b490927c94b3e3b17166a28e0644d5c4aad462856da",
+      "tools/strict-lint/eslint.typed.base.mts": "eb9fdafbffdbc68d5ec932bba9205d60eda041d8fedc19767fb1f32bc75b46a0",
+      "tools/strict-lint/lib/files.mts": "71fe26dc7e77dcef4c2217aae9d9891061edce27a2f124dbd96a53b2f2038d96",
+      "tools/strict-lint/lib/run.mts": "70bba5152fc002adb1303a2d405beed8d1610337681e39cd4d4a221e892f1b2f",
+      "tools/templates/strict-lint.tools__strict-lint__eslint.config.mts.txt": "feb93ba515024fd0ba08a2f5b90157b3e56a825c25d770252c22e1959a17e8c1",
+      "tools/templates/strict-lint.tools__strict-lint__knip.jsonc.txt": "d2c59e626ed7930d845ced2d540b12f3421dad28f27d793c91f65b97686ffd4b"
+    },
+    "starting": [
+      "tools/strict-lint/eslint.config.mts",
+      "tools/strict-lint/knip.jsonc"
+    ]
+  }
+}
