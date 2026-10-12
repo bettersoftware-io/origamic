@@ -100,12 +100,12 @@
       "tools/ci-security/lib/pins.mts": "f795c255b8bc1f8121cf3374a40d4a9a26a73dd8e8045f4a9bc14cfcb178b682",
       "tools/ci-security/lib/system.mts": "c261036e909cef7ff1dce6b2d2634e0963fb1595e942a3d529e5ee6e28000cba",
       "tools/ci-security/lint-workflows.mts": "e3cf7ddb033053576320cb9306219d001c20e6af58fb997b0b8e92ade8a8ac41",
-      "tools/templates/ci-security..github__dependabot.yml.txt": "35b9a68389c356c3a95959358055f7de6beec0bb3d7dca8d8c454dd6add9b918",
+      "tools/templates/ci-security..github__renovate.json5.txt": "4155b9ea47df65dee63b391241275c8e710894377ad3b54c2cdd484978e0eea4",
       "tools/templates/ci-security.SECURITY.md.txt": "26f35258a2f70849dfcde6cf15374a94ebbd20bb71e93891f3ba836fe4925874"
     },
-    "choice": "dependabot",
+    "choice": "renovate",
     "starting": [
-      ".github/dependabot.yml",
+      ".github/renovate.json5",
       "SECURITY.md"
     ]
   },
