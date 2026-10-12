@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Coverage report</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body { font: 16px/1.5 system-ui, sans-serif; max-width: 60rem; margin: 2rem auto; padding: 0 1rem; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { text-align: left; padding: .3rem .6rem; border-bottom: 1px solid #8884; }
+      .number { text-align: right; font-variant-numeric: tabular-nums; }
+      .pass { color: #1a7f37; } .fail, .error { color: #cf222e; } .skip { color: #9a6700; }
+      .build { font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <h1>Coverage report</h1>
+    <p class="build">Built from commit 48898ed (main) on 2026-10-12 00:23 UTC.</p>
+    <p>A published report shows the commit that built it, not the newest one. Compare the commit above with the code you are reading before you trust a number here.</p>
+    <p>The bar, for every file: lines ≥ 95%, statements ≥ 95%, functions ≥ 95%, branches ≥ 85%.</p>
+    <table>
+      <tr><th>Package</th><th>Verdict</th><th>Why</th><th class="number">lines</th><th class="number">statements</th><th class="number">functions</th><th class="number">branches</th></tr>
+      <tr><td><a href="./packages/client-core/index.html">packages/client-core</a></td><td class="pass">PASS</td><td>5 files at or above the bar</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td></tr>
+      <tr><td><a href="./packages/client-react/index.html">packages/client-react</a></td><td class="pass">PASS</td><td>5 files at or above the bar</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td></tr>
+      <tr><td><a href="./packages/domain/index.html">packages/domain</a></td><td class="pass">PASS</td><td>2 files at or above the bar</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td></tr>
+      <tr><td>packages/integration</td><td class="skip">SKIP</td><td>no file to measure: none matches `include`, or every one is excluded</td><td class="number">–</td><td class="number">–</td><td class="number">–</td><td class="number">–</td></tr>
+      <tr><td><a href="./packages/react-bindings/index.html">packages/react-bindings</a></td><td class="pass">PASS</td><td>5 files at or above the bar</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td></tr>
+      <tr><td><a href="./packages/server/index.html">packages/server</a></td><td class="pass">PASS</td><td>1 file at or above the bar</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td><td class="number">–</td></tr>
+      <tr><td><a href="./packages/shared/index.html">packages/shared</a></td><td class="pass">PASS</td><td>1 file at or above the bar</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td></tr>
+    </table>
+    <h2>Findings</h2>
+    <p>None.</p>
+    <h2>Left out of the measurement</h2>
+    <ul>
+      <li><code>**/*.d.ts</code> — declarations hold no code</li>
+      <li><code>**/*.page.{ts,tsx}</code> — page objects are test code</li>
+      <li><code>**/__contracts__/**</code> — port contract tests are test code</li>
+      <li><code>**/__tests__/**</code> — test code</li>
+      <li><code>**/__testUtils__/**</code> — test code</li>
+      <li><code>**/testing/**</code> — test harnesses that other packages' tests import</li>
+      <li><code>packages/client-react/src/main.tsx</code> — the browser's entry point: it only calls startApp(), which is tested; importing it in a test would start the app</li>
+      <li><code>packages/server/src/index.ts</code> — the server's entry point: it only reads the port and calls startServer(), which is tested; importing it in a test would start a server</li>
+    </ul>
+    <p><a href="https://github.com/bettersoftware-io/origamic/actions/runs/38187811901">The run that built this report</a></p>
+  </body>
+</html>
