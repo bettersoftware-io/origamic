@@ -31,7 +31,7 @@
       "tools/arch/gates/lib/config.mts": "252dee5d09ab13f0634580a2e03a41ec929f191297909535b22a2144f59a72ca",
       "tools/arch/gates/lib/contracts.mts": "334c6a06b512f59b6d645083bfd672eaa4047308b2e142436141af0b3a513efe",
       "tools/arch/gates/lib/depcruise.mts": "80d2b93e819875d25b2cc83485248cefdd6880c5e72126dd7fbac83ebef7310c",
-      "tools/arch/gates/lib/files.mts": "c4594b2dcacb2681bd10d07c68fcc61909a1aed3a9b1b2188751c0e96b06d36e",
+      "tools/arch/gates/lib/files.mts": "18fe405917d0785e9ed96e2cbeb29427f6a8014be3225d42fc6a4e989aa9654e",
       "tools/arch/gates/lib/instructions.mts": "c038d0c981033aaa976ee8d67ec0c01a04c62f4cb2601926eaf6c345fb65810f",
       "tools/arch/gates/lib/language.mts": "f718fdddbc04a1058b78820a98e10fde2fcf1ae6ba338608319e06bfd8bcec32",
       "tools/arch/gates/lib/node-floor.mts": "1212a8a39e1e05370b57db297a6251cece4f21134a8779ef71c6df04214b2725",
