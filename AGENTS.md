@@ -503,6 +503,7 @@ change that touches no TypeScript file and no `package.json`.
 
 Do not edit `tools/strict-lint/eslint.typed.base.mts`; an update replaces it.
 A rule the project adds or changes goes in `tools/strict-lint/eslint.config.mts`.
+<!-- /add-on: strict-lint -->
 
 ## Origamic
 
@@ -515,5 +516,3 @@ every spec is versioned and bindings carry versions.
 Two things agents get wrong in spec-driven systems: bypassing the schemas
 with `any`, and hand-writing a component when a catalog entry would do.
 Don't.
-
-<!-- /add-on: strict-lint -->

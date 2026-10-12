@@ -1,8 +1,16 @@
 import { z } from "zod";
-import { Id, Name, PropName, SemVerish, TypeRef } from "./common";
+
+import { Id, Name, PropName, SemVerish, TypeRef } from "./common.ts";
 
 export const PropertyType = z.enum([
-  "string", "text", "number", "integer", "boolean", "date", "datetime", "enum",
+  "string",
+  "text",
+  "number",
+  "integer",
+  "boolean",
+  "date",
+  "datetime",
+  "enum",
 ]);
 
 export const Property = z.object({
@@ -38,8 +46,17 @@ export type Ontology = z.infer<typeof Ontology>;
 export const OntologyMigration = z.discriminatedUnion("op", [
   z.object({ op: z.literal("addObjectType"), objectType: ObjectType }),
   z.object({ op: z.literal("addProperty"), type: Name, property: Property }),
-  z.object({ op: z.literal("deprecateProperty"), type: Name, property: PropName }),
-  z.object({ op: z.literal("renameProperty"), type: Name, from: PropName, to: PropName }),
+  z.object({
+    op: z.literal("deprecateProperty"),
+    type: Name,
+    property: PropName,
+  }),
+  z.object({
+    op: z.literal("renameProperty"),
+    type: Name,
+    from: PropName,
+    to: PropName,
+  }),
   z.object({ op: z.literal("addLinkType"), linkType: LinkType }),
 ]);
 export type OntologyMigration = z.infer<typeof OntologyMigration>;
@@ -47,5 +64,5 @@ export type OntologyMigration = z.infer<typeof OntologyMigration>;
 export const ObjectInstance = z.object({
   id: Id,
   ref: TypeRef,
-  data: z.record(z.unknown()),
+  data: z.record(z.string(), z.unknown()),
 });

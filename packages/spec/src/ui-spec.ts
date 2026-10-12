@@ -1,13 +1,38 @@
 import { z } from "zod";
-import { Id, PropName, SemVerish, TypeRef } from "./common";
+
+import { Id, PropName, SemVerish, TypeRef } from "./common.ts";
 
 /** A read. Views never write. */
 export const ViewQuery = z.object({
   source: TypeRef,
-  filter: z.array(z.object({ property: PropName, op: z.enum(["eq", "neq", "contains", "gt", "lt"]), value: z.unknown() })).default([]),
-  sort: z.array(z.object({ property: PropName, dir: z.enum(["asc", "desc"]) })).default([]),
+  filter: z
+    .array(
+      z.object({
+        property: PropName,
+        op: z.enum(["eq", "neq", "contains", "gt", "lt"]),
+        value: z.unknown(),
+      }),
+    )
+    .default([]),
+  sort: z
+    .array(z.object({ property: PropName, dir: z.enum(["asc", "desc"]) }))
+    .default([]),
   limit: z.number().int().positive().optional(),
 });
+
+/** What a node reads from and writes through: a view by id, an action by name. */
+interface UiNodeBind {
+  view?: string;
+  action?: string;
+}
+
+interface UiNodeShape {
+  id: string;
+  component: string;
+  props: Record<string, unknown>;
+  bind?: UiNodeBind;
+  children?: unknown[];
+}
 
 /**
  * A node references a catalog component by name. The catalog package owns the
@@ -15,18 +40,17 @@ export const ViewQuery = z.object({
  * { component, props, children, bindings }. Validation of props against the
  * catalog happens in the runtime with the catalog in hand.
  */
-export const UiNode: z.ZodType<{
-  id: string; component: string; props: Record<string, unknown>;
-  bind?: { view?: string; action?: string }; children?: unknown[];
-}> = z.lazy(() =>
-  z.object({
+export const UiNode: z.ZodType<UiNodeShape> = z.lazy(() => {
+  return z.object({
     id: Id,
     component: z.string().min(1),
-    props: z.record(z.unknown()).default({}),
-    bind: z.object({ view: Id.optional(), action: PropName.optional() }).optional(),
+    props: z.record(z.string(), z.unknown()).default({}),
+    bind: z
+      .object({ view: Id.optional(), action: PropName.optional() })
+      .optional(),
     children: z.array(UiNode).optional(),
-  }),
-);
+  });
+});
 
 export const UiSpec = z.object({
   version: SemVerish,

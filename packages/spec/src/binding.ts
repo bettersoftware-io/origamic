@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { Id, SemVerish, TypeRef } from "./common";
-import { ActionType } from "./action";
-import { UiSpec } from "./ui-spec";
+
+import { ActionType } from "./action.ts";
+import { Id, SemVerish, TypeRef } from "./common.ts";
+import { UiSpec } from "./ui-spec.ts";
 
 /** An app is a bundle of specs plus the ontology version it was built against. */
 export const AppSpec = z.object({

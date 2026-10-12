@@ -19,6 +19,9 @@ const config: ArchitectureConfig = {
     // `noNodeBuiltins` is on for every package that ends up in the browser.
     // The domain has it by default.
     "packages/domain": { role: "domain", npm: ["rxjs"] },
+    // The five Zod schemas. A leaf imports no other package and every role
+    // may import it, which is ARCHITECTURE.md's first dependency rule.
+    "packages/spec": { role: "leaf", npm: ["zod"], noNodeBuiltins: true },
     "packages/shared": { role: "shared", noNodeBuiltins: true },
     "packages/client-core": { role: "core", noNodeBuiltins: true },
     "packages/react-bindings": { role: "bindings", noNodeBuiltins: true },

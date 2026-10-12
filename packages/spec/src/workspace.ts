@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { Id, SemVerish } from "./common";
+
+import { Id, SemVerish } from "./common.ts";
 
 export const PanelRef = z.object({ appId: Id, appVersion: SemVerish });
 

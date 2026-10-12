@@ -353,6 +353,12 @@ importers:
         specifier: workspace:*
         version: link:../domain
 
+  packages/spec:
+    dependencies:
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+
 packages:
 
   '@asamuzakjp/css-color@7.1.3':
