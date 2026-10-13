@@ -107,3 +107,13 @@ verified, a case that is not covered.
   `bettersoftware-io/skills`, holds the review and the run.
 - **The property tests of a tree of UI nodes go three levels deep.** A fault
   that needs a deeper tree is not found by them.
+- **A red `gate:full` when a session stops may be another session's
+  doing.** Seen once, on 2026-10-13, while two sessions worked here: the
+  coverage stage failed with "vitest wrote no coverage summary" for
+  `packages/react-bindings`, on a commit that was green in CI, and passed
+  when run again with nothing changed. The likely cause, not proven: both
+  sessions' stop hooks run the gate in this one checkout, and one empties
+  the `coverage/` folder the other is reading. When that message is the
+  only failure, run the gate once more before you change anything; a second
+  red is the code's. The fix is the plugin's, and its `docs/STATUS.md` in
+  `bettersoftware-io/skills` has the entry.
