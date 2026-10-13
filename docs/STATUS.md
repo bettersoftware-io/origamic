@@ -93,5 +93,17 @@ verified, a case that is not covered.
   right.** A red check, a conflict, two sessions merging at the same time and
   a failure on main after a merge have not been met. The rules for them are
   in `AGENTS.md` and unproven here.
+- **The hook before a shell command copies what one version of Claude Code
+  does.** It refuses an outward step joined to others, and asks about a push
+  that is not written plainly. To see such a push it looks past the words
+  Claude Code 2.1.296 looks past (`nice`, `timeout`, `xargs` and the rest),
+  and it is registered for the two tools that version runs a shell command
+  with, `Bash` and `Monitor`. A later version that looks past another word,
+  or gains another such tool, opens a way past it, and nothing here fails
+  when it does. It was watched on 2026-10-13 in a headless session, in a
+  scratch repository with a rule that allows every push; not in front of a
+  person, and not under Codex. This project has no such rule, so every push
+  here asks whatever the hook says. The add-on's own page, in
+  `bettersoftware-io/skills`, holds the review and the run.
 - **The property tests of a tree of UI nodes go three levels deep.** A fault
   that needs a deeper tree is not found by them.
