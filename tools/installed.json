@@ -183,10 +183,14 @@
       "tools/agent-workflow/lib/week.mts": "4db4f77058b85b439fe7126a131d9cfea1c99b75027e39fc91c81d0e8cb934f0",
       "tools/agent-workflow/new-worktree.mts": "cb968458e3b69081da54a395b295c3f9316d865dc1bdc4a11e8cf880d49a6627",
       "tools/agent-workflow/requires.mts": "0d6555c1112fc35e211e77a85298ac31fbf033d95db56b5e992e69c877926dd3",
-      "tools/templates/agent-workflow.CHANGELOG.md.txt": "9b0fb93cadcc10a6075ef70ffa8e38bcc59655410bb2f07f3410677fbe3cf96d"
+      "tools/templates/agent-workflow.CHANGELOG.md.txt": "9b0fb93cadcc10a6075ef70ffa8e38bcc59655410bb2f07f3410677fbe3cf96d",
+      "tools/templates/agent-workflow.docs__IDEAS.md.txt": "8472595386eb9ac467efb7cdf424bd5552007297ecb94d99793b08222acead55",
+      "tools/templates/agent-workflow.docs__STATUS.md.txt": "0d79af20527d350ded8bebc82b40c76692febb4fee1566eace45ced555a1618a"
     },
     "starting": [
-      "CHANGELOG.md"
+      "CHANGELOG.md",
+      "docs/IDEAS.md",
+      "docs/STATUS.md"
     ]
   }
 }
