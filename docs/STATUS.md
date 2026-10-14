@@ -12,7 +12,7 @@ One bullet for each entry: its name in bold, what is left, and a link to its
 plan when it has one. `AGENTS.md` says when an entry is added, moved and
 removed.
 
-**Last updated: 2026-10-13**
+**Last updated: 2026-10-14**
 
 ## In progress
 
@@ -100,11 +100,11 @@ verified, a case that is not covered.
   and it is registered for the two tools that version runs a shell command
   with, `Bash` and `Monitor`. A later version that looks past another word,
   or gains another such tool, opens a way past it, and nothing here fails
-  when it does. It was watched on 2026-10-13 in a headless session, in a
-  scratch repository with a rule that allows every push; not in front of a
-  person, and not under Codex. This project has no such rule, so every push
-  here asks whatever the hook says. The add-on's own page, in
-  `bettersoftware-io/skills`, holds the review and the run.
+  when it does. It was watched on 2026-10-13 in headless sessions of Claude
+  Code and of Codex, in a scratch repository with a rule that allows every
+  push; not in front of a person. This project has no such rule, so every
+  push here asks whatever the hook says. The add-on's own page, in
+  `bettersoftware-io/skills`, holds the two reviews and the runs.
 - **The property tests of a tree of UI nodes go three levels deep.** A fault
   that needs a deeper tree is not found by them.
 - **A red `gate:full` when a session stops may be another session's
