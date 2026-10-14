@@ -41,6 +41,7 @@ the gates read; a package that is not listed there fails.
 
 | Package | Role | Holds | May import |
 |---|---|---|---|
+| `packages/spec` | leaf | Origamic's spec schemas and their reference checks | nothing (runtime: `zod` only) |
 | `packages/domain` | domain | Entities, use cases, port interfaces, simulators | nothing (runtime: `rxjs` only) |
 | `packages/shared` | shared | The wire protocol | domain |
 | `packages/client-core` | core | Adapters, presenters, state machines, the composition of the app | domain, shared |
@@ -518,11 +519,14 @@ A rule the project adds or changes goes in `tools/strict-lint/eslint.config.mts`
 
 ## Origamic
 
-Read docs/architecture/VISION.md and ARCHITECTURE.md before any change.
-The dependency rule: spec ← core ← runtime ← apps/web; catalog imports spec
-and React only; adapters are the only package that knows Supabase, SQL, HTTP
-or the LLM API. UI binds to the ontology only; every write is a named action;
-every spec is versioned and bindings carry versions.
+Read docs/architecture/VISION.md and docs/architecture/ARCHITECTURE.md
+before any change, and the decision records in docs/architecture/adr/ that
+touch it. The dependency rule between Origamic's packages: spec ← core ←
+runtime ← apps/web; catalog imports spec only; of the browser's packages,
+adapters are the only one that knows Supabase, SQL or HTTP, and only the
+gateway calls the model. Which npm packages each may import is in
+ARCHITECTURE.md. UI binds to the ontology only; every write is a named
+action; every spec is versioned and bindings carry versions.
 
 Two things agents get wrong in spec-driven systems: bypassing the schemas
 with `any`, and hand-writing a component when a catalog entry would do.

@@ -1,26 +1,44 @@
 # Origamic — Architecture
 
+The decisions behind this page are the records under [adr/](adr/). The first
+reading of these documents, and what it settled, is
+[reviews/2026-10-14-first-reading.md](reviews/2026-10-14-first-reading.md).
+
 ## Glossary
 
 Agents misuse these words unless pinned. Use them exactly.
 
 - **Ontology** — the set of `ObjectType`, `Property`, `LinkType` and
-  `ActionType` definitions. Versioned as a whole. The only thing apps bind to.
+  `ActionType` definitions of one owner. Versioned as a whole, and each
+  object type and action type also carries a version of its own (ADR-0005).
+  The only thing apps bind to.
 - **Object** — an instance of an `ObjectType`. Stored by the persistence
   adapter; never addressed by table or column outside it.
-- **Action** — a named write with an input schema and validation rules.
-  The only way state changes.
-- **View** — a read: a query over the ontology, declared in a spec, optionally
-  materialised. Views never write.
-- **Catalog** — the fixed set of UI components the runtime can render, each
-  described by a Zod schema (props in, events out). The model may only
-  reference catalog entries.
-- **UI spec** — a tree of catalog component references with bindings to
-  views and actions.
-- **App** — a saved tuple `(ontology slice, ui spec, actions, bindings)` with
-  a version.
-- **Workspace** — a saved layout of apps in dockview panels, itself a spec.
+- **Action** — a named write, defined in the ontology, whose input is a set
+  of its type's properties (ADR-0008). The only way state changes.
+- **View** — a read: a query over one bound type, declared in a UI spec.
+  Views never write. Materialised views are not in v1.
+- **Catalog** — the fixed set of UI components the runtime can render. Each
+  has a contract (a Zod schema of its props in Origamic's terms, the events
+  it emits, a description) and an implementation (ADR-0010). The model may
+  only reference catalog entries.
+- **UI spec** — a flat map of elements, each naming a catalog component and
+  wired to views, state and actions (ADR-0002).
+- **Wiring** — what connects an element to the rest of its app: a prop that
+  reads a view or a state key, an event that sets state or invokes an action.
+- **Binding** — an app's reference into the ontology: `ObjectType@version`
+  for a type it reads or writes, `action@version` for an action it invokes.
+  Never a bare name.
+- **App** — a saved spec: its UI spec, its bindings, the ontology version it
+  was built against, and its own version.
+- **Workspace** — a saved layout of apps in panels, itself a spec, in a
+  layout format of Origamic's own (ADR-0003).
 - **Library** — the store of apps and workspaces.
+- **Change set** — a list of operations on the ontology, written against one
+  ontology version and applied whole. Not called a "migration" here: that
+  word is kept for the SQL files of the database.
+- **Compatibility report** — what loading an app against a newer ontology
+  returns when something it binds has changed in a way that breaks it.
 - **Spec** — any of the above when stored as data. Never means "code".
 - **Runtime** — the client that interprets specs. Never generated.
 
@@ -28,13 +46,13 @@ Agents misuse these words unless pinned. Use them exactly.
 
 ```mermaid
 flowchart TB
-  spec["packages/spec<br/>Zod schemas, no deps"]
-  core["packages/core<br/>ontology, actions, views, library — behavioural core, RxJS boundaries"]
-  catalog["packages/catalog<br/>shadcn-based components, each with a schema"]
-  runtime["packages/runtime<br/>spec interpreter: renders UI specs over catalog, binds views and actions"]
+  spec["packages/spec<br/>Zod schemas and reference checks"]
+  core["packages/core<br/>ports, ontology, actions, views, library, builder — RxJS at the boundaries"]
+  catalog["packages/catalog<br/>contracts (Zod) and their React implementations"]
+  runtime["packages/runtime<br/>spec interpreter: renders UI specs over the catalog, wires views, state and actions"]
   adapters["packages/adapters<br/>Supabase persistence, LLM gateway client"]
-  app["apps/web<br/>shell: dockview workspace, builder chat, library browser"]
-  gateway["apps/gateway (Fly.io)<br/>LLM calls, spec validation on save"]
+  app["apps/web<br/>composition root and shell: dockview workspace, builder chat, library browser"]
+  gateway["apps/gateway (Fly.io)<br/>LLM calls, validation of what the model returns"]
 
   core --> spec
   catalog --> spec
@@ -45,77 +63,116 @@ flowchart TB
   adapters --> spec
   app --> runtime
   app --> adapters
+  app --> core
+  app --> spec
   gateway --> spec
+  gateway -- "manifest only" --> catalog
 ```
 
-Rules, each to be enforced as an import ban in `tools/arch`:
+A rule has two halves, and the gates hold them apart: which of Origamic's own
+packages a package may import, and which npm packages it may import. "`core`
+imports `spec` only" was the first half alone; read literally it banned the
+RxJS its ports return.
 
-1. `packages/spec` imports nothing but `zod`.
-2. `packages/core` imports `spec` only. No React, no Supabase, no DOM.
-3. `packages/catalog` imports `spec` and React. No `core`, no `adapters`.
-   A catalog component is a pure function of its props and emits events;
-   it never fetches, never reads global state.
-4. `packages/runtime` imports `spec`, `core`, `catalog`. Never `adapters`.
-5. `packages/adapters` is the only place that knows about Supabase tables,
-   SQL, HTTP, or the LLM API.
-6. `apps/web` wires `runtime` to `adapters`. It contains no business logic.
-7. Nothing outside `adapters` names a table, a column or a query string.
+| Package | Imports, of ours | Imports, from npm |
+|---|---|---|
+| `packages/spec` | nothing | `zod` |
+| `packages/core` | `spec` | `rxjs`, `zod` |
+| `packages/catalog` | `spec` | `react`, `zod`, and the libraries its implementation is built from. Its manifest entry: `zod` only |
+| `packages/runtime` | `spec`, `core`, `catalog` | `react`, `rxjs` |
+| `packages/adapters` | `spec`, `core` | `@supabase/supabase-js`, and nothing else names it |
+| `apps/web` | `runtime`, `adapters`, `core`, `spec` | `react`, `react-dom`, `dockview`, and nothing else names dockview |
+| `apps/gateway` | `spec`, the catalog's manifest | `@anthropic-ai/sdk`, and nothing else names it; Node's built-ins |
+
+And:
+
+1. `packages/catalog`: a component is a pure function of its props and emits
+   events; it never fetches and never reads global state. No prop passes
+   through to what implements it (ADR-0010).
+2. `packages/runtime` never imports `adapters`.
+3. Of the packages that run in the browser, `packages/adapters` is the only
+   one that knows about Supabase tables, SQL, HTTP or the gateway's address.
+   The gateway is the only place that calls the model.
+4. `apps/web` wires `runtime` to `adapters`. It contains no business logic.
+5. Nothing outside `adapters` names a table, a column or a query string.
+
+The table and rule 2 can be held by import bans in `tools/arch` (step 3 of
+the handover). Rules 1, 4 and 5 cannot be decided from imports alone: they
+are questions for a review. Rule 3 is held for libraries (only `adapters`
+imports the Supabase client) and not for a `fetch` written by hand.
 
 ## The behavioural core (`packages/core`)
 
 Framework-agnostic. Ports as interfaces; streams as RxJS observables at the
-boundaries. The ports in v1:
+boundaries. Each port has a contract test, an in-memory simulator in `core`
+and a real adapter in `adapters`, and the contract runs against both
+(ADR-0012). The ports in v1, in outline:
 
 ```ts
 interface OntologyStore {
   current(): Observable<Ontology>;
-  propose(migration: OntologyMigration): Promise<OntologyVersion>;
+  apply(change: ChangeSet): Promise<OntologyVersion>;
 }
 interface ObjectStore {
   view(query: ViewQuery): Observable<ObjectPage>;
   execute(action: ActionInvocation): Promise<ActionResult>;
 }
 interface SpecLibrary {
-  list(): Observable<LibraryEntry[]>;
-  load(id: AppId, version?: SpecVersion): Promise<AppSpec>;
-  save(spec: AppSpec): Promise<SpecVersion>;
+  apps(): Observable<LibraryEntry[]>;
+  loadApp(id: AppId, version?: SpecVersion): Promise<App>;
+  saveApp(draft: AppDraft): Promise<SpecVersion>;
+  loadWorkspace(id: WorkspaceId, version?: SpecVersion): Promise<Workspace>;
+  saveWorkspace(draft: WorkspaceDraft): Promise<SpecVersion>;
 }
 interface LlmGateway {
   generate(req: GenerationRequest): Observable<GenerationEvent>;
 }
+interface Session {
+  user(): Observable<User | null>;
+}
 ```
 
-Supabase and the Fly.io gateway are adapters behind these. The thin TSX in
-`runtime` and `apps/web` subscribes to these streams and dispatches actions;
-it holds no state of its own beyond what dockview needs for layout.
+Supabase and the Fly.io gateway are adapters behind these. Beyond the stores,
+`core` holds the builder: a state machine for the conversation with the
+model, the proposal it returned and its diff, and the builder's accept or
+reject. A proposal is a value in `core` until it is accepted; nothing is
+stored before. The state a UI spec declares (a selection, a filter, a form's
+draft) lives in `core` too. The thin TSX in `runtime` and `apps/web`
+subscribes to these streams and dispatches events; it holds no state of its
+own beyond what dockview needs for layout.
 
 ## Persistence model (see ADR-0001)
 
-v1 stores objects in a single JSONB `objects` table plus a `links` table, keyed
-by `object_type@version`. No per-type tables. The ontology itself is data in
-an `ontology_versions` table. Compilation to real tables is a later
+v1 stores objects in a single JSONB `objects` table plus a `links` table, each
+row with its owner; an object records the version of its type it was written
+at. No per-type tables. The ontology itself is data in an `ontology_versions`
+table, one ontology per owner. Compilation to real tables is a later
 optimisation that the dependency rule keeps invisible to everything above
-`adapters`.
+`adapters`. Row-level security is on for every table (ADR-0004).
 
 ## Generation model
 
-The model is called with: the current ontology (or a retrieved slice), the
-catalog's schemas, the action protocol, and the user's intent. It must return
-specs that validate against `packages/spec`. Invalid output is rejected and
-the error is fed back for one retry; a second failure is shown to the user.
-The gateway validates on save as well, so a client cannot store an invalid
-spec.
+The gateway is called with the caller's token, the current ontology (or a
+retrieved slice), the catalog's manifest, and the user's intent. It asks the
+model for a change set and an app spec, held to a schema built from the
+catalog's contracts (ADR-0006, ADR-0011), then runs the schema and the
+reference checks of `packages/spec`. Invalid output is fed back for one retry;
+a second failure is returned to the client and shown to the user.
 
-## Versioning
+In v1 nothing renders before a proposal is complete and valid: the events of
+a generation are its progress and its final proposal. The builder sees the
+proposal as a diff and accepts or rejects it.
 
-- The ontology has a monotonically increasing version. A change is a
-  migration (`add type`, `add property`, `rename`, `deprecate`, …), stored as
-  data, applied in order.
-- An app spec carries its own version and the ontology version it was built
-  against. Bindings reference `ObjectType@version`.
-- Loading an app against a newer ontology runs a compatibility check; a
-  breaking mismatch produces a migration proposal for the model to fill in,
-  never a silent failure.
+## Versioning (see ADR-0005)
+
+- The ontology's version counts change sets. Each object type and action type
+  has a version of its own, which moves only when a change set changes it.
+- An app carries its own version, the ontology version it was built against,
+  and its bindings, each `ObjectType@version` or `action@version`.
+- A change set never rewrites stored objects. Loading an app against a newer
+  ontology runs a compatibility check: a compatible change loads, and a
+  breaking one returns a compatibility report for the model to propose a
+  revision from, never a silent failure.
 
 ## Cross-app state (deferred)
 
@@ -126,11 +183,18 @@ all app state in `core`.
 
 ## Security posture
 
-Specs are data, so nothing the model emits is executed as code in v1. When
-sandboxed functions arrive (post-v1), they run in an isolate (QuickJS in a
-worker or equivalent), are typed against the ontology, and are type-checked
-before being stored. LLM keys live only in the Fly.io gateway. Supabase RLS
-is enabled from day one even with a single user, keyed on ownership.
+Specs are data, so nothing the model emits is executed as code in v1. That
+stays true only while no catalog prop can carry a script: a prop takes a URL
+with `http` or `https` only, and no prop takes HTML (ADR-0010). When sandboxed
+functions arrive (post-v1), they run in an isolate (QuickJS in a worker or
+equivalent), are typed against the ontology, and are type-checked before being
+stored. LLM keys live only in the Fly.io gateway, which serves a caller only
+with a valid Supabase token. Supabase RLS is enabled from day one even with a
+single user, keyed on ownership.
+
+In v1 the schemas and the actions are enforced by the client, not by the
+server: a client that bypasses them can write anything into its own owner's
+rows, and nothing into another's (ADR-0009).
 
 ## What this architecture is optimising for
 
