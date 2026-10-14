@@ -17,3 +17,11 @@ The ontology is data in `ontology_versions`. Indexes on `(type)` and GIN on
 Simple to evolve; queries are less efficient at scale; JSONB validation is
 done by the action layer against the ontology, not by the database. The
 dependency rule guarantees nothing above `adapters` notices when this changes.
+
+## Amended 2026-10-14
+
+From the first reading ([review](../reviews/2026-10-14-first-reading.md)):
+`type_version` is the version of the object's type it was written at, and a
+change to the ontology never rewrites it (ADR-0005). The `links` table gains
+`owner` and the timestamps, so row-level security can key on it as on
+`objects` (ADR-0004).
