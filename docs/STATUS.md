@@ -105,8 +105,6 @@ verified, a case that is not covered.
   push; not in front of a person. This project has no such rule, so every
   push here asks whatever the hook says. The add-on's own page, in
   `bettersoftware-io/skills`, holds the two reviews and the runs.
-- **The property tests of a tree of UI nodes go three levels deep.** A fault
-  that needs a deeper tree is not found by them.
 - **A red `gate:full` when a session stops may be another session's
   doing.** Seen once, on 2026-10-13, while two sessions worked here: the
   coverage stage failed with "vitest wrote no coverage summary" for
