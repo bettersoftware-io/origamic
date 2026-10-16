@@ -80,7 +80,7 @@ RxJS its ports return.
 | `packages/core` | `spec` | `rxjs`, `zod` |
 | `packages/catalog` | `spec` | `react`, `zod`, and the libraries its implementation is built from. Its manifest entry: `spec` and `zod` only |
 | `packages/runtime` | `spec`, `core`, `catalog` | `react`, `rxjs` |
-| `packages/adapters` | `spec`, `core` | `@supabase/supabase-js`, and nothing else names it |
+| `packages/adapters` | `spec`, `core` | `@supabase/supabase-js`, and nothing else names it; `rxjs`, for the ports it implements |
 | `apps/web` | `runtime`, `adapters`, `core`, `spec` | `react`, `react-dom`, `dockview`, and nothing else names dockview |
 | `apps/gateway` | `spec`, the catalog's manifest | `@anthropic-ai/sdk`, and nothing else names it; Node's built-ins |
 
@@ -180,6 +180,13 @@ at. No per-type tables. The ontology itself is data in an `ontology_versions`
 table, one ontology per owner. Compilation to real tables is a later
 optimisation that the dependency rule keeps invisible to everything above
 `adapters`. Row-level security is on for every table (ADR-0004).
+
+A view is read through one database function, `view_objects`, run as the
+caller so that row-level security holds: it compares and orders values as
+`ObjectStorePort` says (numbers as numbers, text by its code units), which
+PostgREST's query builder cannot. A link carries its link type's
+cardinality as it was when the link was written, and unique indexes hold
+each link to it, so two links written at once cannot both pass.
 
 ## Generation model
 
