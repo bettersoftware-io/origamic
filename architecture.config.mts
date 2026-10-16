@@ -72,6 +72,7 @@ const config: ArchitectureConfig = {
     },
     "packages/server": { role: "server" },
     "packages/integration": { role: "integration" },
+    "packages/e2e": { role: "e2e" },
   },
 
   // Folders whose modules implement ports. Each must run the contract test of
@@ -91,8 +92,6 @@ const config: ArchitectureConfig = {
     "packages/catalog":
       "it holds no code yet: its first code comes with the first slice, and its tests with it",
     "packages/runtime":
-      "it holds no code yet: its first code comes with the first slice, and its tests with it",
-    "packages/adapters":
       "it holds no code yet: its first code comes with the first slice, and its tests with it",
   },
 
