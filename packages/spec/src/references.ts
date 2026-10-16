@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import type { ActionType } from "./action.ts";
 import { AppDraft } from "./binding.ts";
 import type { ObjectType, Ontology } from "./ontology.ts";
@@ -20,17 +22,19 @@ export type CatalogManifest = Readonly<Record<string, CatalogComponent>>;
 /** The catalog as `validateApp` takes it: the manifest, and the check of what only the components' schemas can judge. */
 export interface Catalog {
   manifest: CatalogManifest;
+  /** What only the props' schemas can judge of one element. It returns [] for a component it does not know: `checkApp` reports that. */
   checkElement(id: string, element: Element): Problem[];
 }
 
 /** One thing a spec names that the ontology or the catalog does not have, worded for whoever fixes it. */
-export interface Problem {
-  path: string;
-  message: string;
-}
+export const Problem = z.strictObject({
+  path: z.string(),
+  message: z.string(),
+});
+export type Problem = z.infer<typeof Problem>;
 
 /** What `validateApp` gives: the app as parsed, or every problem found. */
-export type Validated =
+type Validated =
   | { kind: "valid"; app: AppDraft }
   | { kind: "invalid"; problems: Problem[] };
 

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { Id, Json, Name, PropName } from "./common.ts";
-import { type Path, report } from "./refine.ts";
+import { type Path, report, withoutProtoKey } from "./refine.ts";
 
 /** A plain JSON value. A key that starts with `$` is kept for a reference, so a misspelt one is not taken for data. */
 const Literal = Json.refine(
@@ -37,7 +37,7 @@ const Handler = z.discriminatedUnion("do", [
     action: PropName,
     /** The id of the object an `update`, a `delete` or a `link` acts on. */
     target: Expression.optional(),
-    input: z.record(PropName, Expression).default({}),
+    input: withoutProtoKey(z.record(PropName, Expression)).default({}),
   }),
 ]);
 type Handler = z.infer<typeof Handler>;
@@ -45,9 +45,9 @@ type Handler = z.infer<typeof Handler>;
 /** One element of the spec: a catalog component, its props, the ids of its children, and what it does on each event it emits. */
 export const Element = z.strictObject({
   component: z.string().min(1),
-  props: z.record(z.string().min(1), PropValue).default({}),
+  props: withoutProtoKey(z.record(z.string().min(1), PropValue)).default({}),
   children: z.array(Id).default([]),
-  on: z.record(PropName, z.array(Handler).min(1)).default({}),
+  on: withoutProtoKey(z.record(PropName, z.array(Handler).min(1))).default({}),
 });
 export type Element = z.infer<typeof Element>;
 
@@ -76,9 +76,9 @@ const StateDeclaration = z.strictObject({
 
 const uiSpecFields = z.strictObject({
   root: Id,
-  elements: z.record(Id, Element),
-  views: z.record(Id, View).default({}),
-  state: z.record(PropName, StateDeclaration).default({}),
+  elements: withoutProtoKey(z.record(Id, Element)),
+  views: withoutProtoKey(z.record(Id, View)).default({}),
+  state: withoutProtoKey(z.record(PropName, StateDeclaration)).default({}),
 });
 
 /**
@@ -123,7 +123,7 @@ function checkUiSpec(ui: UiSpecFields, ctx: z.RefinementCtx): void {
 
 /** Every element is reached from the root along exactly one path. A loop leaves its elements unreached, so it is reported as that. */
 function checkTree(ui: UiSpecFields, ctx: z.RefinementCtx): void {
-  if (!(ui.root in ui.elements)) {
+  if (!Object.hasOwn(ui.elements, ui.root)) {
     report(ctx, ["root"], `the root "${ui.root}" is not an element`);
 
     return;
@@ -136,7 +136,7 @@ function checkTree(ui: UiSpecFields, ctx: z.RefinementCtx): void {
       const path = ["elements", id, "children", index];
       const parent = parents.get(child);
 
-      if (!(child in ui.elements)) {
+      if (!Object.hasOwn(ui.elements, child)) {
         report(
           ctx,
           path,
@@ -176,7 +176,7 @@ function checkHandler(
   ctx: z.RefinementCtx,
 ): void {
   if (handler.do === "set") {
-    if (!(handler.state in ui.state)) {
+    if (!Object.hasOwn(ui.state, handler.state)) {
       report(
         ctx,
         [...path, "state"],
@@ -207,13 +207,13 @@ function checkReference(
 ): void {
   const view = ViewRef.safeParse(value);
 
-  if (view.success && !(view.data.$view in ui.views)) {
+  if (view.success && !Object.hasOwn(ui.views, view.data.$view)) {
     report(ctx, path, `"${view.data.$view}" is not a declared view`);
   }
 
   const state = StateRef.safeParse(value);
 
-  if (state.success && !(state.data.$state in ui.state)) {
+  if (state.success && !Object.hasOwn(ui.state, state.data.$state)) {
     report(ctx, path, `"${state.data.$state}" is not declared in state`);
   }
 }

@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import { z } from "zod";
 
 import type { Problem } from "./references.ts";
 
@@ -37,4 +37,28 @@ export function problemsOf(error: z.ZodError): Problem[] {
   return error.issues.map((issue) => {
     return { path: issue.path.map(String).join("."), message: issue.message };
   });
+}
+
+/**
+ * `schema`, a record, refusing a `__proto__` key. `JSON.parse` keeps one as
+ * an own key, and Zod leaves it out of what it parses without a word (its
+ * key schema never sees it), so it is refused here, before the record runs.
+ */
+export function withoutProtoKey<Output, Input>(
+  schema: z.ZodType<Output, Input>,
+): z.ZodPipe<z.ZodCustom<Input, Input>, z.ZodType<Output, Input>> {
+  return z
+    .custom<Input>(hasNoProtoKey, {
+      message: '"__proto__" is not a key a spec may use',
+      path: ["__proto__"],
+    })
+    .pipe(schema);
+}
+
+function hasNoProtoKey(value: unknown): boolean {
+  return !(
+    typeof value === "object" &&
+    value !== null &&
+    Object.hasOwn(value, "__proto__")
+  );
 }

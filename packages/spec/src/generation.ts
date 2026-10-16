@@ -3,12 +3,10 @@ import { z } from "zod";
 import { App, AppDraft } from "./binding.ts";
 import { Format } from "./common.ts";
 import { ChangeSet, Ontology } from "./ontology.ts";
+import { Problem } from "./references.ts";
 
 // What travels between the client and the gateway. Each side parses what it
 // receives with these, so a value from the other side is never used unread.
-
-/** A problem as `checkApp` and `validateApp` word it. */
-const Problem = z.strictObject({ path: z.string(), message: z.string() });
 
 /** What the builder asks for, with the ontology it is asked against and, for a revision, the app it revises. */
 export const GenerationRequest = z.strictObject({

@@ -49,11 +49,6 @@ It waits on a release, a decision or other work. Each entry says on what.
 
 The next step is known, and nobody has written a plan for it.
 
-- **A UI spec takes an inherited name for a declared view or state key.**
-  `UiSpec` checks a `$view` and a `$state` with `in`, so
-  `{"$view": "constructor"}` or `{"$state": "toString"}` passes with nothing
-  declared under that name. `checkApp` already looks up only a record's own
-  entries; `ui-spec.ts` needs the same, with a test.
 - **Nothing holds "a required property is added with a `default`".**
   `ontology.ts` states it, and neither `ChangeSet` nor `applyChangeSet`
   checks it, so a change set can add a required property that every stored

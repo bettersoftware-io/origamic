@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { createBookApp } from "./testing/bookTracker.ts";
-import { elementOf, issuesOf } from "./testing/issues.ts";
+import { elementOf, issuesOf, problemsIn } from "./testing/issues.ts";
 import { UiSpec } from "./ui-spec.ts";
 
 // Property tests: fast-check makes the specs, of any shape up to 40
@@ -116,6 +116,73 @@ describe("a UI spec", () => {
       '"row" is not declared in state',
       '"draft" is not declared in state',
       '"shelf" is not declared in state',
+    ]);
+  });
+
+  it("takes no name every object inherits for an element, a view or a state key", () => {
+    const rootless = {
+      root: "constructor",
+      elements: { page: { component: "Stack" } },
+    };
+
+    const inherited = {
+      root: "page",
+      elements: {
+        page: {
+          component: "Stack",
+          children: ["toString"],
+          props: {
+            rows: { $view: "valueOf" },
+            value: { $state: "hasOwnProperty" },
+          },
+          on: { change: [{ do: "set", state: "constructor", to: null }] },
+        },
+      },
+    };
+
+    expect(problemsIn(UiSpec, rootless)).toEqual([
+      { path: "root", message: 'the root "constructor" is not an element' },
+    ]);
+    expect(problemsIn(UiSpec, inherited)).toEqual([
+      {
+        path: "elements.page.children.0",
+        message: '"page" has a child "toString" that is not an element',
+      },
+      {
+        path: "elements.page.props.rows",
+        message: '"valueOf" is not a declared view',
+      },
+      {
+        path: "elements.page.props.value",
+        message: '"hasOwnProperty" is not declared in state',
+      },
+      {
+        path: "elements.page.on.change.0.state",
+        message: 'a handler sets "constructor", which is not declared in state',
+      },
+    ]);
+  });
+
+  it("refuses a __proto__ key, which JSON.parse keeps and a record would drop", () => {
+    const asElement = JSON.parse(
+      '{"root": "page", "elements": {"page": {"component": "Stack"}, "__proto__": {"component": "Stack"}}}',
+    );
+
+    const asProp = JSON.parse(
+      '{"root": "page", "elements": {"page": {"component": "Stack", "props": {"__proto__": 1}}}}',
+    );
+
+    expect(problemsIn(UiSpec, asElement)).toEqual([
+      {
+        path: "elements.__proto__",
+        message: '"__proto__" is not a key a spec may use',
+      },
+    ]);
+    expect(problemsIn(UiSpec, asProp)).toEqual([
+      {
+        path: "elements.page.props.__proto__",
+        message: '"__proto__" is not a key a spec may use',
+      },
     ]);
   });
 
