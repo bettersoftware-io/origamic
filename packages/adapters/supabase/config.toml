@@ -1,0 +1,66 @@
+# The local Supabase the adapters' tests run against (ADR-0004), started by
+# tools/supabase/localSupabase.mts. Only what Origamic uses is on: the
+# database, the API in front of it, and auth. A key left out takes the CLI's
+# default; `supabase init` prints them all.
+project_id = "origamic"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[db.pooler]
+enabled = false
+
+[db.migrations]
+enabled = true
+
+# No seed: each test makes the users and rows it reads.
+[db.seed]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:5173"
+enable_signup = true
+enable_anonymous_sign_ins = false
+minimum_password_length = 6
+
+# Sign-up by e-mail and password, signed in at once: nothing sends mail here
+# (decision 12 of the first slice's plan).
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+
+[auth.sms]
+enable_signup = false
+
+[realtime]
+enabled = false
+
+[studio]
+enabled = false
+
+# The mail catcher.
+[local_smtp]
+enabled = false
+
+[storage]
+enabled = false
+
+# The image proxy.
+[storage.image_transformation]
+enabled = false
+
+[edge_runtime]
+enabled = false
+
+[analytics]
+enabled = false

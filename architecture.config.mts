@@ -93,8 +93,6 @@ const config: ArchitectureConfig = {
       "it holds no code yet: its first code comes with the first slice, and its tests with it",
     "packages/runtime":
       "it holds no code yet: its first code comes with the first slice, and its tests with it",
-    "packages/adapters":
-      "it holds no code yet: its first code comes with the first slice, and its tests with it",
   },
 
   vendorOnlyIn: {

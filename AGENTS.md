@@ -536,6 +536,12 @@ Two things agents get wrong in spec-driven systems: bypassing the schemas
 with `any`, and hand-writing a component when a catalog entry would do.
 Don't.
 
+The tests named `*.supabase.test.ts` run against a local Supabase in Docker,
+which the gate starts and leaves running (ADR-0004). Where Docker is not
+running they are left out, and the run prints `SKIP supabase — Docker is not
+running here; …`. Report that as not run, as for a port. In CI they always
+run.
+
 <!-- add-on: agent-workflow -->
 ## Agent workflow
 

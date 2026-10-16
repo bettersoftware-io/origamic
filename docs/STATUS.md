@@ -18,6 +18,15 @@ removed.
 
 Work that has started and is not finished.
 
+- **The first slice.** Planned in
+  [plans/2026-10-16-first-slice.md](architecture/plans/2026-10-16-first-slice.md):
+  twelve pull requests in Origamic and two in the plugin, in the order its
+  graph gives. Built: part 1a, the `e2e` add-on, whose five specs still test
+  the price list (removed in part 10, modes replaced in part 9); part 1b, a
+  local Supabase that `pnpm gate:full` and CI start, with the first migration.
+  Its part 2 changes the schemas, and waits for the author's review before it
+  merges.
+
 ## Designed, not built
 
 A plan or a design is on the main branch, and nothing of it is built.
@@ -27,19 +36,17 @@ A plan or a design is on the main branch, and nothing of it is built.
   by [the first reading](architecture/reviews/2026-10-14-first-reading.md).
   Built: the schemas in `packages/spec`, reviewed by the author on
   2026-10-16, and the dependency rule, held by `architecture.config.mts`
-  over four packages that are still empty (`core`, `catalog`, `runtime`,
-  `adapters`).
-- **The first slice.** Planned in
-  [plans/2026-10-16-first-slice.md](architecture/plans/2026-10-16-first-slice.md):
-  twelve pull requests in Origamic and two in the plugin, in the order its
-  graph gives. Built: part 1a, the `e2e` add-on, whose five
-  specs still test the price list (removed in part 10, modes replaced in part
-  9). The rest is not built. Its part 2 changes the schemas, and
-  waits for the author's review before it merges.
+  over four packages that are still empty of code (`core`, `catalog`,
+  `runtime`, `adapters`). `adapters` holds the first migration and its test.
 
 ## Planned, and held by something
 
 It waits on a release, a decision or other work. Each entry says on what.
+
+- **`@supabase/supabase-js` at 2.118.0, as the slice's plan says.** It is
+  at 2.117.3: 2.118.0 was published on 2026-10-15 at 12:57 UTC, and
+  `minimumReleaseAge` refuses it until a day later. Move to it in any part
+  after that (part 7 is the first that uses the client outside a test).
 
 ## Next, with no plan yet
 
@@ -85,14 +92,33 @@ verified, a case that is not covered.
   `packages/catalog` first imports React, `pnpm check:react-policies` will
   ask for it under `reactWithoutPolicies` with a reason, or for a change to
   the kit that gives it a role's rules.
-- **Four importers in `pnpm-lock.yaml` are written by hand.**
-  `packages/core`, `catalog`, `runtime` and `adapters` have no dependency,
+- **Three importers in `pnpm-lock.yaml` are written by hand.**
+  `packages/core`, `catalog` and `runtime` have no dependency,
   and pnpm 12 writes no importer for such a package, while its frozen
   install (what CI runs) refuses a lockfile without one. Each has
   `packages/<name>: {}`, added by hand on 2026-10-16; a plain `pnpm install`
   keeps them, and they go when the package gets a dependency. A new package
   with no dependency needs the same: run `pnpm install --frozen-lockfile`
   before pushing, since `gate:full` stays green without it.
+- **Where Docker is not running, `packages/adapters` is measured without its
+  tests.** Its `*.supabase.test.ts` files are left out there (with a `SKIP`
+  line), and the coverage gate knows only port tests as a reason not to judge
+  a package. Today the package has no code to cover, so nothing fails; once
+  part 7 puts adapters in it, a run without Docker fails the coverage bar for
+  a reason that is not in the code. CI always has Docker. The fix is the
+  coverage add-on's, in `bettersoftware-io/skills`: a package whose tests
+  were left out is not judged.
+- **Every checkout on a machine shares one local Supabase.** Its project id
+  is `origamic`, on ports 54321 (the API) and 54322 (Postgres), which
+  Docker publishes on every interface with the CLI's default password. A
+  checkout whose `supabase/migrations/` lacks a migration another checkout
+  applied fails the global setup with `MigrationMissingLocalError`. Bring
+  that checkout up to main, or reset the database to its own migrations:
+  `pnpm --filter @origamic/adapters supabase db reset --local`. The other
+  checkout applies its own again on its next run. Nor is a migration edited in
+  place applied again to a running stack: `migration up` skips a version the
+  database has recorded, so the stack keeps the old tables. Run the same
+  `db reset --local` after editing one.
 - **In v1 the client enforces the schemas and the actions.** The browser
   writes to Supabase itself, and row-level security checks whose rows it
   writes, not what it writes. A client that bypasses `core` can put anything

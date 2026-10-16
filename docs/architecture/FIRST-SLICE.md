@@ -38,7 +38,6 @@ These are not part of the loop, and the loop cannot be built without them.
 Each is a part of [the slice's plan](plans/2026-10-16-first-slice.md), and
 `docs/STATUS.md` holds the plan until it is done.
 
-- A local Supabase that `pnpm gate:full` and CI can start (ADR-0004).
 - How a catalog component's props say they accept a `$view` or a `$state`
   reference (ADR-0002): settled in the plan, under "Settled: how a prop says
   what it accepts", and built in its parts 2 and 5.

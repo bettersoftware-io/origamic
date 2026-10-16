@@ -36,3 +36,25 @@ items 16, 17, 21, 23 and 24):
   `*.port.test.ts` is for a port. The SQL migrations live in
   `packages/adapters/supabase/`. The model is the one outside thing no test in
   the gate calls (ADR-0011).
+
+## Amended 2026-10-16: how the local Supabase is installed and started
+
+Decision 7 of [the first slice's plan](../plans/2026-10-16-first-slice.md),
+built in its part 1b:
+
+- **The Supabase CLI is a dev dependency of `packages/adapters`**, pinned at
+  an exact version like any other, so every machine and CI run the same one.
+  Its project is `packages/adapters/supabase/`: `config.toml` runs only the
+  database, the API and auth, and the migrations are beside it.
+- **A test that needs it is named `*.supabase.test.ts`.** The package's vitest
+  config asks `tools/supabase/localSupabase.mts` what to leave out. Where
+  Docker does not answer, those files are left out and the run prints
+  `SKIP supabase — Docker is not running here; the tests against a local
+  Supabase were not run`. Where it answers, vitest's global setup starts the
+  stack if it is not up, applies the pending migrations, and hands the tests
+  `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY`. In CI
+  nothing is left out: without Docker the run fails and says Docker is
+  needed.
+- **The stack is left running** when the tests end, and is shared by every
+  checkout of the project on the machine: its project id is `origamic`, on
+  the CLI's default ports (the API on 54321, Postgres on 54322).
