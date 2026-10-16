@@ -1,7 +1,7 @@
 import { firstValueFrom } from "rxjs";
 import { describe, expect, it } from "vitest";
 
-import { AppDraft, Ontology, type Problem } from "@origamic/spec";
+import { AppDraft, Ontology } from "@origamic/spec";
 import {
   createBookApp,
   createBookOntology,
@@ -10,73 +10,48 @@ import {
 import { createCoreHarness } from "./testing/coreHarness.ts";
 
 describe("createCore", () => {
-  it("an owner with nothing yet has an empty ontology, no apps and no workspaces", async () => {
+  it("an owner with nothing yet has no apps and no workspaces", async () => {
     const { core } = createCoreHarness();
 
-    expect(await firstValueFrom(core.ontology())).toMatchObject({
-      version: 0,
-      objectTypes: [],
-    });
-    expect(await firstValueFrom(core.apps())).toEqual([]);
-    expect(await firstValueFrom(core.workspaces())).toEqual([]);
+    expect(await firstValueFrom(core.library.apps())).toEqual([]);
+    expect(await firstValueFrom(core.library.workspaces())).toEqual([]);
   });
 
-  it("an app the ontology and the catalog accept is saved at version 1", async () => {
+  it("loading an app built against the current ontology finds it compatible", async () => {
     const { core } = createCoreHarness({
       ontology: Ontology.parse(createBookOntology()),
     });
 
-    const saved = await core.saveApp(createBookApp());
+    await core.library.saveApp(AppDraft.parse(createBookApp()));
 
-    expect(saved).toEqual({
-      kind: "saved",
+    expect(await core.loadApp("books", 1)).toEqual({
       app: { ...AppDraft.parse(createBookApp()), version: 1 },
+      compatibility: { kind: "compatible" },
     });
-    expect(await firstValueFrom(core.apps())).toEqual([
-      { id: "books", name: "Books I'm reading", latest: 1 },
-    ]);
   });
 
-  it("an app that binds what the ontology does not have is refused, and nothing is saved", async () => {
-    const { core } = createCoreHarness();
-
-    const saved = await core.saveApp(createBookApp());
-
-    expect(saved).toMatchObject({
-      kind: "invalid",
-      problems: expect.arrayContaining([
-        expect.objectContaining({ path: "bindings.types.0" }),
-      ]),
-    });
-    expect(await firstValueFrom(core.apps())).toEqual([]);
-  });
-
-  it("an app the catalog refuses is not saved", async () => {
+  it("loading an app that uses a property the ontology deprecated gives a report, not an error", async () => {
     const { core } = createCoreHarness({
-      ontology: Ontology.parse(createBookOntology()),
-      catalog: {
-        manifest: createCoreHarness().deps.catalog.manifest,
-        checkElement: (id: string): Problem[] => {
-          return id === "table"
-            ? [
-                {
-                  path: "ui.elements.table.props.columns",
-                  message: "no columns",
-                },
-              ]
-            : [];
-        },
+      ontology: createOntologyWithAuthorDeprecated(),
+    });
+
+    await core.library.saveApp(AppDraft.parse(createBookApp()));
+
+    expect(await core.loadApp("books", 1)).toMatchObject({
+      app: { version: 1 },
+      compatibility: {
+        kind: "report",
+        breaks: expect.arrayContaining([
+          { binding: "Book@1", property: "author", reason: "deprecated" },
+        ]),
       },
     });
+  });
 
-    const saved = await core.saveApp(createBookApp());
+  it("loading a version the library does not have gives null", async () => {
+    const { core } = createCoreHarness();
 
-    expect(saved).toEqual({
-      kind: "invalid",
-      problems: [
-        { path: "ui.elements.table.props.columns", message: "no columns" },
-      ],
-    });
+    expect(await core.loadApp("books", 1)).toBeNull();
   });
 
   it("signing in goes through the session it was given", async () => {
@@ -91,3 +66,25 @@ describe("createCore", () => {
     });
   });
 });
+
+/** The book tracker's ontology with `author` deprecated, and actions that no longer set it. */
+function createOntologyWithAuthorDeprecated(): Ontology {
+  const ontology = createBookOntology();
+
+  return Ontology.parse({
+    ...ontology,
+    objectTypes: ontology.objectTypes.map((type) => {
+      return {
+        ...type,
+        properties: type.properties.map((property) => {
+          return property.name === "author"
+            ? { ...property, deprecated: true }
+            : property;
+        }),
+      };
+    }),
+    actionTypes: (ontology.actionTypes ?? []).map((action) => {
+      return { ...action, fields: ["title", "status", "rating"] };
+    }),
+  });
+}
