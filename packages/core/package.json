@@ -3,12 +3,19 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./*": "./src/*"
   },
   "imports": {
     "#/*": "./src/*"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@origamic/spec": "workspace:*",
+    "rxjs": "^7.8.2",
+    "zod": "^4.6.5"
   }
 }

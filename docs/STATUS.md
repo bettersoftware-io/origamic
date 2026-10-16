@@ -25,11 +25,14 @@ Work that has started and is not finished.
   the price list (removed in part 10, modes replaced in part 9); part 1b, a
   local Supabase that `pnpm gate:full` and CI start, with the first migration.
   Part 2, the spec's additions, is built and waits for the author's review
-  before it merges. Two of its exports wait for their first importer, since
-  knip refuses an export nobody imports: `Row` (`{ id, values }`, as part 2's
-  interfaces give it) goes into `packages/spec` with part 3, and `PropKind`
-  and `CatalogComponent`, now private to `references.ts`, are exported by
-  part 5.
+  before it merges. Part 3, `core`'s five ports with their contracts and
+  simulators, `planWrite`, `valueSchema`, `checkCompatibility`, `createCore`
+  and `createCoreHarness`, is built on part 2 and waits likewise; it added
+  `Row` to `packages/spec`. Some exports wait for their first importer,
+  since knip refuses an export nobody imports: `PropKind` and
+  `CatalogComponent`, private to `references.ts`, are exported by part 5;
+  `Break` (in `apps/compatibility.ts`) and `SavedApp` (in `createCore.ts`)
+  by the part that first names them, likely part 4.
 
 ## Designed, not built
 
@@ -39,9 +42,10 @@ A plan or a design is on the main branch, and nothing of it is built.
   [docs/architecture/](architecture/ARCHITECTURE.md) describe it, as settled
   by [the first reading](architecture/reviews/2026-10-14-first-reading.md).
   Built: the schemas in `packages/spec`, reviewed by the author on
-  2026-10-16, and the dependency rule, held by `architecture.config.mts`
-  over four packages that are still empty of code (`core`, `catalog`,
-  `runtime`, `adapters`). `adapters` holds the first migration and its test.
+  2026-10-16, `core`'s ports, simulators and rules (part 3 of the slice),
+  and the dependency rule, held by `architecture.config.mts` over three
+  packages that are still empty of code (`catalog`, `runtime`,
+  `adapters`). `adapters` holds the first migration and its test.
 
 ## Planned, and held by something
 
@@ -60,6 +64,13 @@ The next step is known, and nobody has written a plan for it.
   `ontology.ts` states it, and neither `ChangeSet` nor `applyChangeSet`
   checks it, so a change set can add a required property that every stored
   object lacks.
+- **The kit counts a port's contract as production code.** Its
+  `no-test-scaffolding-in-production` rule does not treat `__contracts__`
+  as test code, though the coverage add-on does, so a contract may not
+  import `packages/spec/src/testing/bookTracker.ts`.
+  `packages/core/src/ports/__contracts__/fixtures.ts` keeps a small copy of
+  the book tracker for the contracts instead. The fix is the kit's, in
+  `bettersoftware-io/skills`; then the copy goes.
 - **Merges on main have two kinds of subject.** "Merge PR #5: …" and GitHub's
   own "Merge pull request #6 from …". `AGENTS.md` names no subject. Pick one,
   or leave GitHub's.
@@ -106,8 +117,8 @@ verified, a case that is not covered.
   `packages/catalog` first imports React, `pnpm check:react-policies` will
   ask for it under `reactWithoutPolicies` with a reason, or for a change to
   the kit that gives it a role's rules.
-- **Three importers in `pnpm-lock.yaml` are written by hand.**
-  `packages/core`, `catalog` and `runtime` have no dependency,
+- **Two importers in `pnpm-lock.yaml` are written by hand.**
+  `packages/catalog` and `runtime` have no dependency,
   and pnpm 12 writes no importer for such a package, while its frozen
   install (what CI runs) refuses a lockfile without one. Each has
   `packages/<name>: {}`, added by hand on 2026-10-16; a plain `pnpm install`
@@ -133,6 +144,17 @@ verified, a case that is not covered.
   place applied again to a running stack: `migration up` skips a version the
   database has recorded, so the stack keeps the old tables. Run the same
   `db reset --local` after editing one.
+- **Each port has two names.** The kit's contract gate finds a port by a
+  file named `<port>Port.ts` that declares `interface <Port>Port`, so
+  `OntologyStorePort`, `ObjectStorePort`, `SpecLibraryPort`,
+  `LlmGatewayPort` and `SessionPort` are the interfaces, and
+  `OntologyStore`, `ObjectStore`, `SpecLibrary`, `LlmGateway` and `Session`,
+  the names the slice's plan uses, are aliases of them.
+- **The compatibility check reads only what `core` can read.** It finds a
+  deprecated or missing property that an app's views filter or sort on, or
+  that its handlers pass to an action. A property only a component's props
+  name (a table's column, a form's field) is not checked: that needs the
+  catalog's knowledge of its props.
 - **In v1 the client enforces the schemas and the actions.** The browser
   writes to Supabase itself, and row-level security checks whose rows it
   writes, not what it writes. A client that bypasses `core` can put anything

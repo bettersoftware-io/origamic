@@ -288,7 +288,17 @@ importers:
         specifier: ^8
         version: 8.3.2(@types/node@26.6.4)(jiti@2.7.0)(yaml@2.9.1)
 
-  packages/core: {}
+  packages/core:
+    dependencies:
+      '@origamic/spec':
+        specifier: workspace:*
+        version: link:../spec
+      rxjs:
+        specifier: ^7.8.2
+        version: 7.8.2
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
 
   packages/domain:
     dependencies:
