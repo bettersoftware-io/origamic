@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 describe("the tables of the first migration", () => {
   beforeAll(async () => {
     owners = await createOwners();
-    await writeOneOfEach(owners.a.client);
+    aBook = await writeOneOfEach(owners.a.client);
   });
 
   afterAll(async () => {
@@ -54,7 +54,38 @@ describe("the tables of the first migration", () => {
     expect(error?.code).toBe("42501");
   });
 
+  it("a link cannot reach another owner's object", async () => {
+    const bBook = await writeObject(owners.b.client, {
+      type: "Book",
+      type_version: 1,
+      data: { title: "Emma" },
+    });
+
+    const attempts = [
+      { from_id: aBook, to_id: bBook },
+      { from_id: bBook, to_id: aBook },
+    ];
+
+    for (const ends of attempts) {
+      const { error } = await owners.a.client
+        .from("links")
+        .insert({ link_type: "writtenBy", ...ends });
+
+      expect(error?.code).toBe("23503");
+    }
+
+    const { data } = await owners.b.client
+      .from("objects")
+      .select("id, owner, data");
+
+    expect(data).toEqual([
+      { id: bBook, owner: owners.b.id, data: { title: "Emma" } },
+    ]);
+  });
+
   let owners: Owners;
+  /** The id of the book owner A wrote. */
+  let aBook: string;
 });
 
 const TABLES = [
@@ -226,44 +257,30 @@ async function createOwner(admin: Client): Promise<Owner> {
   return { id: created.data.user.id, client };
 }
 
-/** A row in every table, written as their owner. */
-async function writeOneOfEach(client: Client): Promise<void> {
+/** A row in every table, written as their owner. Gives the book's id. */
+async function writeOneOfEach(client: Client): Promise<string> {
   await expectNoError(
     client
       .from("ontology_versions")
       .insert({ version: 1, ontology: { types: [] } }),
   );
 
-  const books = await client
-    .from("objects")
-    .insert({ type: "Book", type_version: 1, data: { title: "Dune" } })
-    .select("id")
-    .single();
+  const book = await writeObject(client, {
+    type: "Book",
+    type_version: 1,
+    data: { title: "Dune" },
+  });
 
-  if (books.error) {
-    throw books.error;
-  }
-
-  const authors = await client
-    .from("objects")
-    .insert({
-      type: "Author",
-      type_version: 1,
-      data: { name: "Frank Herbert" },
-    })
-    .select("id")
-    .single();
-
-  if (authors.error) {
-    throw authors.error;
-  }
+  const author = await writeObject(client, {
+    type: "Author",
+    type_version: 1,
+    data: { name: "Frank Herbert" },
+  });
 
   await expectNoError(
-    client.from("links").insert({
-      link_type: "writtenBy",
-      from_id: books.data.id,
-      to_id: authors.data.id,
-    }),
+    client
+      .from("links")
+      .insert({ link_type: "writtenBy", from_id: book, to_id: author }),
   );
   await expectNoError(
     client
@@ -275,6 +292,26 @@ async function writeOneOfEach(client: Client): Promise<void> {
       .from("workspaces")
       .insert({ id: "home", version: 1, spec: { panels: [] } }),
   );
+
+  return book;
+}
+
+/** An object written as the client's owner. Gives its id. */
+async function writeObject(
+  client: Client,
+  object: ObjectInsert,
+): Promise<string> {
+  const { data, error } = await client
+    .from("objects")
+    .insert(object)
+    .select("id")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data.id;
 }
 
 interface Outcome {

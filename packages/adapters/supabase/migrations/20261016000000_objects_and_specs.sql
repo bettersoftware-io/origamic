@@ -31,26 +31,35 @@ create table public.objects (
   type_version int not null,
   data jsonb not null,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  -- What a link's ends reference: an object together with its owner.
+  unique (owner, id)
 );
 
 create index objects_owner_type on public.objects (owner, type);
 create index objects_data on public.objects using gin (data);
 
+-- A link and both its ends belong to one owner, and the database holds it so:
+-- each end is a foreign key on the owner and the object's id together. A
+-- foreign key's check ignores row-level security, so a key on the id alone
+-- would let one owner link to another's object, learn from the error whether
+-- an id exists, and lose the link when the other owner deletes it.
 create table public.links (
   id uuid primary key default gen_random_uuid(),
   owner uuid not null default auth.uid() references auth.users on delete cascade,
   link_type text not null,
-  from_id uuid not null references public.objects on delete cascade,
-  to_id uuid not null references public.objects on delete cascade,
+  from_id uuid not null,
+  to_id uuid not null,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  foreign key (owner, from_id) references public.objects (owner, id) on delete cascade,
+  foreign key (owner, to_id) references public.objects (owner, id) on delete cascade
 );
 
 -- The foreign keys are not indexed by Postgres itself: a delete of an object
 -- would scan every link.
-create index links_from_id on public.links (from_id);
-create index links_to_id on public.links (to_id);
+create index links_owner_from_id on public.links (owner, from_id);
+create index links_owner_to_id on public.links (owner, to_id);
 
 -- A saved app and a saved workspace: each save is a new version, and none is
 -- overwritten.
