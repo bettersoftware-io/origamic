@@ -12,16 +12,11 @@ One bullet for each entry: its name in bold, what is left, and a link to its
 plan when it has one. `AGENTS.md` says when an entry is added, moved and
 removed.
 
-**Last updated: 2026-10-14**
+**Last updated: 2026-10-16**
 
 ## In progress
 
 Work that has started and is not finished.
-
-- **The schemas, step 2 of [HANDOVER.md](../HANDOVER.md).** `packages/spec`
-  rewritten to the decisions of the first reading: flat UI spec, actions in
-  the ontology, versions per type, the reference checks. The author reviews
-  it line by line before anything consumes it.
 
 ## Designed, not built
 
@@ -30,7 +25,8 @@ A plan or a design is on the main branch, and nothing of it is built.
 - **The product.** The documents under
   [docs/architecture/](architecture/ARCHITECTURE.md) describe it, as settled
   by [the first reading](architecture/reviews/2026-10-14-first-reading.md).
-  Nothing of it is built but the schemas (above). Steps 3 and 4 of
+  Nothing of it is built but the schemas in `packages/spec`, reviewed by
+  the author on 2026-10-16. Steps 3 and 4 of
   [HANDOVER.md](../HANDOVER.md) are below, each held.
 
 ## Planned, and held by something
