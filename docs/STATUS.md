@@ -28,11 +28,16 @@ Work that has started and is not finished.
   before it merges. Part 3, `core`'s five ports with their contracts and
   simulators, `planWrite`, `valueSchema`, `checkCompatibility`, `createCore`
   and `createCoreHarness`, is built on part 2 and waits likewise; it added
-  `Row` to `packages/spec`. Some exports wait for their first importer,
-  since knip refuses an export nobody imports: `PropKind` and
-  `CatalogComponent`, private to `references.ts`, are exported by part 5;
-  `Break` (in `apps/compatibility.ts`) and `SavedApp` (in `createCore.ts`)
-  by the part that first names them, likely part 4.
+  `Row` to `packages/spec`. Part 5, the catalog, is built on part 2 and waits
+  likewise: the five contracts, the manifest and `checkElement`, what the
+  model is held to, and the React implementations on shadcn's primitives. It
+  exports spec's `PropKind` and `CatalogComponent`. Some things wait on other
+  parts: the catalog types a view's rows with a `Row` of its own
+  (`src/contract/props.ts`), to become spec's once parts 3 and 5 are both on
+  main; `Envelope`, what each implementation takes, is exported from
+  `@origamic/catalog` by part 6, its first importer; `Break` (in
+  `apps/compatibility.ts`) and `SavedApp` (in `createCore.ts`) are exported by
+  the part that first names them, likely part 4.
 
 ## Designed, not built
 
@@ -43,9 +48,9 @@ A plan or a design is on the main branch, and nothing of it is built.
   by [the first reading](architecture/reviews/2026-10-14-first-reading.md).
   Built: the schemas in `packages/spec`, reviewed by the author on
   2026-10-16, `core`'s ports, simulators and rules (part 3 of the slice),
-  and the dependency rule, held by `architecture.config.mts` over three
-  packages that are still empty of code (`catalog`, `runtime`,
-  `adapters`). `adapters` holds the first migration and its test.
+  and the dependency rule, held by `architecture.config.mts` over two
+  packages that are still empty of code (`runtime`, `adapters`). `adapters`
+  holds the first migration and its test.
 
 ## Planned, and held by something
 
@@ -80,6 +85,13 @@ The next step is known, and nobody has written a plan for it.
 A step or a decision an agent cannot take: a setting, an account, a choice
 between options. Each entry says who, and gives the command or the question.
 
+- **Whether to take the kit's new "Adding a check" section into
+  `AGENTS.md`.** The author decides. The kit update of the first slice's
+  part 5 added it to the template (a new check, or a newer copy of the kit or
+  an add-on, comes through the installer); `AGENTS.md` is the project's
+  file, so the installer did not change it. The text is in
+  `tools/arch/templates/AGENTS.md.txt`, under "Adding a check".
+
 - **Two Scorecard alerts to dismiss, or to accept as open.** "Code review"
   (alert 4) and "Branch protection" (alert 1) ask for a second person to
   approve every pull request. That is against merging a green change at
@@ -113,14 +125,31 @@ verified, a case that is not covered.
   questions for a review. Nor is "the gateway imports the catalog's
   manifest only": `mayImport` names a whole package, so once `apps/gateway`
   names `packages/catalog`, an import of its React side passes the gate.
-- **The role `explicit` carries none of React's lint rules.** When
-  `packages/catalog` first imports React, `pnpm check:react-policies` will
-  ask for it under `reactWithoutPolicies` with a reason, or for a change to
-  the kit that gives it a role's rules.
-- **Two importers in `pnpm-lock.yaml` are written by hand.**
-  `packages/catalog` and `runtime` have no dependency,
+- **Part 8: strip the limits from the schema before it is sent.**
+  `generationSchema()` passes the walk ADR-0011 asks for (every object
+  closed, no recursion, `anyOf` and never `oneOf`), and still carries
+  keywords Anthropic's structured outputs do not hold the model to. Before
+  the gateway sends it, remove `minLength`, `minItems`, `minimum`,
+  `maximum` and `exclusiveMinimum`, and check whether the API accepts
+  `pattern`, `format`, `default` and `type` written as a list (remove any it
+  refuses), or pass the schema through the SDK's own helper for this.
+  `readGenerated` keeps checking all of them on the reply, so nothing is
+  lost by stripping them.
+- **Nothing checks that the app's React Compiler reaches the catalog.**
+  `packages/catalog` declares `reactCompiler: true`, so its lint bans
+  `useMemo`, `useCallback` and `memo`; but the build that compiles it is
+  `apps/web`'s, and the kit does not read a `vite.config.ts` for a package
+  of role `explicit`. Part 9, which makes `apps/web`, should make sure its
+  compiler includes the catalog's source, or the catalog runs uncompiled
+  with nothing failing.
+- **A create Form keeps what was typed after it is submitted.** Its inputs
+  hold their text until the page draws the form afresh; an edit Form is drawn
+  afresh each time its `values` change. Whether "Add" should clear the form,
+  and how the runtime says that it succeeded, is part 6's to decide.
+- **One importer in `pnpm-lock.yaml` is written by hand.**
+  `packages/runtime` has no dependency,
   and pnpm 12 writes no importer for such a package, while its frozen
-  install (what CI runs) refuses a lockfile without one. Each has
+  install (what CI runs) refuses a lockfile without one. It has
   `packages/<name>: {}`, added by hand on 2026-10-16; a plain `pnpm install`
   keeps them, and they go when the package gets a dependency. A new package
   with no dependency needs the same: run `pnpm install --frozen-lockfile`
