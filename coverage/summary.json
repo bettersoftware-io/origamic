@@ -1,8 +1,8 @@
 {
-  "commit": "17ee4380b770ef301da379b2df15438dad62a51c",
+  "commit": "2047129a878c3d18d19a245e922403dc6e462435",
   "uncommittedChanges": false,
   "ref": "main",
-  "builtAt": "2026-10-16T09:11:20.758Z",
+  "builtAt": "2026-10-16T09:20:11.160Z",
   "thresholds": {
     "lines": 95,
     "statements": 95,
@@ -76,6 +76,16 @@
       "reason": "2 files at or above the bar",
       "measuredFiles": 2,
       "emptyFiles": 3,
+      "underTheBar": [],
+      "unexplainedIgnores": [],
+      "failedTests": []
+    },
+    {
+      "directory": "packages/e2e",
+      "verdict": "SKIP",
+      "reason": "its tests are Playwright's (playwright.config.ts, and no test script): they drive the built application in a browser, in another process, so there is nothing here for this tool to run or to measure",
+      "measuredFiles": 0,
+      "emptyFiles": 0,
       "underTheBar": [],
       "unexplainedIgnores": [],
       "failedTests": []
