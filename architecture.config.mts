@@ -72,6 +72,7 @@ const config: ArchitectureConfig = {
     },
     "packages/server": { role: "server" },
     "packages/integration": { role: "integration" },
+    "packages/e2e": { role: "e2e" },
   },
 
   // Folders whose modules implement ports. Each must run the contract test of
