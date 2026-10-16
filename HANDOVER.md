@@ -21,8 +21,9 @@ Work in this order and do not skip ahead:
 
 2. Once we have resolved that list, complete `packages/spec`. It holds the
    five Zod schemas (`ontology`, `ui-spec`, `action`, `binding`, `workspace`)
-   and nothing else: no runtime dependencies beyond `zod`, no imports from any
-   other package. Every root schema carries a `version`. Write the schemas,
+   and, since the review of step 1, the pure functions that check a spec's
+   references (ADR-0002): no runtime dependencies beyond `zod`, no imports
+   from any other package. Every root schema carries a `version`. Write the schemas,
    their tests (including a test that proves an invalid spec is rejected), and
    stop. I will review them line by line before anything consumes them.
 

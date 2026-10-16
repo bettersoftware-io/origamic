@@ -18,42 +18,42 @@ removed.
 
 Work that has started and is not finished.
 
+- **The schemas, step 2 of [HANDOVER.md](../HANDOVER.md).** `packages/spec`
+  rewritten to the decisions of the first reading: flat UI spec, actions in
+  the ontology, versions per type, the reference checks. The author reviews
+  it line by line before anything consumes it.
+
 ## Designed, not built
 
 A plan or a design is on the main branch, and nothing of it is built.
 
-- **The product.** Only the starter's worked example (the price list) and a
-  skeleton of the five schemas exist. [HANDOVER.md](../HANDOVER.md) gives the
-  order, and none of its four steps is done:
-  1. Argue with [VISION.md](architecture/VISION.md),
-     [ARCHITECTURE.md](architecture/ARCHITECTURE.md) and the ADRs under
-     `docs/architecture/adr/`: list where they are vague, contradict each
-     other, or ask for what the starter's conventions do not allow.
-  2. Complete `packages/spec`. It is a package that passes the gate, with
-     tests, and its schemas are still the skeleton's. Three choices made to
-     get it through the gate are the author's to overrule: Zod 4 and not 3,
-     the role `leaf`, and `children?: unknown[]` on the shape of a UI node,
-     which is not typed as a tree.
-  3. Put the dependency rules of `ARCHITECTURE.md` into `tools/arch` as
-     import bans, and prove the gate fails on a wrong import.
-  4. Plan the first slice from
-     [FIRST-SLICE.md](architecture/FIRST-SLICE.md).
+- **The product.** The documents under
+  [docs/architecture/](architecture/ARCHITECTURE.md) describe it, as settled
+  by [the first reading](architecture/reviews/2026-10-14-first-reading.md).
+  Nothing of it is built but the schemas (above). Steps 3 and 4 of
+  [HANDOVER.md](../HANDOVER.md) are below, each held.
 
 ## Planned, and held by something
 
 It waits on a release, a decision or other work. Each entry says on what.
 
+- **The dependency rule as gates, step 3 of the handover.** Held by two
+  changes to the kit, made in `bettersoftware-io/skills` and then installed
+  here: a package declared by its explicit edges, since Origamic's graph fits
+  none of the kit's roles (`adapters` imports `core`); and ports found in any
+  package, with none found where adapters are declared a failure, since the
+  contract gate now looks only in a `domain` package and would skip
+  Origamic's (ADR-0012). The table of imports to enforce is in
+  [ARCHITECTURE.md](architecture/ARCHITECTURE.md).
+- **The plan of the first slice, step 4.** Held by steps 2 and 3, and by
+  what [FIRST-SLICE.md](architecture/FIRST-SLICE.md) lists under "Before the
+  slice": the `e2e` add-on installed, a local Supabase the gate can start,
+  and how a catalog prop accepts a `$view` or `$state` reference.
+
 ## Next, with no plan yet
 
 The next step is known, and nobody has written a plan for it.
 
-- **`AGENTS.md` and the README say what is not so.** Found on 2026-10-12 by
-  a session that had only `AGENTS.md` to go on. The Origamic section gives a
-  dependency rule for packages that do not exist yet (`core`, `runtime`,
-  `catalog`, `adapters`, `apps/web`), and names `ARCHITECTURE.md` with no
-  folder. The table of layers lists seven packages and leaves out
-  `packages/spec`; the README says "seven packages" too, and there are
-  eight. Which rule holds today is not said. This is part of step 1 above.
 - **Merges on main have two kinds of subject.** "Merge PR #5: …" and GitHub's
   own "Merge pull request #6 from …". `AGENTS.md` names no subject. Pick one,
   or leave GitHub's.
@@ -80,6 +80,12 @@ between options. Each entry says who, and gives the command or the question.
 
 What is true of the project and will not be fixed soon: a thing that was not
 verified, a case that is not covered.
+
+- **In v1 the client enforces the schemas and the actions.** The browser
+  writes to Supabase itself, and row-level security checks whose rows it
+  writes, not what it writes. A client that bypasses `core` can put anything
+  into its own owner's rows. It moves to the server before a second person
+  uses Origamic ([ADR-0009](architecture/adr/0009-validation-in-v1-is-the-clients.md)).
 
 - **Two Scorecard alerts clear by themselves.** "Maintained" (alert 5) when
   the repository is 90 days old, which is 2027-01-10. "SAST" (alert 2) as
