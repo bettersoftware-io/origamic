@@ -12,6 +12,3 @@ export interface OntologyStorePort {
   /** Applies a change set whole, and only to the version it was written against (`applyChangeSet`). Nothing is stored unless it is `applied`. */
   apply(change: ChangeSet): Promise<Applied>;
 }
-
-/** The port by the name the rest of Origamic uses. The file and the interface carry `Port` for the contract gate. */
-export type OntologyStore = OntologyStorePort;

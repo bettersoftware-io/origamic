@@ -16,15 +16,23 @@ export interface ViewFilter {
   property: string;
   /**
    * `eq` and `neq` compare JSON values. `gt` and `lt` compare two numbers as
-   * numbers and two strings by their code units (so ISO dates in order), and
-   * are false for anything else. `contains` is a substring of a string,
-   * ignoring case.
+   * numbers and two strings by their UTF-16 code units, and are false for
+   * anything else. Code-unit order puts ISO dates in order and "Banana"
+   * before "apple"; it is Postgres's `COLLATE "C"` for the text this
+   * vocabulary holds, so an adapter on Postgres can match it exactly.
+   * `contains` is a substring of a string, ignoring case, with every
+   * character taken literally (`%` and `_` too).
    */
   op: "eq" | "neq" | "contains" | "gt" | "lt";
   value: JsonValue;
 }
 
-/** One key of a view's order. Numbers sort as numbers. An object without the property sorts last, either way. */
+/**
+ * One key of a view's order. Numbers sort as numbers, and strings by their
+ * code units, as `gt` and `lt` compare them. Values of two JSON types sort by
+ * type, as Postgres orders `jsonb`: string, then number, then boolean, then
+ * array, then object. An object without the property sorts last, either way.
+ */
 export interface ViewSort {
   property: string;
   dir: "asc" | "desc";
@@ -62,6 +70,3 @@ export interface ObjectStorePort {
   view(query: ViewQuery): Observable<readonly StoredObject[]>;
   execute(invocation: ActionInvocation): Promise<ActionResult>;
 }
-
-/** The port by the name the rest of Origamic uses. The file and the interface carry `Port` for the contract gate. */
-export type ObjectStore = ObjectStorePort;

@@ -30,7 +30,7 @@ known limit until it moves.
 ## Amended 2026-10-16: where an action is checked
 
 The first slice's plan (decision 4) puts the check in the adapter. Each
-`ObjectStore`'s `execute` calls `planWrite`, a pure function in `core`
+`ObjectStorePort`'s `execute` calls `planWrite`, a pure function in `core`
 (`packages/core/src/actions/planWrite.ts`), with the ontology as the store
 holds it and the object the invocation names, and writes what it returns, or
 nothing. The simulator and the Supabase adapter call the same function, and

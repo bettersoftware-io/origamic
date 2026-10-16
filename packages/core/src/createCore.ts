@@ -8,19 +8,19 @@ import {
   validateApp,
 } from "@origamic/spec";
 
-import type { LlmGateway } from "./ports/llmGatewayPort.ts";
-import type { ObjectStore } from "./ports/objectStorePort.ts";
-import type { OntologyStore } from "./ports/ontologyStorePort.ts";
-import type { Session } from "./ports/sessionPort.ts";
-import type { LibraryEntry, SpecLibrary } from "./ports/specLibraryPort.ts";
+import type { LlmGatewayPort } from "./ports/llmGatewayPort.ts";
+import type { ObjectStorePort } from "./ports/objectStorePort.ts";
+import type { OntologyStorePort } from "./ports/ontologyStorePort.ts";
+import type { SessionPort } from "./ports/sessionPort.ts";
+import type { LibraryEntry, SpecLibraryPort } from "./ports/specLibraryPort.ts";
 
 /** Everything the core is handed: one adapter or simulator for each port, and the catalog it checks apps against. */
 export interface CoreDeps {
-  ontology: OntologyStore;
-  objects: ObjectStore;
-  library: SpecLibrary;
-  llm: LlmGateway;
-  session: Session;
+  ontology: OntologyStorePort;
+  objects: ObjectStorePort;
+  library: SpecLibraryPort;
+  llm: LlmGatewayPort;
+  session: SessionPort;
   catalog: Catalog;
 }
 
@@ -32,7 +32,7 @@ type SavedApp =
 /** The application, without a screen. The app session and the builder join it in part 4 of the first slice. */
 export interface Core {
   /** Who is signed in, and signing in and out. */
-  readonly session: Session;
+  readonly session: SessionPort;
   /** The owner's ontology, as it moves. */
   ontology(): Observable<Ontology>;
   /** The latest of each app in the library. */

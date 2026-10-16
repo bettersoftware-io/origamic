@@ -10,6 +10,3 @@ export interface LlmGatewayPort {
   /** The generation's events in order: its progress, then one `proposal` or one `failed`, and then it completes. */
   generate(request: GenerationRequest): Observable<GenerationEvent>;
 }
-
-/** The port by the name the rest of Origamic uses. The file and the interface carry `Port` for the contract gate. */
-export type LlmGateway = LlmGatewayPort;

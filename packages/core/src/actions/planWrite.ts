@@ -39,7 +39,7 @@ export type PlannedWrite =
 
 /**
  * Where an action is checked (ADR-0009, the plan's decision 4): every
- * `ObjectStore` calls this in `execute`, before it writes, and writes nothing
+ * `ObjectStorePort` calls this in `execute`, before it writes, and writes nothing
  * when it is refused. Pure, so the simulator and the Supabase adapter hold
  * the same rules.
  *
@@ -50,8 +50,11 @@ export type PlannedWrite =
  *   bounds a number.
  * - A property required on the type, or by a `required` rule, has a value
  *   after the write. A create fills each property's `default`, and so does
- *   an update, for an object written before the property existed.
- * - A `null` in the input clears an optional property.
+ *   an update, for an object written before the property existed; a
+ *   property the input names is never filled.
+ * - A `null` in the input clears an optional property, and is refused for a
+ *   required one.
+ * - The version the app binds is 1 or more.
  * - An update writes the type's current version, keeping every value the
  *   object had (ADR-0005: an object written at `Book@1` is still a book).
  *
@@ -71,6 +74,13 @@ export function planWrite(
     return rejected(
       "action",
       `the ontology has no action "${invocation.action}"`,
+    );
+  }
+
+  if (invocation.version < 1) {
+    return rejected(
+      "version",
+      `an action's version is 1 or more; "${action.name}" was invoked at ${invocation.version}`,
     );
   }
 
@@ -140,6 +150,10 @@ export function planWrite(
   );
 }
 
+interface DefaultOf {
+  default: JsonValue;
+}
+
 interface WritesValues {
   kind: "create" | "update";
 }
@@ -190,7 +204,7 @@ function planValues(
   }
 
   for (const property of type.properties) {
-    if (!values.has(property.name) && property.default !== undefined) {
+    if (fillsDefault(property, before, invocation)) {
       values.set(property.name, property.default);
     }
 
@@ -348,6 +362,26 @@ function valueProblem(
   }
 
   return undefined;
+}
+
+/**
+ * A property takes its default only when nothing gave it a value: the object
+ * was written without it (a create, or an object written before the property
+ * existed), and the input does not name it. A `null` in the input clears the
+ * value, so a required property set to `null` is refused rather than reset.
+ * A deprecated property leaves new writes, so it is never filled.
+ */
+function fillsDefault(
+  property: Property,
+  before: Readonly<Record<string, JsonValue>>,
+  invocation: ActionInvocation,
+): property is Property & DefaultOf {
+  return (
+    property.default !== undefined &&
+    !property.deprecated &&
+    !Object.hasOwn(before, property.name) &&
+    !Object.hasOwn(invocation.input, property.name)
+  );
 }
 
 /** Required on the type, or by a rule of this action. A deprecated property is left out of new writes, so nothing requires it. */

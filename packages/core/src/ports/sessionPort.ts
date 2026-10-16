@@ -20,6 +20,3 @@ export interface SessionPort {
   signUp(email: string, password: string): Promise<SignInResult>;
   signOut(): Promise<void>;
 }
-
-/** The port by the name the rest of Origamic uses. The file and the interface carry `Port` for the contract gate. */
-export type Session = SessionPort;

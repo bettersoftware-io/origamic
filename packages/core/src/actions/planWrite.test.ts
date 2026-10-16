@@ -326,6 +326,56 @@ describe("planWrite", () => {
     });
   });
 
+  describe("defaults", () => {
+    it("an update that sets a required property to null is refused, not reset to its default", () => {
+      const planned = planWrite(
+        createOntology(),
+        updateBook("dune", { status: null }),
+        createStoredBook({ title: "Dune", status: "done" }),
+      );
+
+      expect(planned).toEqual({
+        kind: "rejected",
+        problems: [{ path: "status", message: '"status" is required' }],
+      });
+    });
+
+    it("an optional property with a default can be cleared", () => {
+      const planned = planWrite(
+        createShelvedOntology(false),
+        updateBook("dune", { shelf: null }),
+        createStoredBook({ title: "Dune", status: "done", shelf: "attic" }),
+      );
+
+      expect(planned).toEqual({
+        kind: "write",
+        write: {
+          kind: "update",
+          id: "dune",
+          typeVersion: 1,
+          values: { title: "Dune", status: "done" },
+        },
+      });
+    });
+
+    it("a deprecated property's default is not filled", () => {
+      const planned = planWrite(
+        createShelvedOntology(true),
+        createBook({ title: "Dune" }),
+        null,
+      );
+
+      expect(planned).toMatchObject({
+        write: { values: { title: "Dune", status: "want" } },
+      });
+      expect(
+        planned.kind === "write" && planned.write.kind === "create"
+          ? Object.hasOwn(planned.write.values, "shelf")
+          : true,
+      ).toBe(false);
+    });
+  });
+
   describe("the version an app binds", () => {
     it("an invocation of updateBook@1 against updateBook@2 runs if every field it sets is still set", () => {
       const planned = planWrite(
@@ -354,6 +404,25 @@ describe("planWrite", () => {
             path: "rating",
             message:
               '"updateBook" no longer sets "rating": the app binds version 1, and it is at 2',
+          },
+        ],
+      });
+    });
+
+    it("an invocation below version 1 is refused", () => {
+      const planned = planWrite(
+        createOntology(),
+        { ...createBook({ title: "Dune" }), version: 0 },
+        null,
+      );
+
+      expect(planned).toEqual({
+        kind: "rejected",
+        problems: [
+          {
+            path: "version",
+            message:
+              'an action\'s version is 1 or more; "createBook" was invoked at 0',
           },
         ],
       });
@@ -559,6 +628,34 @@ function createOntologyWithoutRating(): Ontology {
       ],
     }),
   );
+}
+
+/** `Book` with a `shelf` that defaults to "main", which `updateBook` sets, or which is deprecated and set by nothing. */
+function createShelvedOntology(deprecated: boolean): Ontology {
+  const books = createBookOntology();
+  const [book] = books.objectTypes;
+
+  if (book === undefined) {
+    throw new Error("the fixture ontology has no type");
+  }
+
+  return Ontology.parse({
+    ...books,
+    objectTypes: [
+      {
+        ...book,
+        properties: [
+          ...book.properties,
+          { name: "shelf", type: "string", default: "main", deprecated },
+        ],
+      },
+    ],
+    actionTypes: (books.actionTypes ?? []).map((action) => {
+      return deprecated || action.name !== "updateBook" || !("fields" in action)
+        ? action
+        : { ...action, fields: [...action.fields, "shelf"] };
+    }),
+  });
 }
 
 /** The book tracker with `deleteBook`, and a `Sequel` link between books that `linkSequel` writes. */

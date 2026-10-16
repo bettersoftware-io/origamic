@@ -144,12 +144,8 @@ verified, a case that is not covered.
   place applied again to a running stack: `migration up` skips a version the
   database has recorded, so the stack keeps the old tables. Run the same
   `db reset --local` after editing one.
-- **Each port has two names.** The kit's contract gate finds a port by a
-  file named `<port>Port.ts` that declares `interface <Port>Port`, so
-  `OntologyStorePort`, `ObjectStorePort`, `SpecLibraryPort`,
-  `LlmGatewayPort` and `SessionPort` are the interfaces, and
-  `OntologyStore`, `ObjectStore`, `SpecLibrary`, `LlmGateway` and `Session`,
-  the names the slice's plan uses, are aliases of them.
+- **A port is `<Name>Port`, in `<name>Port.ts`.** The kit's contract gate
+  finds a port, and an adapter that implements it, only by that name.
 - **The compatibility check reads only what `core` can read.** It finds a
   deprecated or missing property that an app's views filter or sort on, or
   that its handlers pass to an action. A property only a component's props

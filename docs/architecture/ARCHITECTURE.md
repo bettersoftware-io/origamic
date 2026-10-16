@@ -120,21 +120,21 @@ imports the Supabase client) and not for a `fetch` written by hand.
 Framework-agnostic. Ports as interfaces; streams as RxJS observables at the
 boundaries. Each port has a contract test, an in-memory simulator in `core`
 and a real adapter in `adapters`, and the contract runs against both
-(ADR-0012). The ports in v1, in outline (`packages/core/src/ports`, each in
-a file named `<port>Port.ts`, as the kit's contract gate reads them; each
-interface carries `Port` in its name, and the name the rest of Origamic uses
-is an alias of it):
+(ADR-0012). The ports in v1, in outline. Each is `<Name>Port`, in
+`packages/core/src/ports/<name>Port.ts`: that is how the kit's contract gate
+finds a port, and an adapter is held to the contract only when it names the
+port so.
 
 ```ts
-interface OntologyStore {
+interface OntologyStorePort {
   current(): Observable<Ontology>;            // version 0 for an owner with none
   apply(change: ChangeSet): Promise<Applied>; // applied, stale or invalid
 }
-interface ObjectStore {
+interface ObjectStorePort {
   view(query: ViewQuery): Observable<readonly StoredObject[]>; // again after each action
   execute(invocation: ActionInvocation): Promise<ActionResult>; // planWrite decides
 }
-interface SpecLibrary {
+interface SpecLibraryPort {
   apps(): Observable<readonly LibraryEntry[]>;
   workspaces(): Observable<readonly LibraryEntry[]>;
   loadApp(id: string, version?: number): Promise<App | null>;
@@ -142,10 +142,10 @@ interface SpecLibrary {
   loadWorkspace(id: string, version?: number): Promise<Workspace | null>;
   saveWorkspace(draft: WorkspaceDraft): Promise<Workspace>;
 }
-interface LlmGateway {
+interface LlmGatewayPort {
   generate(request: GenerationRequest): Observable<GenerationEvent>;
 }
-interface Session {
+interface SessionPort {
   user(): Observable<User | null>;
   signIn(email: string, password: string): Promise<SignInResult>;
   signUp(email: string, password: string): Promise<SignInResult>;
@@ -153,7 +153,7 @@ interface Session {
 }
 ```
 
-Every `ObjectStore` checks an action with `planWrite`, a pure function of
+Every `ObjectStorePort` checks an action with `planWrite`, a pure function of
 the ontology, the invocation and the object it acts on: the action at the
 version the app binds, each value against its property's type
 (`valueSchema`), the action's rules, and what is required. A store writes

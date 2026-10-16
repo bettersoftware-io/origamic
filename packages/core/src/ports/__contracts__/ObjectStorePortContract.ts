@@ -374,6 +374,96 @@ export function describeObjectStorePortContract(
       expect(numberAgainstText).toEqual([]);
     });
 
+    it("text sorts and compares by its code units, so capitals come first", async () => {
+      const store = await createStore(
+        createState([
+          createStoredBook("apple", 4),
+          createStoredBook("Banana", 4),
+        ]),
+      );
+
+      const sorted = await firstValueFrom(store.view(allBooks()));
+      const beforeLower = await firstValueFrom(
+        store.view(titlesWhere({ property: "title", op: "lt", value: "a" })),
+      );
+
+      expect(titlesOf(sorted)).toEqual(["Banana", "apple"]);
+      expect(titlesOf(beforeLower)).toEqual(["Banana"]);
+    });
+
+    it("contains takes % and _ as the characters they are", async () => {
+      const store = await createStore(
+        createState([
+          createStoredBook("100% Dune", 4),
+          createStoredBook("1000 Dune", 4),
+          createStoredBook("a_b", 4),
+          createStoredBook("axb", 4),
+        ]),
+      );
+
+      const percent = await firstValueFrom(
+        store.view(
+          titlesWhere({ property: "title", op: "contains", value: "0%" }),
+        ),
+      );
+
+      const underscore = await firstValueFrom(
+        store.view(
+          titlesWhere({ property: "title", op: "contains", value: "a_b" }),
+        ),
+      );
+
+      expect(titlesOf(percent)).toEqual(["100% Dune"]);
+      expect(titlesOf(underscore)).toEqual(["a_b"]);
+    });
+
+    it("values of two JSON types sort by type, as Postgres orders jsonb", async () => {
+      const ratings: JsonValue[] = [{ stars: 4 }, [4], true, 4, "four"];
+      const store = await createStore(
+        createState(
+          ratings.map((rating, index) => {
+            return {
+              id: createId(),
+              type: "Book",
+              typeVersion: 1,
+              values: { title: `Book ${index}`, status: "want", rating },
+            };
+          }),
+        ),
+      );
+
+      const ascending = await firstValueFrom(
+        store.view({
+          type: "Book",
+          filter: [],
+          sort: [{ property: "rating", dir: "asc" }],
+        }),
+      );
+
+      const descending = await firstValueFrom(
+        store.view({
+          type: "Book",
+          filter: [],
+          sort: [{ property: "rating", dir: "desc" }],
+        }),
+      );
+
+      expect(ratingsOf(ascending)).toEqual([
+        "four",
+        4,
+        true,
+        [4],
+        { stars: 4 },
+      ]);
+      expect(ratingsOf(descending)).toEqual([
+        { stars: 4 },
+        [4],
+        true,
+        4,
+        "four",
+      ]);
+    });
+
     it("a link to an object that is not there is rejected", async () => {
       const book = createStoredBook("Dune", 5);
       const store = await createStore(createState([book]));

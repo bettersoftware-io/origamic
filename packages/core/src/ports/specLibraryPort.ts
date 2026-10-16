@@ -26,6 +26,3 @@ export interface SpecLibraryPort {
   loadWorkspace(id: string, version?: number): Promise<Workspace | null>;
   saveWorkspace(draft: WorkspaceDraft): Promise<Workspace>;
 }
-
-/** The port by the name the rest of Origamic uses. The file and the interface carry `Port` for the contract gate. */
-export type SpecLibrary = SpecLibraryPort;
