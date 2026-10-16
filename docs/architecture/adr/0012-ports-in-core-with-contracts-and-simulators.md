@@ -34,7 +34,7 @@ and only their real adapters. The starter keeps ports in a package of role
 The kit's port-contract gate looks for ports only in packages of role
 `domain`. With the ports in `core` it prints
 `SKIP port-contracts — no port interfaces were found` and the run still ends
-"all gates passed." The kit is changed in `bettersoftware-io/skills` before
-step 3 of the handover: any package may declare its ports, and finding none
-where adapters are declared fails. Until then `requiredRoles` is not changed
-to hide the missing `domain` package: the loud failure is the reminder.
+"all gates passed." The kit was changed in `bettersoftware-io/skills`
+(pull request #31, 2026-10-16): any package may declare its ports with
+`ports`, and finding none where adapters are declared fails. `packages/core`
+declares its ports folder with its first port, in the slice.

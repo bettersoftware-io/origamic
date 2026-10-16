@@ -96,9 +96,23 @@ And:
 4. `apps/web` wires `runtime` to `adapters`. It contains no business logic.
 5. Nothing outside `adapters` names a table, a column or a query string.
 
-The table and rule 2 can be held by import bans in `tools/arch` (step 3 of
-the handover). Rules 1, 4 and 5 cannot be decided from imports alone: they
-are questions for a review. Rule 3 is held for libraries (only `adapters`
+`architecture.config.mts` holds the table and rule 2, and `pnpm gate:full`
+fails an import against them. Each package has a role of the starter's
+kit; where a role would grant more than the table, the package has the role
+`explicit`, whose edges are only the ones it writes down:
+
+| Package | Role in `architecture.config.mts` |
+|---|---|
+| `packages/spec` | `leaf`: imports nothing, and every package may import it |
+| `packages/core` | `core`, which also grants the starter's price list until the slice removes it |
+| `packages/catalog` | `explicit`, naming `spec`; only `runtime` names it |
+| `packages/runtime` | `bindings`, naming `catalog` |
+| `packages/adapters` | `explicit`, naming `core` and `spec`; only the app will name it |
+
+`react`, `zod` and `@supabase/supabase-js` may be imported only where the
+table says. The two apps get their lines when they are made, in the first
+slice. Rules 1, 4 and 5 cannot be decided from imports alone: they are
+questions for a review. Rule 3 is held for libraries (only `adapters`
 imports the Supabase client) and not for a `fetch` written by hand.
 
 ## The behavioural core (`packages/core`)

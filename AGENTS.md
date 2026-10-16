@@ -42,6 +42,10 @@ the gates read; a package that is not listed there fails.
 | Package | Role | Holds | May import |
 |---|---|---|---|
 | `packages/spec` | leaf | Origamic's spec schemas and their reference checks | nothing (runtime: `zod` only) |
+| `packages/core` | core | Origamic's ports, ontology, actions, views, library and builder. Empty until the first slice | spec (runtime: `rxjs`, `zod`) |
+| `packages/catalog` | explicit | Origamic's components: contracts and their React implementations. Empty until the first slice | spec |
+| `packages/runtime` | bindings | Origamic's spec interpreter. Empty until the first slice | spec, core, catalog |
+| `packages/adapters` | explicit | Origamic's real adapters: Supabase, the gateway's client. Empty until the first slice | core, spec |
 | `packages/domain` | domain | Entities, use cases, port interfaces, simulators | nothing (runtime: `rxjs` only) |
 | `packages/shared` | shared | The wire protocol | domain |
 | `packages/client-core` | core | Adapters, presenters, state machines, the composition of the app | domain, shared |
