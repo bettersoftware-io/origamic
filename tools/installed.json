@@ -203,5 +203,37 @@
       "docs/IDEAS.md",
       "docs/STATUS.md"
     ]
+  },
+  "e2e": {
+    "files": {
+      ".github/workflows/e2e.yml": "3107ccf320adc1ae80a6f9607c4b8186d78e0a34d1ee981e5fd0b483dbc5a0b3",
+      "packages/e2e/notStarted.setup.ts": "6cdd4a1e0a82009d569c424f92b6d972b4fe4ea54b1ec882514e335976e59b7d",
+      "packages/e2e/playwright.config.ts": "0f2048b875d8babfc7cacf8ad922c9e9879c18bc38480b5ebe8b90bbdec97913",
+      "packages/e2e/tsconfig.json": "4ece0153f0ce930a46a62b75fdb6d7be3828f873c0712ab67ab55848d1253db7",
+      "tools/e2e/lib/arguments.mts": "04c9fe98ec579457d4b88913651165796676334dbd6983a537b7a3412b6f6327",
+      "tools/e2e/lib/config.mts": "2c2dd87804ccdfa0b9e8dbc62ccfc8911d53d2242f33ca9d507af9403ba15f58",
+      "tools/e2e/lib/counts.mts": "e985e512e6e6da1538f5afa71211c53d25f93ad88b6ae9d84a14667ff0cf5b6d",
+      "tools/e2e/lib/processes.mts": "f70dee4cca7e55c9bfecc867de8abfaa2c1a629f50378e63a5621b3f783e286d",
+      "tools/e2e/lib/stack.mts": "e3b66c6cd6f298829b0c275496438d8109946ad121a44a4752db984cd4df144c",
+      "tools/e2e/run.mts": "fd9d10cf6fd667b5c58f09c6fa1151d02c8e0492b01c04cd077f2a9bddb7d16f",
+      "tools/templates/e2e.packages__e2e__package.json.txt": "78b80d676091f02ad001aabee8c145d2e3076ca48470723f6519bf0d846dd873",
+      "tools/templates/e2e.packages__e2e__src__fullstack__serverPrices.spec.ts.txt": "c6cc6dcefa4c591da5c141bea08ca71541908a66f29e6ca41795fdb7642abd55",
+      "tools/templates/e2e.packages__e2e__src__pages__PriceList.page.ts.txt": "ea2f7c0453963e6648a232254ec3dc1e8858f9d4532af30434a2bf49b443e68b",
+      "tools/templates/e2e.packages__e2e__src__pages__ServerFeed.page.ts.txt": "f40ed6ead61daf9fb081433dda060cd43861b9469ebda1eb7ffa936778333798",
+      "tools/templates/e2e.packages__e2e__src__sim__priceList.spec.ts.txt": "2d6a3c6d29a4a440a21fd391b6b2847ef3e03e41d1974cd0f43308d903fbf0d5",
+      "tools/templates/e2e.packages__e2e__src__sim__selection.spec.ts.txt": "5da2200fc4d31431d8fbdd42ecc8f0a6979901420bcd90ef5f693e44085ae5b8",
+      "tools/templates/e2e.packages__e2e__src__testing__test.ts.txt": "c8d87f480e040b769262fcedc4ef18ef57078f7b4ce3a94ad1b53e13f687376c",
+      "tools/templates/e2e.tools__e2e.config.mts.txt": "ccaab6dfe31a5b3ecb7cd85bef969c07e8ccaeadd7a4f83f04b631e7cc137bc6"
+    },
+    "starting": [
+      "packages/e2e/package.json",
+      "packages/e2e/src/fullstack/serverPrices.spec.ts",
+      "packages/e2e/src/pages/PriceList.page.ts",
+      "packages/e2e/src/pages/ServerFeed.page.ts",
+      "packages/e2e/src/sim/priceList.spec.ts",
+      "packages/e2e/src/sim/selection.spec.ts",
+      "packages/e2e/src/testing/test.ts",
+      "tools/e2e.config.mts"
+    ]
   }
 }

@@ -32,7 +32,9 @@ A plan or a design is on the main branch, and nothing of it is built.
 - **The first slice.** Planned in
   [plans/2026-10-16-first-slice.md](architecture/plans/2026-10-16-first-slice.md):
   twelve pull requests in Origamic and two in the plugin, in the order its
-  graph gives. Nothing of it is built. Its part 2 changes the schemas, and
+  graph gives. Built: part 1a, the `e2e` add-on, whose five
+  specs still test the price list (removed in part 10, modes replaced in part
+  9). The rest is not built. Its part 2 changes the schemas, and
   waits for the author's review before it merges.
 
 ## Planned, and held by something
