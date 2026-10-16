@@ -34,11 +34,24 @@ const config: ArchitectureConfig = {
       npm: ["rxjs", "zod"],
       noNodeBuiltins: true,
     },
-    // spec only, and only the runtime imports it (the runtime names it).
+    // spec only, and only the runtime imports it (the runtime names it). Its
+    // React code is held to a client's rules, the compiler's included: it is
+    // compiled by the app's build, which runs the React Compiler. The
+    // libraries after react and zod are what its shadcn primitives are built
+    // from (ADR-0010).
     "packages/catalog": {
       role: "explicit",
       mayImport: ["packages/spec"],
-      npm: ["react", "zod"],
+      reactRules: "client",
+      reactCompiler: true,
+      npm: [
+        "react",
+        "zod",
+        "radix-ui",
+        "cn",
+        "class-variance-authority",
+        "lucide-react",
+      ],
       noNodeBuiltins: true,
     },
     // spec, core and catalog; never adapters. The bindings role is the
@@ -89,8 +102,6 @@ const config: ArchitectureConfig = {
   packagesWithoutTests: {
     "packages/core":
       "it holds no code yet: its first code comes with the first slice, and its tests with it",
-    "packages/catalog":
-      "it holds no code yet: its first code comes with the first slice, and its tests with it",
     "packages/runtime":
       "it holds no code yet: its first code comes with the first slice, and its tests with it",
   },
@@ -108,6 +119,13 @@ const config: ArchitectureConfig = {
     // language only where the table allows it.
     "@supabase/supabase-js": ["packages/adapters"],
     zod: ["packages/spec", "packages/core", "packages/catalog"],
+    // What the catalog's shadcn primitives are built from (ADR-0010): only
+    // its implementation layer may name them, so replacing shadcn changes
+    // that package alone.
+    "radix-ui": ["packages/catalog"],
+    cn: ["packages/catalog"],
+    "class-variance-authority": ["packages/catalog"],
+    "lucide-react": ["packages/catalog"],
   },
 };
 

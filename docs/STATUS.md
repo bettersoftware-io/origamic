@@ -25,11 +25,16 @@ Work that has started and is not finished.
   the price list (removed in part 10, modes replaced in part 9); part 1b, a
   local Supabase that `pnpm gate:full` and CI start, with the first migration.
   Part 2, the spec's additions, is built and waits for the author's review
-  before it merges. Two of its exports wait for their first importer, since
-  knip refuses an export nobody imports: `Row` (`{ id, values }`, as part 2's
-  interfaces give it) goes into `packages/spec` with part 3, and `PropKind`
-  and `CatalogComponent`, now private to `references.ts`, are exported by
-  part 5.
+  before it merges. `Row` (`{ id, values }`, as part 2's interfaces give it)
+  goes into `packages/spec` with part 3, its first importer, since knip
+  refuses an export nobody imports. Part 5, the catalog, is built on part 2
+  and waits for review: the five contracts, the manifest and `checkElement`,
+  what the model is held to, and the React implementations on shadcn's
+  primitives. It exports spec's `PropKind` and `CatalogComponent`. Two
+  things wait on other parts: the catalog types a view's rows with a `Row`
+  of its own (`src/contract/props.ts`), to become spec's once part 3 is on
+  main; and `Envelope`, what each implementation takes, is exported from
+  `@origamic/catalog` by part 6, its first importer.
 
 ## Designed, not built
 
@@ -40,8 +45,8 @@ A plan or a design is on the main branch, and nothing of it is built.
   by [the first reading](architecture/reviews/2026-10-14-first-reading.md).
   Built: the schemas in `packages/spec`, reviewed by the author on
   2026-10-16, and the dependency rule, held by `architecture.config.mts`
-  over four packages that are still empty of code (`core`, `catalog`,
-  `runtime`, `adapters`). `adapters` holds the first migration and its test.
+  over three packages that are still empty of code (`core`, `runtime`,
+  `adapters`). `adapters` holds the first migration and its test.
 
 ## Planned, and held by something
 
@@ -102,12 +107,24 @@ verified, a case that is not covered.
   questions for a review. Nor is "the gateway imports the catalog's
   manifest only": `mayImport` names a whole package, so once `apps/gateway`
   names `packages/catalog`, an import of its React side passes the gate.
-- **The role `explicit` carries none of React's lint rules.** When
-  `packages/catalog` first imports React, `pnpm check:react-policies` will
-  ask for it under `reactWithoutPolicies` with a reason, or for a change to
-  the kit that gives it a role's rules.
-- **Three importers in `pnpm-lock.yaml` are written by hand.**
-  `packages/core`, `catalog` and `runtime` have no dependency,
+- **What the model is held to is not yet checked against Anthropic's API.**
+  `generationSchema()` passes the walk ADR-0011 asks for (every object
+  closed, no recursion, `anyOf` and never `oneOf`), and it still carries
+  keywords that page says the API does not hold the model to:
+  `minLength`, `minItems`, `pattern`, `format`, `default`, `exclusiveMinimum`,
+  `maximum`, and `type` written as a list. Whether the API ignores them or
+  refuses the schema is found by the first real call, in part 8.
+- **A create Form keeps what was typed after it is submitted.** Its inputs
+  hold their text until the page draws the form afresh; an edit Form is drawn
+  afresh each time its `values` change. Whether "Add" should clear the form,
+  and how the runtime says that it succeeded, is part 6's to decide.
+- **The kit's `AGENTS.md` gained a section this project's has not taken.**
+  The kit update of part 5 added "Adding a check" to its template (how a new
+  check comes through the installer). `AGENTS.md` is the project's file, so
+  the installer did not change it; the section is in
+  `tools/arch/templates/AGENTS.md.txt`, to copy in if it is wanted.
+- **Two importers in `pnpm-lock.yaml` are written by hand.**
+  `packages/core` and `runtime` have no dependency,
   and pnpm 12 writes no importer for such a package, while its frozen
   install (what CI runs) refuses a lockfile without one. Each has
   `packages/<name>: {}`, added by hand on 2026-10-16; a plain `pnpm install`
