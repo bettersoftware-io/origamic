@@ -417,8 +417,9 @@ export function describeObjectStorePortContract(
       expect(titlesOf(underscore)).toEqual(["a_b"]);
     });
 
-    it("values of two JSON types sort by type, as Postgres orders jsonb", async () => {
-      const ratings: JsonValue[] = [{ stars: 4 }, [4], true, 4, "four"];
+    it("values of two scalar types sort by type, as Postgres orders jsonb", async () => {
+      // Listed out of order, so a sort that kept the input would fail.
+      const ratings: JsonValue[] = [true, 10, "four", false, 4, "Four"];
       const store = await createStore(
         createState(
           ratings.map((rating, index) => {
@@ -449,18 +450,20 @@ export function describeObjectStorePortContract(
       );
 
       expect(ratingsOf(ascending)).toEqual([
+        "Four",
         "four",
         4,
+        10,
+        false,
         true,
-        [4],
-        { stars: 4 },
       ]);
       expect(ratingsOf(descending)).toEqual([
-        { stars: 4 },
-        [4],
         true,
+        false,
+        10,
         4,
         "four",
+        "Four",
       ]);
     });
 

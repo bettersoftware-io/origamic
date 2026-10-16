@@ -4,7 +4,12 @@ import type { JsonValue, Problem, Row } from "@origamic/spec";
 
 export type ObjectId = string;
 
-/** An object as the store keeps it: the type it is an instance of, and the version of that type it was last written at (ADR-0005). */
+/**
+ * An object as the store keeps it: the type it is an instance of, the
+ * version of that type it was last written at (ADR-0005), and its values,
+ * each a scalar (a string, a number or a boolean), since every property type
+ * of the ontology is one and `planWrite` checks each value against it.
+ */
 export interface StoredObject extends Row {
   id: ObjectId;
   type: string;
@@ -28,10 +33,12 @@ export interface ViewFilter {
 }
 
 /**
- * One key of a view's order. Numbers sort as numbers, and strings by their
- * code units, as `gt` and `lt` compare them. Values of two JSON types sort by
- * type, as Postgres orders `jsonb`: string, then number, then boolean, then
- * array, then object. An object without the property sorts last, either way.
+ * One key of a view's order. Every value a property holds is a scalar (a
+ * string, a number or a boolean: each property type of the ontology is
+ * one). Numbers sort as numbers, and strings by their code units, as `gt`
+ * and `lt` compare them; false sorts before true. Values of two types sort
+ * by type, as Postgres orders `jsonb`: strings, then numbers, then booleans.
+ * An object without the property sorts last, either way.
  */
 export interface ViewSort {
   property: string;

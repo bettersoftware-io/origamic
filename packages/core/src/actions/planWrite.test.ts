@@ -358,6 +358,37 @@ describe("planWrite", () => {
       });
     });
 
+    it("a create that sets a required property to null is refused, not given its default", () => {
+      const planned = planWrite(
+        createOntology(),
+        createBook({ title: "Dune", status: null }),
+        null,
+      );
+
+      expect(planned).toEqual({
+        kind: "rejected",
+        problems: [{ path: "status", message: '"status" is required' }],
+      });
+    });
+
+    it("a create that sets an optional property with a default to null leaves it out", () => {
+      const planned = planWrite(
+        createShelvedOntology(false, "createBook"),
+        createBook({ title: "Dune", shelf: null }),
+        null,
+      );
+
+      expect(planned).toEqual({
+        kind: "write",
+        write: {
+          kind: "create",
+          type: "Book",
+          typeVersion: 1,
+          values: { title: "Dune", status: "want" },
+        },
+      });
+    });
+
     it("a deprecated property's default is not filled", () => {
       const planned = planWrite(
         createShelvedOntology(true),
@@ -630,8 +661,11 @@ function createOntologyWithoutRating(): Ontology {
   );
 }
 
-/** `Book` with a `shelf` that defaults to "main", which `updateBook` sets, or which is deprecated and set by nothing. */
-function createShelvedOntology(deprecated: boolean): Ontology {
+/** `Book` with a `shelf` that defaults to "main", which `setBy` sets, or which is deprecated and set by nothing. */
+function createShelvedOntology(
+  deprecated: boolean,
+  setBy = "updateBook",
+): Ontology {
   const books = createBookOntology();
   const [book] = books.objectTypes;
 
@@ -651,7 +685,7 @@ function createShelvedOntology(deprecated: boolean): Ontology {
       },
     ],
     actionTypes: (books.actionTypes ?? []).map((action) => {
-      return deprecated || action.name !== "updateBook" || !("fields" in action)
+      return deprecated || action.name !== setBy || !("fields" in action)
         ? action
         : { ...action, fields: [...action.fields, "shelf"] };
     }),

@@ -310,29 +310,21 @@ function compareBy(
 }
 
 /**
- * A total order of JSON values, as Postgres orders `jsonb` (PostgreSQL
- * documentation, 8.14.4 "jsonb Indexing"): "Object > Array > Boolean >
- * Number > String > Null"; an object with n pairs after one with n - 1, an
- * array with n elements after one with n - 1; arrays of one length element
- * by element; objects with as many pairs key by key and value by value, in
- * the order `jsonb` stores keys (shorter first, then by bytes). Primitives
- * compare as their own types do, a string by code units (`COLLATE "C"`).
- * Its one exception, an empty top-level array before null, never meets a
- * null here: `compareBy` puts a missing value last first.
+ * A total order of the values a property holds, which are scalars: every
+ * property type of the ontology is one, and `planWrite` checks each value
+ * against its type. Values of two types sort by type, as Postgres orders
+ * `jsonb` (PostgreSQL documentation, 8.14.4 "jsonb Indexing": "Object >
+ * Array > Boolean > Number > String > Null"), so null, then strings, then
+ * numbers, then booleans. Numbers compare as numbers and false comes before
+ * true. Strings compare by their UTF-16 code units, which a Postgres adapter
+ * matches only with an explicit `COLLATE "C"`: the database's own collation
+ * (en_US.UTF-8) orders text otherwise.
  */
 function compareJson(left: JsonValue, right: JsonValue): number {
   const byRank = rankOf(left) - rankOf(right);
 
   if (byRank !== 0) {
     return byRank;
-  }
-
-  if (Array.isArray(left) && Array.isArray(right)) {
-    return compareLists(left, right);
-  }
-
-  if (isRecord(left) && isRecord(right)) {
-    return compareRecords(left, right);
   }
 
   if (typeof left === "boolean" && typeof right === "boolean") {
@@ -342,72 +334,10 @@ function compareJson(left: JsonValue, right: JsonValue): number {
   return order(left, right) ?? 0;
 }
 
-const RANK = ["null", "string", "number", "boolean", "array", "object"];
+const RANK = ["null", "string", "number", "boolean"];
 
 function rankOf(value: JsonValue): number {
-  if (value === null) {
-    return RANK.indexOf("null");
-  }
-
-  return RANK.indexOf(Array.isArray(value) ? "array" : typeof value);
-}
-
-function compareLists(
-  left: readonly JsonValue[],
-  right: readonly JsonValue[],
-): number {
-  if (left.length !== right.length) {
-    return left.length - right.length;
-  }
-
-  for (const [index, value] of left.entries()) {
-    const compared = compareJson(value, right[index] ?? null);
-
-    if (compared !== 0) {
-      return compared;
-    }
-  }
-
-  return 0;
-}
-
-interface JsonRecord {
-  [key: string]: JsonValue;
-}
-
-function compareRecords(left: JsonRecord, right: JsonRecord): number {
-  const leftKeys = storedKeyOrder(left);
-  const rightKeys = storedKeyOrder(right);
-
-  if (leftKeys.length !== rightKeys.length) {
-    return leftKeys.length - rightKeys.length;
-  }
-
-  for (const [index, key] of leftKeys.entries()) {
-    const other = rightKeys[index] ?? "";
-    const compared =
-      compareKeys(key, other) ||
-      compareJson(left[key] ?? null, right[other] ?? null);
-
-    if (compared !== 0) {
-      return compared;
-    }
-  }
-
-  return 0;
-}
-
-/** The order `jsonb` stores an object's keys in: shorter first, then by code units. */
-function storedKeyOrder(record: JsonRecord): string[] {
-  return Object.keys(record).sort(compareKeys);
-}
-
-function compareKeys(left: string, right: string): number {
-  return left.length - right.length || (order(left, right) ?? 0);
-}
-
-function isRecord(value: JsonValue): value is JsonRecord {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return RANK.indexOf(value === null ? "null" : typeof value);
 }
 
 function sameJson(left: JsonValue, right: JsonValue): boolean {
