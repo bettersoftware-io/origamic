@@ -40,19 +40,25 @@ describe("the Supabase session, against the auth server", () => {
     ]);
   });
 
-  it("a refusal with no words of its own is given in Supabase's", async () => {
+  it("a weak password is refused in the adapter's words", async () => {
     const { session } = owners.createSignedOut();
 
     const weak = await session.signUp(
       `${crypto.randomUUID()}@origamic.test`,
       "abc",
     );
-    const malformed = await session.signUp("not an e-mail", "correct horse");
 
     expect(weak).toEqual({
       kind: "refused",
       message: "The password is too weak.",
     });
+  });
+
+  it("a refusal with no words of its own is given in Supabase's", async () => {
+    const { session } = owners.createSignedOut();
+
+    const malformed = await session.signUp("not an e-mail", "correct horse");
+
     expect(malformed).toEqual({
       kind: "refused",
       message: expect.stringMatching(/email/i),

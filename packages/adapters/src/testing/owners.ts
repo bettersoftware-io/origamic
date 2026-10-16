@@ -33,6 +33,8 @@ export interface Owners {
   createAccount: (email: string, password: string) => Promise<Account>;
   /** Adapters signed in to nobody, as the browser starts. */
   createSignedOut: () => Adapters;
+  /** A client of the project signed in as the owner, for an adapter made with options of its own. */
+  createClientOf: (owner: Owner) => Promise<SupabaseClient<Database>>;
   /** Writes the owner's ontology as the service role, bypassing the store. */
   writeOntology: (owner: Owner, ontology: Ontology) => Promise<void>;
   /** Writes objects as the service role, with their ids, bypassing `planWrite`. */
@@ -79,6 +81,24 @@ export function createOwners(): Owners {
     admin,
     createAccount,
     createSignedOut: createSignedOutAdapters,
+    createClientOf: async (owner: Owner): Promise<SupabaseClient<Database>> => {
+      const client = createClient<Database>(
+        environment("SUPABASE_URL"),
+        environment("SUPABASE_ANON_KEY"),
+        { auth: { persistSession: false, autoRefreshToken: false } },
+      );
+
+      const { error } = await client.auth.signInWithPassword({
+        email: owner.email,
+        password: owner.password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      return client;
+    },
     create: async (): Promise<Owner> => {
       const account = await createAccount(
         `${crypto.randomUUID()}@origamic.test`,

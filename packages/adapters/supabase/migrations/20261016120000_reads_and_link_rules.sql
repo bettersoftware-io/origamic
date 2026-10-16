@@ -20,8 +20,10 @@ as $$
 $$;
 
 -- Two values in order: -1, 0 or 1. Two numbers as numbers, two strings by
--- their code units (`collate "C"`: the database's own collation orders text
--- otherwise). Anything else has no order, and gives null.
+-- `collate "C"`: UTF-8 byte order, which is code point order (the database's
+-- own collation orders text otherwise). It is the port's "code units" except
+-- between a character above U+FFFF and one of U+E000 to U+FFFF. Anything
+-- else has no order, and gives null.
 create function public.view_compare(lhs jsonb, rhs jsonb) returns int
 language plpgsql immutable
 set search_path = ''
@@ -58,7 +60,9 @@ begin
     when 'neq' then
       return value is distinct from wanted;
     when 'contains' then
-      -- `\`, `%` and `_` are escaped, so each stands for itself.
+      -- `\`, `%` and `_` are escaped, so each stands for itself. ILIKE
+      -- lowercases by the database's ctype, which agrees with JavaScript's
+      -- `toLowerCase` on ASCII.
       return coalesce(
         jsonb_typeof(value) = 'string'
           and jsonb_typeof(wanted) = 'string'
@@ -202,7 +206,10 @@ create view public.latest_workspaces with (security_invoker = true) as
   from public.workspaces
   order by owner, id, version desc;
 
+-- Only read: a signed-in user selects from them, and writes to the tables.
 revoke all on public.latest_apps, public.latest_workspaces from anon;
+revoke insert, update, delete, truncate, references, trigger
+  on public.latest_apps, public.latest_workspaces from authenticated;
 
 -- A link carries its link type's cardinality, as the ontology gave it when
 -- the link was written. The database does not read the ontology (ADR-0009),

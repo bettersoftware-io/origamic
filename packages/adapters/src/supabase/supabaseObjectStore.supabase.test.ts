@@ -1,12 +1,19 @@
 import { firstValueFrom } from "rxjs";
 import { afterAll, describe, expect, it } from "vitest";
 
-import type { ActionInvocation, ActionResult, ViewQuery } from "@origamic/core";
+import type {
+  ActionInvocation,
+  ActionResult,
+  ObjectStorePort,
+  ViewQuery,
+} from "@origamic/core";
 import { createBookOntology } from "@origamic/core/ports/__contracts__/fixtures.ts";
 import { describeObjectStorePortContract } from "@origamic/core/ports/__contracts__/ObjectStorePortContract.ts";
 import { type JsonValue, Ontology } from "@origamic/spec";
 
 import { createOwners, type Owner } from "#/testing/owners.ts";
+
+import { createSupabaseObjectStore } from "./supabaseObjectStore.ts";
 
 const owners = createOwners();
 
@@ -167,6 +174,129 @@ describe("the Supabase object store, against the database", () => {
     ).rejects.toThrow("an object's values are a JSON object");
   });
 
+  it("a view reads every page, in order, and stops at its limit", async () => {
+    const owner = await owners.create();
+    const titles = ["A", "B", "C", "D", "E"];
+
+    await owners.writeOntology(owner, createBookOntology());
+    await owners.writeObjects(
+      owner,
+      titles.map((title) => {
+        return {
+          id: crypto.randomUUID(),
+          type: "Book",
+          typeVersion: 1,
+          values: { title, status: "want" },
+        };
+      }),
+    );
+
+    // Two rows a page: five read as 2, 2 and 1; four as 2, 2 and an empty page.
+    const store = createSupabaseObjectStore(
+      await owners.createClientOf(owner),
+      {
+        pageSize: 2,
+      },
+    );
+
+    expect(await readTitles(store)).toEqual(["E", "D", "C", "B", "A"]);
+    expect(await readTitles(store, 4)).toEqual(["E", "D", "C", "B"]);
+    expect(await readTitles(store, 3)).toEqual(["E", "D", "C"]);
+  });
+
+  it("of two links to one book by two authors written at once, one is refused", async () => {
+    const owner = await createOwnerWithAuthors();
+    const other = owners.createSignedOut();
+
+    await other.session.signIn(owner.email, owner.password);
+
+    const book = idOf(
+      await owner.adapters.objects.execute({
+        action: "createBook",
+        version: 1,
+        input: { title: "Dune" },
+      }),
+    );
+
+    const [first, second] = await Promise.all(
+      ["Frank Herbert", "Brian Herbert"].map(async (name) => {
+        return idOf(
+          await owner.adapters.objects.execute({
+            action: "createAuthor",
+            version: 1,
+            input: { name },
+          }),
+        );
+      }),
+    );
+
+    const results = await Promise.all([
+      owner.adapters.objects.execute(linkAuthor(first, book)),
+      other.objects.execute(linkAuthor(second, book)),
+    ]);
+
+    expect(
+      results
+        .map((result) => {
+          return result.kind;
+        })
+        .sort(),
+    ).toEqual(["done", "rejected"]);
+    expect(results).toContainEqual({
+      kind: "rejected",
+      problems: [
+        {
+          path: "to",
+          message: `"${book}" is already the one end of a "Wrote"`,
+        },
+      ],
+    });
+  });
+
+  it("a link written while its far end is deleted is done or refused, never thrown", async () => {
+    const owner = await createOwnerWithAuthors();
+    const other = owners.createSignedOut();
+
+    await other.session.signIn(owner.email, owner.password);
+
+    const author = idOf(
+      await owner.adapters.objects.execute({
+        action: "createAuthor",
+        version: 1,
+        input: { name: "Frank Herbert" },
+      }),
+    );
+
+    for (let round = 0; round < 5; round += 1) {
+      const book = idOf(
+        await owner.adapters.objects.execute({
+          action: "createBook",
+          version: 1,
+          input: { title: `Dune ${round}` },
+        }),
+      );
+
+      const [linked, deleted] = await Promise.all([
+        owner.adapters.objects.execute(linkAuthor(author, book)),
+        other.objects.execute({
+          action: "deleteBook",
+          version: 1,
+          target: book,
+          input: {},
+        }),
+      ]);
+
+      expect(deleted).toEqual({ kind: "done", id: book });
+      expect([
+        { kind: "done", id: author },
+        {
+          kind: "rejected",
+          problems: [{ path: "to", message: expect.any(String) }],
+        },
+      ]).toContainEqual(linked);
+    }
+  });
+
   it("a view read signed out fails the stream, saying why", async () => {
     const adapters = owners.createSignedOut();
 
@@ -212,6 +342,7 @@ async function createOwnerWithAuthors(): Promise<Owner> {
           fields: ["name"],
         },
         { name: "linkAuthor", version: 1, kind: "link", linkType: "Wrote" },
+        { name: "deleteBook", version: 1, kind: "delete", type: "Book" },
       ],
     }),
   );
@@ -228,6 +359,25 @@ async function writeBook(owner: Owner, data: JsonValue): Promise<void> {
   if (error) {
     throw error;
   }
+}
+
+/** The titles of every book, last title first, cut to `limit`. */
+async function readTitles(
+  store: ObjectStorePort,
+  limit?: number,
+): Promise<JsonValue[]> {
+  const objects = await firstValueFrom(
+    store.view({
+      type: "Book",
+      filter: [],
+      sort: [{ property: "title", dir: "desc" }],
+      ...(limit === undefined ? {} : { limit }),
+    }),
+  );
+
+  return objects.map((object) => {
+    return object.values.title ?? null;
+  });
 }
 
 function linkAuthor(author: string, book: string): ActionInvocation {

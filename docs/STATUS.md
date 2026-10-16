@@ -144,17 +144,25 @@ verified, a case that is not covered.
   place applied again to a running stack: `migration up` skips a version the
   database has recorded, so the stack keeps the old tables. Run the same
   `db reset --local` after editing one.
-- **A view returns at most 1000 objects.** The local Supabase's API cuts
-  every answer at `max_rows` (`packages/adapters/supabase/config.toml`), a
-  view read through `view_objects` too, and says nothing when it does. A
-  view with no `limit` over more objects loses the rest of its order.
-- **The Supabase object store's writes are not serialised against each
-  other.** An update writes every value `planWrite` planned from the object
+- **The Supabase object store reads a view in pages, each a query of its
+  own.** The API cuts every answer at `max_rows` (1000, in
+  `packages/adapters/supabase/config.toml`), so a view of more objects is
+  read 1000 at a time. A write between two pages can move an object across
+  the boundary, so it is read twice or not at all in that one emission; the
+  next action re-reads. Raising `max_rows` past the page size changes
+  nothing; lowering it below 1000 needs the page size lowered with it.
+- **The Supabase object store's text order and `contains` can differ from
+  the simulator's outside ASCII.** Postgres's `COLLATE "C"` orders by UTF-8
+  bytes, which is code point order: a supplementary character (U+10000 and
+  above) sorts after U+E000 to U+FFFF there, and before them in the
+  simulator's UTF-16 code units. `contains` is ILIKE, which lowercases by the
+  database's ctype (en_US.UTF-8), where the simulator uses JavaScript's
+  `toLowerCase`; the two can differ on other scripts' case folding.
+- **Two updates of one object at once: the last wins.** The Supabase object
+  store's update writes every value `planWrite` planned from the object
   as it was read, so of two updates of one object at once the last wins
-  whole. A link whose end is deleted between the store's read and its write
-  fails on the foreign key, and `execute` rejects its promise rather than
-  answering `rejected`. One builder does not meet either; both move with the
-  checks to the server (ADR-0009).
+  whole. One builder does not meet it; it moves with the checks to the
+  server (ADR-0009).
 - **A link keeps the cardinality its type had when it was written.** The
   unique indexes that hold a link to its cardinality read it from the link's
   own row, since the database does not read the ontology. A change set that

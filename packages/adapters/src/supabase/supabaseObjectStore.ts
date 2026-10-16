@@ -29,15 +29,33 @@ import { readOntology } from "./supabaseOntologyStore.ts";
  * that two links written at once cannot both pass. A view is read by the
  * database function `view_objects`, which orders and compares as the port
  * says, and is read again after each action executed through this store.
+ *
+ * Where it can differ from the simulator. "Code units" is Postgres's
+ * `COLLATE "C"`: UTF-8 byte order, which is code point order. It agrees with
+ * UTF-16 code units except between a supplementary character (U+10000 and
+ * above, a surrogate pair in UTF-16) and one of U+E000 to U+FFFF: UTF-16 puts
+ * the supplementary one first, Postgres last. `contains` is ILIKE, which
+ * lowercases by the database's ctype (en_US.UTF-8), where the simulator uses
+ * JavaScript's `toLowerCase`: the two agree on ASCII, and can differ on
+ * other scripts' case folding (a final sigma, a dotted capital I).
+ *
+ * The API cuts each answer at `max_rows` (1000, in config.toml), so a view
+ * is read in pages of `pageSize` rows until a page comes back short. The
+ * function's order ends in `created_at, id`, so the pages of one read meet
+ * without a gap or an overlap while nothing is written between them.
  */
-export function createSupabaseObjectStore(client: Client): ObjectStorePort {
+export function createSupabaseObjectStore(
+  client: Client,
+  options: ObjectStoreOptions = {},
+): ObjectStorePort {
   const executed = new BehaviorSubject<undefined>(undefined);
+  const pageSize = options.pageSize ?? MAX_ROWS;
 
   return {
     view: (query: ViewQuery): Observable<readonly StoredObject[]> => {
       return executed.pipe(
         switchMap(() => {
-          return from(readView(client, query));
+          return from(readView(client, query, pageSize));
         }),
       );
     },
@@ -64,25 +82,45 @@ export function createSupabaseObjectStore(client: Client): ObjectStorePort {
   };
 }
 
+/** How the store reads. Not part of the port: the composition root leaves it out. */
+export interface ObjectStoreOptions {
+  /** Rows a view reads at a time; never more than the API's `max_rows`, or a cut page would read as the last. */
+  pageSize?: number;
+}
+
+/** `max_rows` in packages/adapters/supabase/config.toml. */
+const MAX_ROWS = 1000;
+
+/** Every object the view reads, a page at a time; the function applies the query's `limit`. */
 async function readView(
   client: Client,
   query: ViewQuery,
+  pageSize: number,
 ): Promise<StoredObject[]> {
-  const rows = dataOf(
-    `reading a view of "${query.type}"`,
-    await client
-      .rpc("view_objects", {
-        query: {
-          type: query.type,
-          filter: query.filter,
-          sort: query.sort,
-          limit: query.limit ?? null,
-        },
-      })
-      .order("ordinal"),
-  );
+  const objects: StoredObject[] = [];
 
-  return rows.map(parseObjectRow);
+  for (let start = 0; ; start += pageSize) {
+    const page = dataOf(
+      `reading a view of "${query.type}"`,
+      await client
+        .rpc("view_objects", {
+          query: {
+            type: query.type,
+            filter: query.filter,
+            sort: query.sort,
+            limit: query.limit ?? null,
+          },
+        })
+        .order("ordinal")
+        .range(start, start + pageSize - 1),
+    );
+
+    objects.push(...page.map(parseObjectRow));
+
+    if (page.length < pageSize) {
+      return objects;
+    }
+  }
 }
 
 /** The owner's object with that id, or `null`. An id that is not a UUID names none. */
@@ -171,8 +209,8 @@ interface Link {
 /**
  * A link goes to an object of its far end's type that is there, and as many
  * times as its cardinality allows. An end deleted between the read and the
- * write fails the insert on its foreign key, which is not a refusal the port
- * has words for: it is thrown.
+ * write fails the insert on its foreign key, and is refused as one that is
+ * not there.
  */
 async function addLink(
   client: Client,
@@ -201,13 +239,13 @@ async function addLink(
 
   const refusal = REFUSALS.find((candidate) => {
     return (
-      inserted.error?.code === UNIQUE_VIOLATION &&
-      inserted.error.message.includes(`"${candidate.index}"`)
+      inserted.error?.code === candidate.code &&
+      inserted.error.message.includes(`"${candidate.constraint}"`)
     );
   });
 
   if (refusal !== undefined) {
-    return rejected(refusal.path, refusal.says(link));
+    return rejected(refusal.path, describe(refusal.message, link));
   }
 
   dataOf(`linking "${link.from}" to "${link.to}"`, inserted);
@@ -215,38 +253,55 @@ async function addLink(
   return { kind: "done", id: link.from };
 }
 
-const UNIQUE_VIOLATION = "23505";
-
-/** A link the table's unique indexes refuse: the index, and what the refusal says. */
+/** A link the table refuses: the error code, the constraint, and what the refusal says of the link. */
 interface Refusal {
-  index: string;
+  code: string;
+  constraint: string;
   path: string;
-  says: (link: Link) => string;
+  /** `{from}`, `{to}` and `{linkType}` stand for the link's. */
+  message: string;
 }
 
 const REFUSALS: readonly Refusal[] = [
   {
-    index: "links_one_pair",
+    code: "23505",
+    constraint: "links_one_pair",
     path: "to",
-    says: (link: Link): string => {
-      return `"${link.from}" is already linked to "${link.to}" by "${link.linkType}"`;
-    },
+    message: '"{from}" is already linked to "{to}" by "{linkType}"',
   },
   {
-    index: "links_one_from",
+    code: "23505",
+    constraint: "links_one_from",
     path: "target",
-    says: (link: Link): string => {
-      return `"${link.from}" already has its one "${link.linkType}"`;
-    },
+    message: '"{from}" already has its one "{linkType}"',
   },
   {
-    index: "links_one_to",
+    code: "23505",
+    constraint: "links_one_to",
     path: "to",
-    says: (link: Link): string => {
-      return `"${link.to}" is already the one end of a "${link.linkType}"`;
-    },
+    message: '"{to}" is already the one end of a "{linkType}"',
+  },
+  // An end deleted between the store's read of it and the write.
+  {
+    code: "23503",
+    constraint: "links_owner_from_id_fkey",
+    path: "target",
+    message: '"{from}" is not there any more',
+  },
+  {
+    code: "23503",
+    constraint: "links_owner_to_id_fkey",
+    path: "to",
+    message: '"{to}" is not there any more',
   },
 ];
+
+function describe(message: string, link: Link): string {
+  return message
+    .replaceAll("{from}", link.from)
+    .replaceAll("{to}", link.to)
+    .replaceAll("{linkType}", link.linkType);
+}
 
 function rejected(path: string, message: string): ActionResult {
   const problems: Problem[] = [{ path, message }];

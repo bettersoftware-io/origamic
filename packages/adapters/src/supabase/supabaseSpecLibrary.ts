@@ -107,7 +107,7 @@ function createShelf<T extends Versioned>(
       id: string,
       version: number | undefined,
     ): Promise<T | null> => {
-      const query = client.from(kind).select("spec").eq("id", id);
+      const query = client.from(kind).select("id, version, spec").eq("id", id);
       const row = dataOf(
         `loading "${id}" from ${kind}`,
         await (version === undefined
@@ -116,7 +116,7 @@ function createShelf<T extends Versioned>(
         ).maybeSingle(),
       );
 
-      return row === null ? null : parse(row.spec);
+      return row === null ? null : parseRow(kind, row, parse);
     },
     save: async (draft: Draft): Promise<T> => {
       for (let attempt = 1; attempt <= ATTEMPTS; attempt += 1) {
@@ -155,13 +155,36 @@ async function readEntries<T extends Versioned>(
     `reading the ${kind}`,
     await client
       .from(kind === "apps" ? "latest_apps" : "latest_workspaces")
-      .select("spec")
+      .select("id, version, spec")
       .order("id"),
   );
 
   return rows.map((row) => {
-    const spec = parse(row.spec);
+    const spec = parseRow(kind, row, parse);
 
     return { id: spec.id, name: spec.name, latest: spec.version };
   });
+}
+
+interface SpecColumns {
+  id: string;
+  version: number;
+  spec: unknown;
+}
+
+/** A row's spec, parsed, and held to the id and the version the row is keyed by. */
+function parseRow<T extends Versioned>(
+  kind: Kind,
+  row: SpecColumns,
+  parse: (value: unknown) => T,
+): T {
+  const spec = parse(row.spec);
+
+  if (spec.id !== row.id || spec.version !== row.version) {
+    throw new Error(
+      `the row "${row.id}" at version ${row.version} in ${kind} holds "${spec.id}" at version ${spec.version}`,
+    );
+  }
+
+  return spec;
 }
