@@ -1,7 +1,10 @@
 import type { z } from "zod";
 
-// What the schemas' own checks share. Not exported from the package: a
-// caller sees only the issues they add.
+import type { Problem } from "./references.ts";
+
+// What the schemas' own checks share, and how their issues become problems.
+// Not exported from the package: a caller sees only the issues and the
+// problems.
 
 export type Path = (string | number)[];
 
@@ -27,4 +30,11 @@ export function firstDuplicate(names: readonly string[]): string | undefined {
   }
 
   return undefined;
+}
+
+/** A schema's issues as problems, so that a caller gets one kind of answer whichever check found them. */
+export function problemsOf(error: z.ZodError): Problem[] {
+  return error.issues.map((issue) => {
+    return { path: issue.path.map(String).join("."), message: issue.message };
+  });
 }

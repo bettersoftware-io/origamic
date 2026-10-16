@@ -25,6 +25,10 @@ export const PropName = z
     "a property's, an action's or a state key's name is camelCase",
   );
 
+/** A plain JSON value: what a property, a state key or an event's field holds. */
+export const Json = z.json();
+export type JsonValue = z.infer<typeof Json>;
+
 /** A binding to an object type at one of its own versions: `Book@2`. Never a bare name. */
 export const TypeRef = z.strictObject({ type: Name, version: Version });
 export type TypeRef = z.infer<typeof TypeRef>;

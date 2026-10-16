@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-import { Id, Name, PropName } from "./common.ts";
+import { Id, Json, Name, PropName } from "./common.ts";
 import { type Path, report } from "./refine.ts";
 
 /** A plain JSON value. A key that starts with `$` is kept for a reference, so a misspelt one is not taken for data. */
-const Literal = z.json().refine(
+const Literal = Json.refine(
   (value) => {
     return !hasReservedKey(value);
   },

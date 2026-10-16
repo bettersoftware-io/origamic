@@ -18,6 +18,17 @@ removed.
 
 Work that has started and is not finished.
 
+- **The first slice.** Planned in
+  [plans/2026-10-16-first-slice.md](architecture/plans/2026-10-16-first-slice.md):
+  twelve pull requests in Origamic and two in the plugin, in the order its
+  graph gives. Part 2, the spec's additions, is built and waits for the
+  author's review before it merges. Two of its exports wait for their first
+  importer, since knip refuses an export nobody imports: `Row` (`{ id,
+  values }`, as part 2's interfaces give it) goes into `packages/spec` with
+  part 3, and `PropKind` and `CatalogComponent`, now private to
+  `references.ts`, are exported by part 5. Nothing else of the slice is
+  built.
+
 ## Designed, not built
 
 A plan or a design is on the main branch, and nothing of it is built.
@@ -29,11 +40,6 @@ A plan or a design is on the main branch, and nothing of it is built.
   2026-10-16, and the dependency rule, held by `architecture.config.mts`
   over four packages that are still empty (`core`, `catalog`, `runtime`,
   `adapters`).
-- **The first slice.** Planned in
-  [plans/2026-10-16-first-slice.md](architecture/plans/2026-10-16-first-slice.md):
-  twelve pull requests in Origamic and two in the plugin, in the order its
-  graph gives. Nothing of it is built. Its part 2 changes the schemas, and
-  waits for the author's review before it merges.
 
 ## Planned, and held by something
 
@@ -43,6 +49,15 @@ It waits on a release, a decision or other work. Each entry says on what.
 
 The next step is known, and nobody has written a plan for it.
 
+- **A UI spec takes an inherited name for a declared view or state key.**
+  `UiSpec` checks a `$view` and a `$state` with `in`, so
+  `{"$view": "constructor"}` or `{"$state": "toString"}` passes with nothing
+  declared under that name. `checkApp` already looks up only a record's own
+  entries; `ui-spec.ts` needs the same, with a test.
+- **Nothing holds "a required property is added with a `default`".**
+  `ontology.ts` states it, and neither `ChangeSet` nor `applyChangeSet`
+  checks it, so a change set can add a required property that every stored
+  object lacks.
 - **Merges on main have two kinds of subject.** "Merge PR #5: …" and GitHub's
   own "Merge pull request #6 from …". `AGENTS.md` names no subject. Pick one,
   or leave GitHub's.
