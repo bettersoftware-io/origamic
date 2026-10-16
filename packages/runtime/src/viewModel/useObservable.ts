@@ -7,8 +7,8 @@ import type { Observable } from "rxjs";
  * when `open` or one of `args` changes (giving `initial` again until the new
  * one emits), and closed when the component unmounts. Give it a function
  * that keeps its identity between renders (one declared at a module's top,
- * or made once), and the values it is opened from. A failure it ends with is thrown where the component renders, for an
- * error boundary to catch.
+ * or made once), and the values it is opened from. A failure it ends with
+ * is thrown where the component renders, for an error boundary to catch.
  */
 export function useObservable<T, A extends readonly unknown[]>(
   open: (...args: A) => Observable<T>,

@@ -63,9 +63,11 @@ interface Followed<T> {
 }
 
 /**
- * A stream of the core, followed for as long as the view model lives, with
- * its latest value at hand. It is subscribed to once: a cold stream (an
- * adapter's query) is read once. The value it gives on subscribing is its
+ * A stream of the core, with its latest value at hand. It is followed for
+ * as long as the core's stream lives: nothing unsubscribes, and the
+ * composition root makes one view model per core, so nothing is left
+ * behind. It is subscribed to once: a cold stream (an adapter's query) is
+ * read once. The value it gives on subscribing is its
  * first; a failure it ends with is kept, and thrown where the value is read,
  * for an error boundary to catch.
  */

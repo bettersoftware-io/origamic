@@ -4,7 +4,7 @@ import type { z } from "zod";
 import type { contracts } from "./contracts.ts";
 
 describe("the contracts' prop schemas", () => {
-  it("take in exactly what they give out, so a component may be handed the value its guard checked", () => {
+  it("each give out the type they take in", () => {
     // `isPropsOf` narrows the value it was given; the component receives that
     // value, not the parse's output. This holds only that each prop schema's
     // output type is its input type: a `.default` or a coercion that changes
