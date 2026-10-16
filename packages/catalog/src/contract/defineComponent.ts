@@ -25,6 +25,8 @@ export interface ComponentContract<
 > {
   readonly name: string;
   readonly description: string;
+  /** Whether it shows the elements its `children` name. Only a component that says so may have children. */
+  readonly showsChildren?: boolean;
   readonly props: P;
   readonly events: E;
 }

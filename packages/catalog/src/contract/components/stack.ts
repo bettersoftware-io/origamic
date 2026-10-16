@@ -7,8 +7,13 @@ export const Stack = defineComponent({
   name: "Stack",
   description:
     "Lays out its children one under the other, in the order of `children`. The only component that shows children.",
+  showsChildren: true,
   props: {
-    gap: fixed(z.enum(["small", "medium", "large"])).optional(),
+    gap: fixed(
+      z
+        .enum(["small", "medium", "large"])
+        .describe("The space between the children; medium when left out."),
+    ).optional(),
   },
   events: {},
 });

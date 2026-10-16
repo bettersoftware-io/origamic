@@ -8,8 +8,12 @@ export const Text = defineComponent({
   description:
     "A line or a paragraph of plain text: a heading, a sentence, a value the app keeps.",
   props: {
-    text: state(z.string()),
-    tone: fixed(z.enum(["body", "heading", "muted"])).optional(),
+    text: state(z.string().describe("The text shown.")),
+    tone: fixed(
+      z
+        .enum(["body", "heading", "muted"])
+        .describe("How the text is set; body when left out."),
+    ).optional(),
   },
   events: {},
 });

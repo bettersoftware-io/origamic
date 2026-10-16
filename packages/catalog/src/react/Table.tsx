@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import type { KeyboardEvent, ReactElement } from "react";
 
 import type { JsonValue } from "@origamic/spec";
 
@@ -15,7 +15,11 @@ import { TableHeader } from "./primitives/table/TableHeader.tsx";
 import { TableRow } from "./primitives/table/TableRow.tsx";
 import { PARTS, partTestId } from "./testIds.ts";
 
-/** The rows of a view, a column per property; clicking a row emits its id and values. */
+/**
+ * The rows of a view, a column per property; clicking a row emits its id and
+ * values. It is an ARIA grid whose rows are selectable: each row can be
+ * focused, and Enter or Space selects it as a click does.
+ */
 export function Table({
   props,
   emit,
@@ -26,7 +30,12 @@ export function Table({
   }
 
   return (
-    <TableRoot data-testid={testId}>
+    <TableRoot
+      data-testid={testId}
+      role="grid"
+      aria-readonly={true}
+      aria-multiselectable={false}
+    >
       <TableHeader>
         <TableRow>
           {props.columns.map((column) => {
@@ -74,16 +83,25 @@ function RowView({
     onSelect(row);
   }
 
+  function selectRowByKey(event: KeyboardEvent<HTMLTableRowElement>): void {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSelect(row);
+    }
+  }
+
   return (
     <TableRow
       data-testid={testId}
       data-state={selected ? "selected" : undefined}
       aria-selected={selected}
+      tabIndex={0}
       onClick={selectRow}
+      onKeyDown={selectRowByKey}
     >
       {columns.map((column) => {
         return (
-          <TableCell key={column.property}>
+          <TableCell key={column.property} role="gridcell">
             {shown(
               Object.hasOwn(row.values, column.property)
                 ? row.values[column.property]

@@ -47,6 +47,30 @@ describe("what the model is held to", () => {
     });
   });
 
+  it("offers children to the Stack alone, the only component that shows them", () => {
+    const schema = generationSchema();
+
+    expect(elementSchemaOf(schema, "Stack").properties).toHaveProperty(
+      "children",
+    );
+    expect(elementSchemaOf(schema, "Form").properties).not.toHaveProperty(
+      "children",
+    );
+  });
+
+  it("carries each prop's note to the model, on a state prop's choice of a value or a $state too", () => {
+    const select = elementSchemaOf(generationSchema(), "Select");
+
+    expect(select.properties?.props?.properties?.emptyLabel).toMatchObject({
+      description:
+        "The label of the empty choice, which emits null. Without it there is no empty choice.",
+    });
+    expect(select.properties?.props?.properties?.value).toMatchObject({
+      description: "The chosen value, or null for the empty choice.",
+      anyOf: [{ type: ["string", "null"] }, { required: ["$state"] }],
+    });
+  });
+
   it("offers a state prop it cannot hold to a closed schema by its $state only", () => {
     const form = elementSchemaOf(generationSchema(), "Form");
 
@@ -98,6 +122,48 @@ describe("reading what the model wrote", () => {
         {
           path: "app.ui.elements.0.props",
           message: 'Unrecognized key: "size"',
+        },
+      ],
+    });
+  });
+
+  it("refuses children on a component that shows none", () => {
+    const reply = createModelReply();
+
+    reply.app.ui.elements = [
+      ...reply.app.ui.elements,
+      { id: "note", component: "Text", props: { text: "x" }, children: [] },
+    ];
+
+    expect(readGenerated(reply)).toEqual({
+      kind: "invalid",
+      problems: [
+        {
+          path: "app.ui.elements.5",
+          message: 'Unrecognized key: "children"',
+        },
+      ],
+    });
+  });
+
+  it("refuses an element or a view named __proto__, as spec's maps do", () => {
+    const text = JSON.stringify(createModelReply())
+      .replace(
+        '"elements":[',
+        '"elements":[{"id":"__proto__","component":"Text","props":{"text":"x"}},',
+      )
+      .replace('"views":[', '"views":[{"id":"__proto__","type":"Book"},');
+
+    expect(readGenerated(JSON.parse(text))).toEqual({
+      kind: "invalid",
+      problems: [
+        {
+          path: "app.ui.elements.0.id",
+          message: '"__proto__" is not a key a spec may use',
+        },
+        {
+          path: "app.ui.views.0.id",
+          message: '"__proto__" is not a key a spec may use',
         },
       ],
     });
@@ -155,6 +221,7 @@ interface SchemaNode {
   type?: string | string[];
   properties?: Record<string, SchemaNode>;
   required?: string[];
+  description?: string;
   additionalProperties?: unknown;
   anyOf?: SchemaNode[];
   $ref?: string;

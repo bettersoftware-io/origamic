@@ -182,10 +182,10 @@ interface ProblemsProps {
 function Problems({ problems, testId }: ProblemsProps): ReactElement {
   return (
     <>
-      {problems.map((problem) => {
+      {problems.map((problem, index) => {
         return (
           <p
-            key={problem.message}
+            key={`${problem.path}#${String(index)}`}
             role="alert"
             data-testid={testId}
             className="text-sm text-destructive"

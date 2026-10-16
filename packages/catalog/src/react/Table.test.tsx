@@ -35,6 +35,36 @@ describe("a Table", () => {
     ]);
   });
 
+  it("emits { id, values } when a row is selected by keyboard, with Enter or Space", async () => {
+    const page = mountTable({ rows: createBooks() });
+
+    await page.pressOnRow("b2", "{Enter}");
+    await page.pressOnRow("b1", " ");
+    await page.pressOnRow("b1", "a");
+
+    expect(page.emitted()).toEqual([
+      {
+        event: "select",
+        payload: {
+          id: "b2",
+          values: { title: "Emma", status: "want", rating: null },
+        },
+      },
+      {
+        event: "select",
+        payload: {
+          id: "b1",
+          values: {
+            title: "Dune",
+            status: "done",
+            rating: 5,
+            dateFinished: "2026-09-30",
+          },
+        },
+      },
+    ]);
+  });
+
   it("marks the selected row", () => {
     expect(
       mountTable({ rows: createBooks(), selected: "b2" }).selectedRowIds(),

@@ -26,6 +26,8 @@ export interface TablePage {
   cellsOf: (id: string) => string[];
   selectedRowIds: () => string[];
   clickRow: (id: string) => Promise<void>;
+  /** Moves the keyboard's focus to the row, by Tab, and presses `key` there. */
+  pressOnRow: (id: string, key: string) => Promise<void>;
   emitted: () => Emitted[];
 }
 
@@ -91,7 +93,7 @@ export function mountTable({ rows, selected }: TablePageProps): TablePage {
     },
     cellsOf: (id: string): string[] => {
       return within(rowOf(id))
-        .getAllByRole("cell")
+        .getAllByRole("gridcell")
         .map((cell) => {
           return cell.textContent;
         });
@@ -106,8 +108,25 @@ export function mountTable({ rows, selected }: TablePageProps): TablePage {
     clickRow: async (id: string): Promise<void> => {
       await user.click(rowOf(id));
     },
+    pressOnRow: async (id: string, key: string): Promise<void> => {
+      const row = rowOf(id);
+
+      for (let tabs = 0; tabs <= rowsShown().length && !hasFocus(row); tabs++) {
+        await user.tab();
+      }
+
+      if (!hasFocus(row)) {
+        throw new Error(`the row "${id}" cannot be reached by Tab`);
+      }
+
+      await user.keyboard(key);
+    },
     emitted: (): Emitted[] => {
       return emitted;
     },
   };
+}
+
+function hasFocus(element: HTMLElement): boolean {
+  return element.ownerDocument.activeElement === element;
 }

@@ -71,6 +71,11 @@ How the two layers are laid out in `packages/catalog`:
   taking an `Envelope` of its props, children, `emit`, test id and problems.
   Its React code is held to a client's lint rules (`reactRules: "client"`),
   since the app's build compiles it.
+- **Only a `Stack` shows children.** A contract says so (`showsChildren`);
+  the schema the model is held to offers `children` to that component alone,
+  and `checkElement` refuses children on any other.
+- **Each prop's note is its schema's `.describe()`**, so the schema the model
+  is held to carries it beside the prop.
 - **shadcn's primitives** are in `src/react/primitives/`: `button`, `input`,
   `label`, `select`, `table` and `checkbox` of the `new-york-v4` style, one
   component to a file as the project's lint asks. What no catalog entry

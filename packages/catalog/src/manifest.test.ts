@@ -143,6 +143,22 @@ describe("the catalog", () => {
     ]);
   });
 
+  it("reports children on a component that shows none", () => {
+    expect(
+      checked({
+        component: "Text",
+        props: { text: "Books" },
+        children: ["table"],
+      }),
+    ).toEqual([
+      {
+        path: "ui.elements.statusFilter.children",
+        message: 'a "Text" shows no children; put them in a "Stack"',
+      },
+    ]);
+    expect(checked({ component: "Stack", children: ["table"] })).toEqual([]);
+  });
+
   it("leaves to checkApp what it judges: a reference, an unknown prop, an unknown component", () => {
     expect(
       checked({

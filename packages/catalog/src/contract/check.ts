@@ -30,9 +30,26 @@ export function checkElementAgainst(
   }
 
   return [
+    ...childProblems(contract, id, element),
     ...propProblems(contract, id, element),
     ...eventProblems(contract, id, element),
   ];
+}
+
+/** Children are shown only by a component that says it shows them: a Stack. */
+function childProblems(
+  contract: ComponentContract,
+  id: string,
+  element: Element,
+): Problem[] {
+  return contract.showsChildren === true || element.children.length === 0
+    ? []
+    : [
+        {
+          path: `ui.elements.${id}.children`,
+          message: `a "${contract.name}" shows no children; put them in a "Stack"`,
+        },
+      ];
 }
 
 function propProblems(

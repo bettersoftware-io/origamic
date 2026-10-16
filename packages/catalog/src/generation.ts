@@ -112,6 +112,8 @@ const Reply = z.strictObject({
         state: z.array(GeneratedState),
       })
       .superRefine((ui, ctx) => {
+        reportReserved(ctx, ui.elements, "elements", "id");
+        reportReserved(ctx, ui.views, "views", "id");
         reportTwice(ctx, ui.elements, "elements", "id", "elements");
         reportTwice(ctx, ui.views, "views", "id", "views");
         reportTwice(ctx, ui.state, "state", "key", "state keys");
@@ -268,7 +270,9 @@ function elementOf(
       id: Id,
       component: z.literal(contract.name),
       props: anyRequired ? shape : shape.optional(),
-      children: z.array(Id).optional(),
+      ...(contract.showsChildren === true
+        ? { children: z.array(Id).optional() }
+        : {}),
       ...(events.length === 0
         ? {}
         : {
@@ -293,6 +297,13 @@ function elementOf(
  * `$state` alone.
  */
 function acceptedBy(prop: AnyProp): z.ZodType {
+  const accepted = acceptedByKind(prop);
+  const { description } = prop.schema;
+
+  return description === undefined ? accepted : accepted.describe(description);
+}
+
+function acceptedByKind(prop: AnyProp): z.ZodType {
   switch (prop.kind) {
     case "view":
       return ViewRef;
@@ -337,6 +348,29 @@ function everyNode(value: unknown, holds: (node: Node) => boolean): boolean {
       return everyNode(inner, holds);
     })
   );
+}
+
+/**
+ * An issue on each entry named `__proto__`, worded as spec's records word it
+ * (`withoutProtoKey` in spec's `refine.ts`, which spec does not export). Read
+ * into a map, such a name would pass here and be refused by `UiSpec` after.
+ * A state key needs none: `PropName` already refuses the name.
+ */
+function reportReserved<K extends string>(
+  ctx: z.RefinementCtx,
+  entries: readonly Readonly<Record<K, string>>[],
+  list: string,
+  key: K,
+): void {
+  entries.forEach((entry, index) => {
+    if (entry[key] === "__proto__") {
+      ctx.addIssue({
+        code: "custom",
+        path: [list, index, key],
+        message: '"__proto__" is not a key a spec may use',
+      });
+    }
+  });
 }
 
 /** An issue on each entry whose name an earlier entry already has. */
