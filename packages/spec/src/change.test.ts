@@ -6,6 +6,7 @@ import { type Applied, applyChangeSet } from "./change.ts";
 import { ChangeSet, Ontology } from "./ontology.ts";
 import { checkApp } from "./references.ts";
 import {
+  createBookChange,
   createBookOntology,
   createCatalog,
   createDateFinishedApp,
@@ -256,6 +257,14 @@ describe("applying a change set", () => {
 
     expect(ontology.version).toBe(1);
     expect(versionsOf(ontology)).toEqual({ Book: 1 });
+  });
+
+  it("the book tracker's first change set yields its ontology", () => {
+    const empty: OntologyInput = { format: 1, version: 0, objectTypes: [] };
+
+    expect(ontologyAfter(createBookChange(), empty)).toEqual(
+      Ontology.parse(createBookOntology()),
+    );
   });
 
   it("leaves the ontology it was given as it was", () => {
