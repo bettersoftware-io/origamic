@@ -1,9 +1,7 @@
 import { render, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import type { JsonValue } from "@origamic/spec";
-
-import type { Row } from "#/contract/props.ts";
+import type { JsonValue, Row } from "@origamic/spec";
 
 import { Table } from "./Table.tsx";
 import { PARTS, partTestId } from "./testIds.ts";

@@ -36,14 +36,21 @@ Work that has started and is not finished.
   `packages/spec`. Part 5, the catalog, is built on part 2 and waits
   likewise: the five contracts, the manifest and `checkElement`, what the
   model is held to, and the React implementations on shadcn's primitives. It
-  exports spec's `PropKind` and `CatalogComponent`. Some things wait on
-  other parts: the catalog types a view's rows with a `Row` of its own
-  (`src/contract/props.ts`), to become spec's once parts 3 and 5 are both on
-  main; `Envelope`, what each implementation takes, is exported from
-  `@origamic/catalog` by part 6, its first importer; `Break` (in `core`'s
+  exports spec's `PropKind` and `CatalogComponent`. Part 6, the runtime, is
+  built on parts 4 and 5 and waits likewise: `AppView`, which draws an app's
+  UI spec over the catalog and routes its events to the app session, and
+  `createShellViewModel`, the shell's hooks over the core. It changed the
+  catalog: a view's rows are spec's `Row`; `Envelope` and `PARTS` are
+  exported; and each implementation is behind its contract (`checked`), so
+  it takes props as the runtime resolves them and draws its component only
+  with what the schemas accept. A form whose submit wrote through an action,
+  with nothing refused, is drawn afresh, which empties a create form. Some
+  things wait on other parts: `Break` (in `core`'s
   `apps/compatibility.ts`), `BuilderTarget` (in `builder/builder.ts`) and
   `LoadedApp` (in `createCore.ts`) are exported by the part that first names
-  them, likely part 9. Part 9's library is how a saved app that no panel
+  them, likely part 9; so are the runtime's `ShellViewModelProvider`,
+  `useShellViewModel` and the type `ShellViewModel`
+  (`packages/runtime/src/viewModel/`), which only its tests use today. Part 9's library is how a saved app that no panel
   shows is reopened: the builder refuses a new app whose id the library has,
   and says to open it from the library and revise it there, which is also
   what is left when an accept saved the app and then failed to add its
@@ -58,10 +65,10 @@ A plan or a design is on the main branch, and nothing of it is built.
   by [the first reading](architecture/reviews/2026-10-14-first-reading.md).
   Built: the schemas in `packages/spec`, reviewed by the author on
   2026-10-16, `core`'s ports, simulators and rules (part 3 of the slice),
-  its app session, builder and workspace (part 4), and the dependency rule,
-  held by `architecture.config.mts` over two packages that are still empty of
-  code (`runtime`, `adapters`). `adapters` holds the first migration and its
-  test.
+  its app session, builder and workspace (part 4), the catalog (part 5), the
+  runtime (part 6), and the dependency rule, held by
+  `architecture.config.mts` over `adapters` too, which holds only the first
+  migration and its test.
 
 ## Planned, and held by something
 
@@ -153,17 +160,19 @@ verified, a case that is not covered.
   of role `explicit`. Part 9, which makes `apps/web`, should make sure its
   compiler includes the catalog's source, or the catalog runs uncompiled
   with nothing failing.
-- **A create Form keeps what was typed after it is submitted.** Its inputs
-  hold their text until the page draws the form afresh; an edit Form is drawn
-  afresh each time its `values` change. Whether "Add" should clear the form,
-  and how the runtime says that it succeeded, is part 6's to decide.
-- **One importer in `pnpm-lock.yaml` is written by hand.**
-  `packages/runtime` has no dependency,
-  and pnpm 12 writes no importer for such a package, while its frozen
-  install (what CI runs) refuses a lockfile without one. It has
-  `packages/<name>: {}`, added by hand on 2026-10-16; a plain `pnpm install`
-  keeps them, and they go when the package gets a dependency. A new package
-  with no dependency needs the same: run `pnpm install --frozen-lockfile`
+- **A form drawn afresh after a submit loses the keyboard's focus.** The
+  runtime remounts an element whose event wrote through an action and was
+  not refused, which is how a create Form starts empty again; the focus
+  that was on its button goes back to the page. Nothing puts it back on the
+  form's first field.
+- **An app shows "Loading…" until each view its elements read has rows.**
+  `AppView` draws nothing of the app before every one of them has emitted
+  once, so a view whose store never answers keeps the whole panel waiting.
+  A view that fails is shown in the panel's place, with why.
+- **pnpm 12 writes no importer for a package with no dependency.** Its
+  frozen install (what CI runs) then refuses the lockfile. No package is in
+  that state today; a new one with no dependency needs `packages/<name>: {}`
+  added to `pnpm-lock.yaml` by hand. Run `pnpm install --frozen-lockfile`
   before pushing, since `gate:full` stays green without it.
 - **Where Docker is not running, `packages/adapters` is measured without its
   tests.** Its `*.supabase.test.ts` files are left out there (with a `SKIP`
