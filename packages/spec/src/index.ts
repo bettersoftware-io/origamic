@@ -5,5 +5,6 @@ export * from "./common.ts";
 export * from "./generation.ts";
 export * from "./ontology.ts";
 export * from "./references.ts";
+export * from "./rows.ts";
 export * from "./ui-spec.ts";
 export * from "./workspace.ts";
