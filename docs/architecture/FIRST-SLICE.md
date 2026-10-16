@@ -37,9 +37,6 @@ no mobile layout, no visual polish beyond shadcn defaults.
 These are not part of the loop, and the loop cannot be built without them.
 `docs/STATUS.md` holds each until it is done.
 
-- Steps 2 and 3 of `HANDOVER.md`: `packages/spec` reviewed, and the
-  dependency rule in `tools/arch`. Step 3 needs the kit to accept Origamic's
-  packages first (ADR-0012).
 - The `e2e` add-on installed: the `apps/web` criterion below needs a browser.
   It was not among the add-ons this project was created with.
 - A local Supabase that `pnpm gate:full` and CI can start (ADR-0004).

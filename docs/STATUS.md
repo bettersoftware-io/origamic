@@ -25,26 +25,20 @@ A plan or a design is on the main branch, and nothing of it is built.
 - **The product.** The documents under
   [docs/architecture/](architecture/ARCHITECTURE.md) describe it, as settled
   by [the first reading](architecture/reviews/2026-10-14-first-reading.md).
-  Nothing of it is built but the schemas in `packages/spec`, reviewed by
-  the author on 2026-10-16. Steps 3 and 4 of
-  [HANDOVER.md](../HANDOVER.md) are below, each held.
+  Built: the schemas in `packages/spec`, reviewed by the author on
+  2026-10-16, and the dependency rule, held by `architecture.config.mts`
+  over four packages that are still empty (`core`, `catalog`, `runtime`,
+  `adapters`). Step 4 of [HANDOVER.md](../HANDOVER.md) is below, held.
 
 ## Planned, and held by something
 
 It waits on a release, a decision or other work. Each entry says on what.
 
-- **The dependency rule as gates, step 3 of the handover.** Held by two
-  changes to the kit, made in `bettersoftware-io/skills` and then installed
-  here: a package declared by its explicit edges, since Origamic's graph fits
-  none of the kit's roles (`adapters` imports `core`); and ports found in any
-  package, with none found where adapters are declared a failure, since the
-  contract gate now looks only in a `domain` package and would skip
-  Origamic's (ADR-0012). The table of imports to enforce is in
-  [ARCHITECTURE.md](architecture/ARCHITECTURE.md).
-- **The plan of the first slice, step 4.** Held by steps 2 and 3, and by
-  what [FIRST-SLICE.md](architecture/FIRST-SLICE.md) lists under "Before the
+- **The plan of the first slice, step 4.** Held by what
+  [FIRST-SLICE.md](architecture/FIRST-SLICE.md) lists under "Before the
   slice": the `e2e` add-on installed, a local Supabase the gate can start,
-  and how a catalog prop accepts a `$view` or `$state` reference.
+  and how a catalog prop accepts a `$view` or `$state` reference. The plan
+  is the author's to approve before anything is built.
 
 ## Next, with no plan yet
 
@@ -76,6 +70,18 @@ between options. Each entry says who, and gives the command or the question.
 
 What is true of the project and will not be fixed soon: a thing that was not
 verified, a case that is not covered.
+
+- **The dependency rule is held only where a package exists.** `apps/web`
+  and `apps/gateway` get their lines in `architecture.config.mts` when they
+  are made, in the first slice. Until the price list is removed, the roles of
+  `core` and `runtime` also let them import its `domain` and `shared`. A
+  `fetch` written by hand outside `adapters` is not caught, nor are rules 1,
+  4 and 5 of [ARCHITECTURE.md](architecture/ARCHITECTURE.md), which are
+  questions for a review.
+- **The role `explicit` carries none of React's lint rules.** When
+  `packages/catalog` first imports React, `pnpm check:react-policies` will
+  ask for it under `reactWithoutPolicies` with a reason, or for a change to
+  the kit that gives it a role's rules.
 
 - **In v1 the client enforces the schemas and the actions.** The browser
   writes to Supabase itself, and row-level security checks whose rows it
