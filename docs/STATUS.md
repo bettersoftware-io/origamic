@@ -80,6 +80,12 @@ between options. Each entry says who, and gives the command or the question.
 What is true of the project and will not be fixed soon: a thing that was not
 verified, a case that is not covered.
 
+- **A `__proto__` key inside a JSON literal is dropped without a word.** A
+  prop's value or a state key's `initial` is parsed by `z.json()`, which
+  leaves the key out, as `JSON.parse` input can carry it. It cannot leave a
+  reference dangling, since a literal names nothing; it only loses part of
+  the literal. Every record of a spec refuses the key instead.
+
 - **The dependency rule is held only where a package exists.** `apps/web`
   and `apps/gateway` get their lines in `architecture.config.mts` when they
   are made, in the first slice. Until the price list is removed, the roles of

@@ -40,9 +40,11 @@ export function problemsOf(error: z.ZodError): Problem[] {
 }
 
 /**
- * `schema`, a record, refusing a `__proto__` key. `JSON.parse` keeps one as
- * an own key, and Zod leaves it out of what it parses without a word (its
- * key schema never sees it), so it is refused here, before the record runs.
+ * Wraps a record schema so that it refuses a `__proto__` key. `JSON.parse`
+ * keeps such a key, and Zod drops it from what it parses without a word: the
+ * record's key schema never sees it. So the key is checked here, before the
+ * record runs. When it is refused, the record's own checks do not run, so
+ * any other problem inside that record shows only once the key is gone.
  */
 export function withoutProtoKey<Output, Input>(
   schema: z.ZodType<Output, Input>,

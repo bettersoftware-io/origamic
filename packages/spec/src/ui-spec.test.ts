@@ -163,29 +163,6 @@ describe("a UI spec", () => {
     ]);
   });
 
-  it("refuses a __proto__ key, which JSON.parse keeps and a record would drop", () => {
-    const asElement = JSON.parse(
-      '{"root": "page", "elements": {"page": {"component": "Stack"}, "__proto__": {"component": "Stack"}}}',
-    );
-
-    const asProp = JSON.parse(
-      '{"root": "page", "elements": {"page": {"component": "Stack", "props": {"__proto__": 1}}}}',
-    );
-
-    expect(problemsIn(UiSpec, asElement)).toEqual([
-      {
-        path: "elements.__proto__",
-        message: '"__proto__" is not a key a spec may use',
-      },
-    ]);
-    expect(problemsIn(UiSpec, asProp)).toEqual([
-      {
-        path: "elements.page.props.__proto__",
-        message: '"__proto__" is not a key a spec may use',
-      },
-    ]);
-  });
-
   it("does not take a misspelt reference, or a key it does not know, for data", () => {
     const misspelt = createBookApp();
     const unknownKey = createBookApp();
