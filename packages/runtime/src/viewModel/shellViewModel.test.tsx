@@ -18,6 +18,27 @@ describe("the shell's view model", () => {
     expect(page.user()).toMatchObject({ email: "reader@example.com" });
   });
 
+  it("subscribes to each stream of the core once", () => {
+    const page = mountShell();
+
+    expect(page.userSubscriptions()).toBe(1);
+  });
+
+  it("throws, on the next render, what a stream of the core failed with after its first value", async () => {
+    // React prints the error it catches; the message is asserted below instead.
+    const printed = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    onTestFinished(() => {
+      printed.mockRestore();
+    });
+
+    const page = mountShell();
+
+    await expect(page.failUser("the session expired")).rejects.toThrow(
+      "the session expired",
+    );
+  });
+
   it("gives the shell the builder's state from its first render", () => {
     const page = mountShell();
 
@@ -69,9 +90,15 @@ describe("the shell's view model", () => {
 
     await page.settle();
 
-    await expect(
-      page.appSession().emit("statusFilter", "change", { value: "done" }),
-    ).resolves.toBeUndefined();
+    const after = page.appSession();
+
+    await after.emit("statusFilter", "change", { value: "done" });
+    await page.showEqualCopy();
+
+    expect(page.appSession()).toBe(after);
+    expect(await firstValueFrom(after.state())).toMatchObject({
+      status: "done",
+    });
   });
 
   it("opens a session for the next app it is given, and closes the one before", async () => {
@@ -84,9 +111,15 @@ describe("the shell's view model", () => {
     await expect(
       before.emit("statusFilter", "change", { value: "done" }),
     ).rejects.toThrow("the app session is closed");
-    await expect(
-      page.appSession().emit("statusFilter", "change", { value: "done" }),
-    ).resolves.toBeUndefined();
+    const after = page.appSession();
+
+    await after.emit("statusFilter", "change", { value: "done" });
+    await page.showEqualCopy();
+
+    expect(page.appSession()).toBe(after);
+    expect(await firstValueFrom(after.state())).toMatchObject({
+      status: "done",
+    });
   });
 
   it("keeps the session, and the state it holds, when given an equal App of the same id and version", async () => {

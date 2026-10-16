@@ -1,5 +1,5 @@
-import { useEffect, useRef, useSyncExternalStore } from "react";
-import { BehaviorSubject, type Observable, skip, take } from "rxjs";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import type { Observable } from "rxjs";
 
 import type {
   AppSession,
@@ -62,43 +62,62 @@ interface Followed<T> {
   current: () => T;
 }
 
-/** A stream of the core, followed for as long as the view model lives, with its latest value at hand. */
+/**
+ * A stream of the core, followed for as long as the view model lives, with
+ * its latest value at hand. It is subscribed to once: a cold stream (an
+ * adapter's query) is read once. The value it gives on subscribing is its
+ * first; a failure it ends with is kept, and thrown where the value is read,
+ * for an error boundary to catch.
+ */
 function follow<T>(stream: Observable<T>, what: string): Followed<T> {
-  const latest = new BehaviorSubject(currentOf(stream, what));
+  const held: Held<T> = { latest: null, failure: null };
+  const listeners = new Set<() => void>();
 
-  stream.subscribe(latest);
+  function tellListeners(): void {
+    for (const listener of listeners) {
+      listener();
+    }
+  }
 
-  return {
-    subscribe: (onChange: () => void): (() => void) => {
-      const subscription = latest.pipe(skip(1)).subscribe(onChange);
-
-      return (): void => {
-        subscription.unsubscribe();
-      };
+  stream.subscribe({
+    next: (value: T): void => {
+      held.latest = { value };
+      tellListeners();
     },
-    current: (): T => {
-      return latest.getValue();
+    error: (error: unknown): void => {
+      held.failure = error instanceof Error ? error : new Error(String(error));
+      tellListeners();
     },
-  };
-}
-
-/** The value a stream gives at once, on subscribing. */
-function currentOf<T>(stream: Observable<T>, what: string): T {
-  const given: Given<T>[] = [];
-
-  stream.pipe(take(1)).subscribe((value) => {
-    given.push({ value });
   });
 
-  const [first] = given;
-
-  if (first === undefined) {
+  if (held.latest === null && held.failure === null) {
     throw new Error(
       `the core gave no value at once for ${what}; the shell's view model reads each stream's current value, and a port's stream emits at once`,
     );
   }
 
-  return first.value;
+  return {
+    subscribe: (onChange: () => void): (() => void) => {
+      listeners.add(onChange);
+
+      return (): void => {
+        listeners.delete(onChange);
+      };
+    },
+    current: (): T => {
+      if (held.failure !== null || held.latest === null) {
+        throw held.failure ?? new Error(`the core gave no value for ${what}`);
+      }
+
+      return held.latest.value;
+    },
+  };
+}
+
+/** What a followed stream gave last: its latest value, or the failure it ended with. */
+interface Held<T> {
+  latest: Given<T> | null;
+  failure: Error | null;
 }
 
 interface Given<T> {
@@ -117,27 +136,32 @@ interface Opened {
 }
 
 /**
+ * The session is kept in state, so a render React discards (a concurrent
+ * render of another app) changes nothing: only a committed render's session
+ * is the component's. Given another app or version, the render opens a
+ * session for it and stores it at once, the pattern React documents for
+ * state derived from a prop.
+ *
+ * Opening a session in render is safe: it holds no subscription until one of
+ * its streams is read, so a session a discarded render opened leaves nothing
+ * open. A version never changes, so an equal `App` built afresh keeps the
+ * session and the state it holds.
+ *
  * The session is closed a microtask after the component lets go of it, and
  * only if nothing took it up again: StrictMode unmounts and mounts a
  * component again at once, which must not leave it holding a closed
  * session.
  */
 function useOpenedApp(core: Core, app: App): AppSession {
-  const opened = useRef<Opened | null>(null);
+  const [opened, setOpened] = useState<Opened>(() => {
+    return openedFor(core, app);
+  });
+  let current = opened;
 
-  // Opening a session in render is safe: it holds no subscription until one
-  // of its streams is read, so a render React discards leaves nothing open.
-  // A version never changes, so an equal `App` built afresh keeps the session
-  // and the state it holds.
-  if (
-    opened.current === null ||
-    opened.current.app.id !== app.id ||
-    opened.current.app.version !== app.version
-  ) {
-    opened.current = { app, session: core.openApp(app), held: false };
+  if (opened.app.id !== app.id || opened.app.version !== app.version) {
+    current = openedFor(core, app);
+    setOpened(current);
   }
-
-  const current = opened.current;
 
   useEffect(() => {
     current.held = true;
@@ -153,4 +177,8 @@ function useOpenedApp(core: Core, app: App): AppSession {
   }, [current]);
 
   return current.session;
+}
+
+function openedFor(core: Core, app: App): Opened {
+  return { app, session: core.openApp(app), held: false };
 }

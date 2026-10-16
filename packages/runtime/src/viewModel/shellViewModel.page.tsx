@@ -1,5 +1,6 @@
 import { act, render } from "@testing-library/react";
 import { type ReactElement, StrictMode } from "react";
+import { defer, merge, type Observable, Subject } from "rxjs";
 
 import type {
   AppSession,
@@ -43,8 +44,12 @@ export interface ShellPage {
   hideApp: () => Promise<void>;
   /** Shows the book tracker's next version in the same place, as moving a panel's pin does. */
   showNextVersion: () => Promise<void>;
-  /** Shows an equal copy of the app shown, built afresh, as a shell does that reads its apps again. */
+  /** Shows an equal copy of the app shown (the same id and version), built afresh, as a shell does that reads its apps again. */
   showEqualCopy: () => Promise<void>;
+  /** How many times the view model subscribed to who is signed in. */
+  userSubscriptions: () => number;
+  /** Ends the stream of who is signed in with a failure. Rejects with what the shell threw. */
+  failUser: (message: string) => Promise<void>;
   /** Lets what React and the view model put off until the current work is done run. */
   settle: () => Promise<void>;
 }
@@ -57,7 +62,22 @@ export function mountShell({
   const { core } = createCoreHarness({
     ontology: Ontology.parse(createBookOntology()),
   });
-  const viewModel = createShellViewModel(core);
+  const userFailures = new Subject<never>();
+  let userSubscriptions = 0;
+
+  /** Who is signed in, as the core says, counting each subscription, and failing when the test says so. */
+  function users(): Observable<User | null> {
+    return defer(() => {
+      userSubscriptions += 1;
+
+      return merge(core.session.user(), userFailures);
+    });
+  }
+
+  const viewModel = createShellViewModel({
+    ...core,
+    session: { ...core.session, user: users },
+  });
   const seen = createSeen();
   const first = App.parse({ ...createBookApp(), version: 1 });
   const next = App.parse({ ...createBookApp(), version: 2 });
@@ -77,7 +97,10 @@ export function mountShell({
     });
   }
 
+  let shown: App | null = showsApp ? first : null;
+
   async function show(app: App | null): Promise<void> {
+    shown = app;
     await act(async () => {
       rendered.rerender(shellShowing(app));
     });
@@ -126,7 +149,19 @@ export function mountShell({
       await show(next);
     },
     showEqualCopy: async (): Promise<void> => {
-      await show(App.parse({ ...createBookApp(), version: 1 }));
+      if (shown === null) {
+        throw new Error("the shell shows no app to copy");
+      }
+
+      await show(App.parse({ ...createBookApp(), version: shown.version }));
+    },
+    userSubscriptions: (): number => {
+      return userSubscriptions;
+    },
+    failUser: async (message: string): Promise<void> => {
+      await act(async () => {
+        userFailures.error(new Error(message));
+      });
     },
     settle,
   };

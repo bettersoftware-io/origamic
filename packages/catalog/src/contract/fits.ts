@@ -10,9 +10,10 @@ export type Unchecked = Readonly<Record<string, unknown>>;
  * its prop's schema accepts, and no required prop missing. It is the one
  * place a value from a spec becomes a component's typed props.
  *
- * The component is handed the value it narrows, not the parse's output; that
- * is sound because no prop schema reshapes its value (no default, transform,
- * pipe or coercion), which `schemas.test.ts` holds.
+ * The component is handed the value it narrows, not the parse's output. That
+ * is sound only while each prop schema's output type is its input type,
+ * which `schemas.test.ts` holds; a transform that keeps the type would pass
+ * it, and the component would still get the raw value.
  */
 export function isPropsOf<C extends ComponentContract>(
   contract: C,
