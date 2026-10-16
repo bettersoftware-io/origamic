@@ -1,76 +1,178 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
-import { UiNode } from "./ui-spec.ts";
+import { createBookApp } from "./testing/bookTracker.ts";
+import { elementOf, issuesOf } from "./testing/issues.ts";
+import { UiSpec } from "./ui-spec.ts";
 
-// Property tests: fast-check makes the trees, of any width and depth, and
-// shrinks one that fails to the smallest that still does.
-describe("a tree of nodes, whatever its shape", () => {
-  it("parses, and parsing what came out changes nothing", () => {
+// Property tests: fast-check makes the specs, of any shape up to 40
+// elements deep, and shrinks one that fails to the smallest that still does.
+describe("a flat spec, whatever the shape of its tree", () => {
+  it("is accepted when every element hangs from the root once", () => {
     fc.assert(
-      fc.property(tree, (node) => {
-        const parsed = UiNode.parse(node);
-
-        expect(UiNode.parse(parsed)).toEqual(parsed);
+      fc.property(tree, (spec) => {
+        expect(issuesOf(UiSpec, spec)).toEqual([]);
       }),
     );
   });
 
-  it("is rejected when one node, anywhere in it, names no component", () => {
+  it("is rejected when a child names an element that is not there", () => {
     fc.assert(
-      fc.property(tree, fc.array(fc.nat()), (node, path) => {
-        expect(UiNode.safeParse(withoutComponentAt(node, path)).success).toBe(
-          false,
+      fc.property(tree, fc.nat(), (spec, pick) => {
+        const gone = pickNonRoot(spec, pick);
+
+        delete spec.elements[gone];
+
+        expect(issuesOf(UiSpec, spec)).toContainEqual(
+          expect.stringContaining(`a child "${gone}" that is not an element`),
+        );
+      }),
+    );
+  });
+
+  it("is rejected when an element has two parents", () => {
+    fc.assert(
+      fc.property(tree, fc.nat(), (spec, pick) => {
+        const child = pickNonRoot(spec, pick);
+
+        root(spec).children.push(child);
+
+        expect(issuesOf(UiSpec, spec)).toContainEqual(
+          expect.stringContaining(`"${child}" is a child of both`),
+        );
+      }),
+    );
+  });
+
+  it("is rejected when an element is cut off from the root, in a loop of its own", () => {
+    fc.assert(
+      fc.property(tree, fc.nat(), (spec, pick) => {
+        const looped = pickNonRoot(spec, pick);
+
+        for (const element of Object.values(spec.elements)) {
+          element.children = element.children.filter((child) => {
+            return child !== looped;
+          });
+        }
+
+        spec.elements[looped]?.children.push(looped);
+
+        expect(issuesOf(UiSpec, spec)).toContain(
+          `"${looped}" is not reached from the root "e0"; it may be part of a loop`,
         );
       }),
     );
   });
 });
 
-interface TreeNode {
-  id: string;
-  component?: string;
-  props?: Record<string, unknown>;
-  children?: TreeNode[];
+describe("a UI spec", () => {
+  it("accepts the book tracker's", () => {
+    expect(issuesOf(UiSpec, createBookApp().ui)).toEqual([]);
+  });
+
+  it("has a root that is an element and nobody's child", () => {
+    const rootless = createBookApp();
+    const adopted = createBookApp();
+
+    rootless.ui.root = "home";
+    elementOf(adopted, "table").children = ["page"];
+
+    expect(issuesOf(UiSpec, rootless.ui)).toEqual([
+      'the root "home" is not an element',
+    ]);
+    expect(issuesOf(UiSpec, adopted.ui)).toContain(
+      '"table" has the root "page" as a child',
+    );
+  });
+
+  it("reads and sets only the views and the state it declares", () => {
+    const app = createBookApp();
+    const table = elementOf(app, "table");
+
+    table.props = { rows: { $view: "shelves" }, empty: { $state: "hint" } };
+    table.on = {
+      select: [
+        { do: "set", state: "chosen", to: { $state: "picked" } },
+        {
+          do: "invoke",
+          action: "updateBook",
+          target: { $state: "row" },
+          input: { title: { $state: "draft" } },
+        },
+      ],
+    };
+    app.ui.views = {
+      books: {
+        type: "Book",
+        filter: [{ property: "status", op: "eq", value: { $state: "shelf" } }],
+      },
+    };
+
+    expect(issuesOf(UiSpec, app.ui)).toEqual([
+      '"shelves" is not a declared view',
+      '"hint" is not declared in state',
+      'a handler sets "chosen", which is not declared in state',
+      '"picked" is not declared in state',
+      '"row" is not declared in state',
+      '"draft" is not declared in state',
+      '"shelf" is not declared in state',
+    ]);
+  });
+
+  it("does not take a misspelt reference, or a key it does not know, for data", () => {
+    const misspelt = createBookApp();
+    const unknownKey = createBookApp();
+
+    elementOf(misspelt, "table").props = { rows: { $veiw: "books" } };
+    unknownKey.ui.elements.table = { component: "Table", childs: [] } as never;
+
+    expect(issuesOf(UiSpec, misspelt.ui)).not.toEqual([]);
+    expect(issuesOf(UiSpec, unknownKey.ui)).not.toEqual([]);
+  });
+});
+
+interface Node {
+  component: string;
+  children: string[];
 }
 
-/** A tree at most `depth` levels below its root, each node with up to three children. */
-function treeOf(depth: number): fc.Arbitrary<TreeNode> {
-  const children =
-    depth === 0
-      ? fc.constant<TreeNode[]>([])
-      : fc.array(treeOf(depth - 1), { maxLength: 3 });
-
-  return fc.record(
-    {
-      id: fc.string({ minLength: 1 }),
-      component: fc.string({ minLength: 1 }),
-      props: fc.dictionary(fc.string(), fc.jsonValue()),
-      children,
-    },
-    { requiredKeys: ["id", "component"] },
-  );
+interface Tree {
+  root: string;
+  elements: Record<string, Node>;
 }
 
-const tree = treeOf(3);
+/** Up to 41 elements, `e0` the root; each other one hangs from an element made before it, so every shape of tree can come out. */
+const tree = fc
+  .array(fc.nat(), { minLength: 1, maxLength: 40 })
+  .map((parents) => {
+    const elements: Record<string, Node> = {
+      e0: { component: "Box", children: [] },
+    };
 
-/** The tree with the component taken off the node `path` leads to: each step picks a child, and the walk stops at a leaf. */
-function withoutComponentAt(node: TreeNode, path: number[]): TreeNode {
-  const [step, ...rest] = path;
-  const children = node.children ?? [];
+    parents.forEach((seed, index) => {
+      const id = `e${index + 1}`;
 
-  if (step === undefined || children.length === 0) {
-    const { component: _component, ...bare } = node;
+      elements[id] = { component: "Box", children: [] };
+      elements[`e${seed % (index + 1)}`]?.children.push(id);
+    });
 
-    return bare;
+    return { root: "e0", elements };
+  });
+
+function pickNonRoot(spec: Tree, pick: number): string {
+  const others = Object.keys(spec.elements).filter((id) => {
+    return id !== spec.root;
+  });
+
+  return others[pick % others.length] ?? spec.root;
+}
+
+function root(spec: Tree): Node {
+  const node = spec.elements[spec.root];
+
+  if (node === undefined) {
+    throw new Error("a generated tree always has its root");
   }
 
-  const at = step % children.length;
-
-  return {
-    ...node,
-    children: children.map((child, index) => {
-      return index === at ? withoutComponentAt(child, rest) : child;
-    }),
-  };
+  return node;
 }
