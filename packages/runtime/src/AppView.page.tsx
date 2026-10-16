@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { PARTS, partTestId } from "@origamic/catalog";
@@ -21,12 +21,19 @@ export interface AppViewPage {
     formId: string,
     values: Readonly<Record<string, string>>,
   ) => Promise<void>;
+  /** Fills each field named, a select field by choosing the option, and submits nothing. */
+  fillForm: (
+    formId: string,
+    values: Readonly<Record<string, string>>,
+  ) => Promise<void>;
   /** Chooses the option of a Select by its label, and waits until it shows it. */
   choose: (selectId: string, label: string) => Promise<void>;
   /** Clicks the row, and waits until it is marked as selected. */
   selectRow: (tableId: string, rowId: string) => Promise<void>;
-  /** The first cell of each row of the table `table`, in order. */
-  bookTitles: () => string[];
+  /** The first cell of each row of the table `table`, in order, once the table is drawn: the app draws it only when every view it reads has its rows. */
+  bookTitles: () => Promise<string[]>;
+  /** Draws the view again with this app and session, as a panel does when its workspace changes. */
+  show: (app: App, session: AppSession) => Promise<void>;
   cellsOf: (tableId: string, rowId: string) => string[];
   selectedRows: (tableId: string) => string[];
   /** What a field of a form shows. */
@@ -118,14 +125,22 @@ export function mountAppView({ app, session }: AppViewPageProps): AppViewPage {
     return within(elementOf(formId)).queryAllByRole("alert");
   }
 
+  async function fillForm(
+    formId: string,
+    values: Readonly<Record<string, string>>,
+  ): Promise<void> {
+    for (const [field, text] of Object.entries(values)) {
+      await fill(formId, field, text);
+    }
+  }
+
   return {
+    fillForm,
     submitForm: async (
       formId: string,
       values: Readonly<Record<string, string>>,
     ): Promise<void> => {
-      for (const [field, text] of Object.entries(values)) {
-        await fill(formId, field, text);
-      }
+      await fillForm(formId, values);
 
       const before = elementOf(formId);
 
@@ -161,9 +176,16 @@ export function mountAppView({ app, session }: AppViewPageProps): AppViewPage {
         }
       });
     },
-    bookTitles: (): string[] => {
+    bookTitles: async (): Promise<string[]> => {
+      await view.findByTestId(elementTestId("table"));
+
       return rowsOf("table").map((row) => {
         return cellsIn(row)[0] ?? "";
+      });
+    },
+    show: async (next: App, nextSession: AppSession): Promise<void> => {
+      await act(async () => {
+        rendered.rerender(<AppView app={next} session={nextSession} />);
       });
     },
     cellsOf: (tableId: string, rowId: string): string[] => {

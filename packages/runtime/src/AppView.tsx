@@ -23,6 +23,27 @@ import { useObservable } from "./viewModel/useObservable.ts";
  * emits runs its handlers in the session.
  */
 export function AppView({ app, session }: AppViewProps): ReactElement {
+  return (
+    <AppContent
+      key={`${app.id}@${String(app.version)}`}
+      app={app}
+      session={session}
+    />
+  );
+}
+
+export interface AppViewProps {
+  app: App;
+  session: AppSession;
+}
+
+/**
+ * The app at one version. A version never changes, so the first `App` it
+ * was given stands for every equal one after: a caller that builds the app
+ * afresh on each render does not reopen its streams.
+ */
+function AppContent({ app: given, session }: AppViewProps): ReactElement {
+  const [app] = useState(given);
   const shown = useObservable(showApp, [app, session], LOADING);
 
   switch (shown.kind) {
@@ -45,11 +66,6 @@ export function AppView({ app, session }: AppViewProps): ReactElement {
         />
       );
   }
-}
-
-export interface AppViewProps {
-  app: App;
-  session: AppSession;
 }
 
 interface ElementViewProps {

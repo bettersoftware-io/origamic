@@ -165,6 +165,15 @@ verified, a case that is not covered.
   not refused, which is how a create Form starts empty again; the focus
   that was on its button goes back to the page. Nothing puts it back on the
   form's first field.
+- **Every prop is checked against its schema on every render.** Each
+  catalog component is behind its contract (`checked`), which parses each
+  prop it is handed, a Table's rows included, each time it draws: linear in
+  rows times values. That is nothing at the slice's sizes; a view of
+  thousands of rows would want the rows checked once, where they arrive.
+- **A stream that fails ends the app's view until it is drawn again.**
+  `AppView` shows why in the panel's place, and does not retry; the view
+  comes back when it is mounted afresh or given another session or app
+  version.
 - **An app shows "Loading…" until each view its elements read has rows.**
   `AppView` draws nothing of the app before every one of them has emitted
   once, so a view whose store never answers keeps the whole panel waiting.

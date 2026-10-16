@@ -17,21 +17,39 @@ describe("the app view", () => {
     await page.submitForm("addForm", { title: "Emma" });
     await page.submitForm("addForm", { title: "Dune", status: "done" });
 
-    expect(page.bookTitles()).toEqual(["Dune", "Emma"]);
+    expect(await page.bookTitles()).toEqual(["Dune", "Emma"]);
   });
 
   it('choosing "done" in the filter leaves the done books', async () => {
     const page = mountAppView(openBookApp({ objects: createShelf() }));
 
-    expect(page.bookTitles()).toEqual(["Dune", "Emma"]);
+    expect(await page.bookTitles()).toEqual(["Dune", "Emma"]);
 
     await page.choose("statusFilter", "done");
 
-    expect(page.bookTitles()).toEqual(["Dune"]);
+    expect(await page.bookTitles()).toEqual(["Dune"]);
 
     await page.choose("statusFilter", "Every status");
 
-    expect(page.bookTitles()).toEqual(["Dune", "Emma"]);
+    expect(await page.bookTitles()).toEqual(["Dune", "Emma"]);
+  });
+
+  it("an equal App built afresh keeps the app's state, and another version starts from its own", async () => {
+    const { app, session } = openBookApp({ objects: createShelf() });
+    const page = mountAppView({ app, session });
+
+    await page.choose("statusFilter", "done");
+    await page.fillForm("addForm", { title: "Middlemarch" });
+    await page.show(App.parse({ ...createBookApp(), version: 1 }), session);
+
+    expect(await page.bookTitles()).toEqual(["Dune"]);
+    expect(page.shownIn("addForm", "title")).toBe("Middlemarch");
+
+    const next = openBookApp({ objects: createShelf(), version: 2 });
+
+    await page.show(next.app, next.session);
+
+    expect(await page.bookTitles()).toEqual(["Dune", "Emma"]);
   });
 
   it("the title problem shows under the form's field", async () => {
@@ -43,10 +61,10 @@ describe("the app view", () => {
       '"title" is required',
     ]);
     expect(page.shownIn("addForm", "author")).toBe("Nobody");
-    expect(page.bookTitles()).toEqual([]);
+    expect(await page.bookTitles()).toEqual([]);
   });
 
-  it("an element whose component is unknown shows the box with its name", () => {
+  it("an element whose component is unknown shows the box with its name", async () => {
     const input = createBookApp();
 
     input.ui.elements.statusFilter = { component: "Chart" };
@@ -54,7 +72,7 @@ describe("the app view", () => {
     const page = mountAppView(openBookApp({ app: input }));
 
     expect(page.alert("statusFilter")).toBe('Unknown component "Chart"');
-    expect(page.bookTitles()).toEqual([]);
+    expect(await page.bookTitles()).toEqual([]);
   });
 
   it("a child the spec does not hold shows the box with its id", () => {
@@ -72,7 +90,7 @@ describe("the app view", () => {
 
     await page.submitForm("addForm", { title: "Dune", author: "Herbert" });
 
-    expect(page.bookTitles()).toEqual(["Dune"]);
+    expect(await page.bookTitles()).toEqual(["Dune"]);
     expect(page.shownIn("addForm", "title")).toBe("");
     expect(page.shownIn("addForm", "author")).toBe("");
   });
@@ -127,6 +145,7 @@ interface Opened {
 interface OpenOptions {
   app?: ReturnType<typeof createBookApp>;
   objects?: readonly StoredObject[];
+  version?: number;
 }
 
 /** The book tracker as slice step 5 has it: saved to the library, then opened. */
@@ -142,12 +161,13 @@ async function openSavedBookApp(): Promise<Opened> {
 function openBookApp({
   app = createBookApp(),
   objects = [],
+  version = 1,
 }: OpenOptions = {}): Opened {
   const { core } = createCoreHarness({
     ontology: Ontology.parse(createBookOntology()),
     objects,
   });
-  const parsed = App.parse({ ...app, version: 1 });
+  const parsed = App.parse({ ...app, version });
 
   return { app: parsed, session: core.openApp(parsed) };
 }

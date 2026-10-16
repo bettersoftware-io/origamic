@@ -27,6 +27,15 @@ describe("useObservable", () => {
     expect(page.shown()).toBe("4.5");
   });
 
+  it("gives the initial value again until the observable opened from new arguments emits, never the last one's value", async () => {
+    const page = mountWatcher("prices");
+
+    await page.emit("prices", "1.10");
+    await page.watch("rates");
+
+    expect(page.shown()).toBe("nothing yet");
+  });
+
   it("closes the observable when the component unmounts", async () => {
     const page = mountWatcher("prices");
 

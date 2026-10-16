@@ -43,6 +43,8 @@ export interface ShellPage {
   hideApp: () => Promise<void>;
   /** Shows the book tracker's next version in the same place, as moving a panel's pin does. */
   showNextVersion: () => Promise<void>;
+  /** Shows an equal copy of the app shown, built afresh, as a shell does that reads its apps again. */
+  showEqualCopy: () => Promise<void>;
   /** Lets what React and the view model put off until the current work is done run. */
   settle: () => Promise<void>;
 }
@@ -122,6 +124,9 @@ export function mountShell({
     },
     showNextVersion: async (): Promise<void> => {
       await show(next);
+    },
+    showEqualCopy: async (): Promise<void> => {
+      await show(App.parse({ ...createBookApp(), version: 1 }));
     },
     settle,
   };

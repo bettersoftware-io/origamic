@@ -1,5 +1,10 @@
+import { firstValueFrom, NEVER, type Observable } from "rxjs";
 import { describe, expect, it, onTestFinished, vi } from "vitest";
 
+import type { User } from "@origamic/core";
+import { createCoreHarness } from "@origamic/core/testing/coreHarness.ts";
+
+import { createShellViewModel } from "./createShellViewModel.ts";
 import { mountShell, mountWithoutProvider } from "./shellViewModel.page.tsx";
 
 describe("the shell's view model", () => {
@@ -84,6 +89,30 @@ describe("the shell's view model", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("keeps the session, and the state it holds, when given an equal App of the same id and version", async () => {
+    const page = mountShell({ showsApp: true });
+    const before = page.appSession();
+
+    await before.emit("statusFilter", "change", { value: "done" });
+    await page.showEqualCopy();
+
+    expect(page.appSession()).toBe(before);
+    expect(await firstValueFrom(before.state())).toMatchObject({
+      status: "done",
+    });
+  });
+
+  it("refuses a core whose stream gives no value at once, rather than guess it", () => {
+    const { core } = createCoreHarness();
+
+    expect(() => {
+      createShellViewModel({
+        ...core,
+        session: { ...core.session, user: createSilentUser },
+      });
+    }).toThrow("the core gave no value at once for who is signed in");
+  });
+
   it("tells a component with no provider above it what is missing", () => {
     // React prints the error it catches; the message is asserted below instead.
     const printed = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -99,3 +128,8 @@ describe("the shell's view model", () => {
     );
   });
 });
+
+/** A user stream that has not answered yet, as a slow sign-in check would be. */
+function createSilentUser(): Observable<User | null> {
+  return NEVER;
+}
