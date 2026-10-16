@@ -35,13 +35,15 @@ no mobile layout, no visual polish beyond shadcn defaults.
 ## Before the slice
 
 These are not part of the loop, and the loop cannot be built without them.
-`docs/STATUS.md` holds each until it is done.
+Each is a part of [the slice's plan](plans/2026-10-16-first-slice.md), and
+`docs/STATUS.md` holds the plan until it is done.
 
 - The `e2e` add-on installed: the `apps/web` criterion below needs a browser.
   It was not among the add-ons this project was created with.
 - A local Supabase that `pnpm gate:full` and CI can start (ADR-0004).
 - How a catalog component's props say they accept a `$view` or a `$state`
-  reference (ADR-0002), settled in the slice's plan.
+  reference (ADR-0002): settled in the plan, under "Settled: how a prop says
+  what it accepts", and built in its parts 2 and 5.
 - The packages `spec`, `core`, `catalog`, `runtime` and `adapters` and the
   apps are built beside the starter's price list. The price list goes, and
   `AGENTS.md`'s tables are rewritten for Origamic's packages, in the slice's
