@@ -1,9 +1,13 @@
 import {
+  concat,
   EMPTY,
   filter,
+  finalize,
   firstValueFrom,
   NEVER,
   type Observable,
+  of,
+  Subject,
   throwError,
 } from "rxjs";
 import { describe, expect, it, type MockInstance, vi } from "vitest";
@@ -288,7 +292,7 @@ describe("the builder", () => {
     expect(await core.library.loadApp("films")).toBeNull();
   });
 
-  it("a new app with the id of an app in the library is refused", async () => {
+  it("a new app with the id of an app in the library is refused, and is to be opened from the library", async () => {
     const { core } = createCoreHarness({
       ontology: Ontology.parse(createBookOntology()),
       replies: [[proposal(null, createBookApp())]],
@@ -301,12 +305,31 @@ describe("the builder", () => {
 
     expect(await currentState(core)).toMatchObject({
       kind: "failed",
-      message: expect.stringContaining('"books"'),
+      message:
+        'The library has an app "books" already: open it from the library and revise it there.',
     });
     expect(await core.library.loadApp("books", 2)).toBeNull();
   });
 
-  it("a store that fails while accepting shows its message", async () => {
+  it("a new app with the id of an app a panel pins is to be revised in that panel", async () => {
+    const { core } = createCoreHarness({
+      ontology: Ontology.parse(createBookOntology()),
+      replies: [[proposal(null, createBookApp())]],
+    });
+
+    await core.workspace.addPanel(await saveBookApp(core));
+    core.builder.ask("a tracker for the books I'm reading");
+    await until(core, "proposed");
+    await core.builder.accept();
+
+    expect(await currentState(core)).toMatchObject({
+      kind: "failed",
+      message:
+        'The library has an app "books" already, in the panel "books": revise it there.',
+    });
+  });
+
+  it("a save that fails after the change set applied says the ontology moved", async () => {
     const { core, deps } = createCoreHarness({
       replies: [createNewBookReply()],
     });
@@ -321,8 +344,182 @@ describe("the builder", () => {
     expect(await currentState(core)).toEqual({
       kind: "failed",
       target: { kind: "new" },
-      message: "the library is offline",
+      message:
+        "The ontology moved to v1, but the app was not saved: the library is offline",
       problems: [],
+    });
+  });
+
+  it("a save that fails with no change set shows its message as it is", async () => {
+    const { core, deps } = createCoreHarness({
+      ontology: Ontology.parse(createBookOntology()),
+      replies: [[proposal(null, createBookApp())]],
+    });
+
+    vi.spyOn(deps.library, "saveApp").mockRejectedValue(
+      new Error("the library is offline"),
+    );
+    core.builder.ask("a tracker for the books I'm reading");
+    await until(core, "proposed");
+    await core.builder.accept();
+
+    expect(await currentState(core)).toMatchObject({
+      kind: "failed",
+      message: "the library is offline",
+    });
+  });
+
+  it("an app saved whose panel could not be added says it was saved", async () => {
+    const { core } = createCoreHarness({
+      replies: [createNewBookReply()],
+    });
+
+    vi.spyOn(core.workspace, "addPanel").mockRejectedValue(
+      new Error("the workspace is offline"),
+    );
+    core.builder.ask("a tracker for the books I'm reading");
+    await until(core, "proposed");
+    await core.builder.accept();
+
+    expect(await currentState(core)).toMatchObject({
+      kind: "failed",
+      message:
+        "Saved books@1, but no panel was added: the workspace is offline",
+    });
+    expect(await core.library.loadApp("books", 1)).not.toBeNull();
+  });
+
+  it("a revision saved whose pin could not be moved says it was saved", async () => {
+    const { core } = createCoreHarness({
+      ontology: Ontology.parse(createBookOntology()),
+      replies: [createDateFinishedReply()],
+    });
+
+    core.builder.target({
+      kind: "revise",
+      panel: "books",
+      app: await saveBookApp(core),
+    });
+    vi.spyOn(core.workspace, "movePin").mockRejectedValue(
+      new Error("the workspace is offline"),
+    );
+    core.builder.ask("add a 'date finished' field");
+    await until(core, "proposed");
+    await core.builder.accept();
+
+    expect(await currentState(core)).toMatchObject({
+      kind: "failed",
+      message:
+        'Saved books@2, but the panel "books" was not moved to it: the workspace is offline',
+    });
+  });
+
+  it("a dropped ask's late failure does not change the state", async () => {
+    const { core, deps } = createCoreHarness({
+      replies: [createNewBookReply()],
+    });
+    const late = new Subject<Ontology>();
+    const states = collect(core.builder.state());
+
+    vi.spyOn(deps.ontology, "current").mockReturnValueOnce(late);
+    core.builder.ask("a tracker for films");
+    core.builder.target({ kind: "new" });
+    late.error(new Error("too late"));
+    core.builder.ask("a tracker for the books I'm reading");
+    await until(core, "proposed");
+
+    expect(
+      states.emissions.filter((state) => {
+        return state.kind === "failed";
+      }),
+    ).toEqual([]);
+    states.stop();
+  });
+
+  it("what a generation sends after its proposal is not read", async () => {
+    const { core, deps } = createCoreHarness();
+    const [reply] = createDateFinishedReply();
+
+    if (reply === undefined) {
+      throw new Error("the date-finished reply is empty");
+    }
+
+    const after: GenerationEvent = {
+      kind: "failed",
+      message: "after the proposal",
+      problems: [],
+    };
+
+    vi.spyOn(deps.llm, "generate").mockReturnValueOnce(
+      concat(
+        of(reply, after),
+        throwError(() => {
+          return new Error("after the proposal");
+        }),
+      ),
+    );
+
+    const states = collect(core.builder.state());
+
+    core.builder.ask("add a 'date finished' field");
+    await until(core, "proposed");
+
+    expect(
+      states.emissions.map((state) => {
+        return state.kind;
+      }),
+    ).toEqual(["idle", "generating", "proposed"]);
+    states.stop();
+  });
+
+  it("a generation's stream is let go once it has proposed", async () => {
+    const { core, deps } = createCoreHarness();
+    const [reply] = createDateFinishedReply();
+    let released = false;
+
+    if (reply === undefined) {
+      throw new Error("the date-finished reply is empty");
+    }
+
+    vi.spyOn(deps.llm, "generate").mockReturnValueOnce(
+      concat(of(reply), NEVER).pipe(
+        finalize(() => {
+          released = true;
+        }),
+      ),
+    );
+    core.builder.ask("add a 'date finished' field");
+    await until(core, "proposed");
+
+    expect(released).toBe(true);
+  });
+
+  it("a target chosen while a generation reports drops what it sends next", async () => {
+    const { core, deps } = createCoreHarness();
+    const [reply] = createNewBookReply();
+    const [, , proposalEvent] = createNewBookReply();
+
+    if (reply === undefined || proposalEvent === undefined) {
+      throw new Error("the new-book reply is short");
+    }
+
+    vi.spyOn(deps.llm, "generate").mockReturnValueOnce(
+      of(reply, proposalEvent),
+    );
+
+    const watching = core.builder.state().subscribe((state) => {
+      if (state.kind === "generating" && state.progress.length > 0) {
+        core.builder.target({ kind: "new" });
+      }
+    });
+
+    core.builder.ask("a tracker for the books I'm reading");
+    await until(core, "idle");
+    watching.unsubscribe();
+
+    expect(await currentState(core)).toEqual({
+      kind: "idle",
+      target: { kind: "new" },
     });
   });
 

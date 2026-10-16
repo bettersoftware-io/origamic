@@ -53,7 +53,9 @@ export interface AppSession {
    * it is refused, its problems go on the element and the handlers after it
    * do not run. The element's problems are cleared first. Resolves once the
    * handlers are done, so `problems(elementId)` then says whether they all
-   * ran. An element the app does not declare, or a closed session, rejects.
+   * ran. An element the app does not declare, or a closed session, rejects;
+   * an event still queued when the session closes rejects without running,
+   * and one under way runs no handler after the close.
    */
   emit(
     elementId: string,
@@ -101,9 +103,18 @@ export function openAppSession(app: App, ports: AppSessionPorts): AppSession {
       ? (element.on[event] ?? [])
       : [];
 
+    if (!open) {
+      throw new Error("the app session is closed");
+    }
+
     setProblems(elementId, NONE);
 
     for (const handler of handlers) {
+      // An event queued, or one waiting on its store, stops when the session closes.
+      if (!open) {
+        return;
+      }
+
       if (handler.do === "set") {
         const value = evaluate(handler.to, payload, state.getValue()) ?? null;
 

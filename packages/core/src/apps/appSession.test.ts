@@ -17,7 +17,7 @@ import {
 } from "@origamic/spec/testing/bookTracker.ts";
 
 import { collect } from "#/ports/__contracts__/emissions.ts";
-import type { StoredObject } from "#/ports/objectStorePort.ts";
+import type { ActionResult, StoredObject } from "#/ports/objectStorePort.ts";
 import { createCoreHarness } from "#/testing/coreHarness.ts";
 
 import type { AppSession } from "./appSession.ts";
@@ -302,6 +302,38 @@ describe("the app session", () => {
     ).rejects.toThrow("the app session is closed");
   });
 
+  it("closing the session stops the events still queued, and the handlers after the one under way", async () => {
+    const app = createBookApp();
+    const submit = elementOf(app, "addForm").on?.submit ?? [];
+
+    submit.push(...submit);
+
+    const { core, deps } = createCoreHarness({
+      ontology: Ontology.parse(createBookOntology()),
+    });
+    const session = core.openApp(App.parse({ ...app, version: 1 }));
+    const execute = vi.spyOn(deps.objects, "execute");
+    const called = createDeferred<undefined>();
+    const stored = createDeferred<ActionResult>();
+
+    execute.mockImplementationOnce(() => {
+      called.resolve(undefined);
+
+      return stored.promise;
+    });
+
+    const adding = session.emit("addForm", "submit", { title: "Dune" });
+    const queued = session.emit("addForm", "submit", { title: "Emma" });
+
+    await called.promise;
+    session.close();
+    stored.resolve({ kind: "done", id: "object-1" });
+
+    await adding;
+    await expect(queued).rejects.toThrow("the app session is closed");
+    expect(execute).toHaveBeenCalledOnce();
+  });
+
   it("an object of a type the ontology does not have shows its values as stored", async () => {
     const { core } = createCoreHarness({ objects: createShelf() });
     const session = core.openApp(App.parse({ ...createBookApp(), version: 1 }));
@@ -406,6 +438,28 @@ function createAppWithoutRating(): AppInput {
   }
 
   return app;
+}
+
+interface Deferred<T> {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+}
+
+/** A promise, and the way to settle it from the test. */
+function createDeferred<T>(): Deferred<T> {
+  const settlers: ((value: T) => void)[] = [];
+  const promise = new Promise<T>((settle) => {
+    settlers.push(settle);
+  });
+
+  return {
+    promise,
+    resolve: (value: T): void => {
+      for (const settle of settlers) {
+        settle(value);
+      }
+    },
+  };
 }
 
 function elementOf(app: AppInput, id: string): ElementInput {

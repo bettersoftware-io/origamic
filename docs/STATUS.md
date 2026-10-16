@@ -38,7 +38,11 @@ Work that has started and is not finished.
   private to `references.ts`, are exported by part 5; `Break` (in
   `core`'s `apps/compatibility.ts`), `BuilderTarget` (in
   `builder/builder.ts`) and `LoadedApp` (in `createCore.ts`) by the part
-  that first names them, likely part 9.
+  that first names them, likely part 9. Part 9's library is how a saved app
+  that no panel shows is reopened: the builder refuses a new app whose id
+  the library has, and says to open it from the library and revise it
+  there, which is also what is left when an accept saved the app and then
+  failed to add its panel.
 
 ## Designed, not built
 
@@ -167,7 +171,10 @@ verified, a case that is not covered.
   `core.workspace` (one workspace per owner, id `main`) and the builder
   hold their state until `open()` or `target()` is called again; nothing
   clears them when the user changes. One user in v1, so the shell calls
-  `open()` after a sign-in.
+  `open()` after a sign-in. It also saves each change from the copy it
+  holds, not from the library's latest, so a version saved elsewhere since
+  (another tab) is overwritten by the next panel added or closed or pin
+  moved here.
 - **In v1 the client enforces the schemas and the actions.** The browser
   writes to Supabase itself, and row-level security checks whose rows it
   writes, not what it writes. A client that bypasses `core` can put anything

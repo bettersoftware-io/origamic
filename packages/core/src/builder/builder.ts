@@ -3,6 +3,7 @@ import {
   firstValueFrom,
   type Observable,
   type Subscription,
+  takeWhile,
 } from "rxjs";
 
 import {
@@ -148,32 +149,54 @@ export function createBuilder(ports: BuilderPorts): Builder {
     let progress: readonly string[] = [];
     let ended = false;
 
-    generation = ports.llm.generate(request.data).subscribe({
-      next: (event: GenerationEvent): void => {
-        if (event.kind === "progress") {
-          progress = [...progress, event.message];
-          show({ kind: "generating", target, progress });
+    /** Whether this generation still owns the state: not dropped, and not ended. */
+    function owns(): boolean {
+      return ask === asked && !ended;
+    }
 
-          return;
-        }
+    generation = ports.llm
+      .generate(request.data)
+      .pipe(
+        // A generation ends at its first proposal or failure; what follows is not read.
+        takeWhile((event) => {
+          return event.kind === "progress";
+        }, true),
+      )
+      .subscribe({
+        next: (event: GenerationEvent): void => {
+          if (!owns()) {
+            return;
+          }
 
-        ended = true;
-        show(
-          event.kind === "proposal"
-            ? proposed(target, event.proposal, ontology)
-            : failed(target, event.message, event.problems),
-        );
-      },
-      error: (error: unknown): void => {
-        ended = true;
-        show(failed(target, messageOf(error), []));
-      },
-      complete: (): void => {
-        if (!ended) {
-          show(failed(target, "The generation ended without a proposal.", []));
-        }
-      },
-    });
+          if (event.kind === "progress") {
+            progress = [...progress, event.message];
+            show({ kind: "generating", target, progress });
+
+            return;
+          }
+
+          ended = true;
+          show(
+            event.kind === "proposal"
+              ? proposed(target, event.proposal, ontology)
+              : failed(target, event.message, event.problems),
+          );
+        },
+        error: (error: unknown): void => {
+          if (owns()) {
+            ended = true;
+            show(failed(target, messageOf(error), []));
+          }
+        },
+        complete: (): void => {
+          if (owns()) {
+            ended = true;
+            show(
+              failed(target, "The generation ended without a proposal.", []),
+            );
+          }
+        },
+      });
   }
 
   async function store(
@@ -187,6 +210,8 @@ export function createBuilder(ports: BuilderPorts): Builder {
       return checked;
     }
 
+    let moved: string | undefined;
+
     if (proposal.changeSet !== null) {
       const applied = await ports.ontology.apply(proposal.changeSet);
 
@@ -198,19 +223,46 @@ export function createBuilder(ports: BuilderPorts): Builder {
           applied.kind === "invalid" ? applied.problems : [],
         );
       }
+
+      moved = `The ontology moved to v${applied.ontology.version}`;
     }
 
-    const app = await ports.library.saveApp(checked.app);
+    let app: App;
 
-    if (target.kind === "revise") {
-      await ports.workspace.movePin(target.panel, app);
-
-      return { kind: "idle", target: { ...target, app } };
+    try {
+      app = await ports.library.saveApp(checked.app);
+    } catch (error: unknown) {
+      return failed(
+        target,
+        moved === undefined
+          ? messageOf(error)
+          : `${moved}, but the app was not saved: ${messageOf(error)}`,
+        [],
+      );
     }
 
-    await ports.workspace.addPanel(app);
+    try {
+      if (target.kind === "revise") {
+        await ports.workspace.movePin(target.panel, app);
 
-    return { kind: "idle", target };
+        return { kind: "idle", target: { ...target, app } };
+      }
+
+      await ports.workspace.addPanel(app);
+
+      return { kind: "idle", target };
+    } catch (error: unknown) {
+      const panel =
+        target.kind === "revise"
+          ? `the panel "${target.panel}" was not moved to it`
+          : "no panel was added";
+
+      return failed(
+        target,
+        `Saved ${app.id}@${app.version}, but ${panel}: ${messageOf(error)}`,
+        [],
+      );
+    }
   }
 
   return {
@@ -229,10 +281,15 @@ export function createBuilder(ports: BuilderPorts): Builder {
         return;
       }
 
+      const ask = asked;
+
       show({ kind: "generating", target, progress: [] });
-      // `ask` answers through the state, so nothing waits here; a failure is shown as one.
-      void generate(asked, intent, target).catch((error: unknown) => {
-        show(failed(target, messageOf(error), []));
+      // `ask` answers through the state, so nothing waits here; a failure is
+      // shown as one, unless the ask was dropped since.
+      void generate(ask, intent, target).catch((error: unknown) => {
+        if (ask === asked) {
+          show(failed(target, messageOf(error), []));
+        }
       });
     },
     accept: async (): Promise<void> => {
@@ -326,14 +383,22 @@ async function check(
   }
 
   if (target.kind === "new" && (await ports.library.loadApp(id)) !== null) {
-    return failed(
-      target,
-      `The library has an app "${id}" already; revise it in its panel.`,
-      [],
-    );
+    return failed(target, await alreadySaved(ports, id), []);
   }
 
   return { kind: "checked", app: validated.app };
+}
+
+/** Where to revise an app the library has: in the panel that pins it, or, when none does, after opening it from the library. */
+async function alreadySaved(ports: BuilderPorts, id: string): Promise<string> {
+  const workspace = await firstValueFrom(ports.workspace.workspace());
+  const pinned = Object.entries(workspace?.panels ?? {}).find(([, panel]) => {
+    return panel.app === id;
+  });
+
+  return pinned === undefined
+    ? `The library has an app "${id}" already: open it from the library and revise it there.`
+    : `The library has an app "${id}" already, in the panel "${pinned[0]}": revise it there.`;
 }
 
 function proposed(
