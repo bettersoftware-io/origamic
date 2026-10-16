@@ -1,8 +1,8 @@
 {
-  "commit": "6d0018df9a0739d3fc1f6a848fe4c152f011c4ad",
+  "commit": "5ca7e452cd633c53d1217b988fb57330e878bbf5",
   "uncommittedChanges": false,
   "ref": "main",
-  "builtAt": "2026-10-16T00:45:53.830Z",
+  "builtAt": "2026-10-16T01:15:53.445Z",
   "thresholds": {
     "lines": 95,
     "statements": 95,
@@ -21,6 +21,26 @@
   },
   "packages": [
     {
+      "directory": "packages/adapters",
+      "verdict": "SKIP",
+      "reason": "1 file, none with code to cover (types and re-exports only)",
+      "measuredFiles": 0,
+      "emptyFiles": 1,
+      "underTheBar": [],
+      "unexplainedIgnores": [],
+      "failedTests": []
+    },
+    {
+      "directory": "packages/catalog",
+      "verdict": "SKIP",
+      "reason": "1 file, none with code to cover (types and re-exports only)",
+      "measuredFiles": 0,
+      "emptyFiles": 1,
+      "underTheBar": [],
+      "unexplainedIgnores": [],
+      "failedTests": []
+    },
+    {
       "directory": "packages/client-core",
       "verdict": "PASS",
       "reason": "5 files at or above the bar",
@@ -36,6 +56,16 @@
       "reason": "5 files at or above the bar",
       "measuredFiles": 5,
       "emptyFiles": 0,
+      "underTheBar": [],
+      "unexplainedIgnores": [],
+      "failedTests": []
+    },
+    {
+      "directory": "packages/core",
+      "verdict": "SKIP",
+      "reason": "1 file, none with code to cover (types and re-exports only)",
+      "measuredFiles": 0,
+      "emptyFiles": 1,
       "underTheBar": [],
       "unexplainedIgnores": [],
       "failedTests": []
@@ -65,6 +95,16 @@
       "verdict": "PASS",
       "reason": "5 files at or above the bar",
       "measuredFiles": 5,
+      "emptyFiles": 1,
+      "underTheBar": [],
+      "unexplainedIgnores": [],
+      "failedTests": []
+    },
+    {
+      "directory": "packages/runtime",
+      "verdict": "SKIP",
+      "reason": "1 file, none with code to cover (types and re-exports only)",
+      "measuredFiles": 0,
       "emptyFiles": 1,
       "underTheBar": [],
       "unexplainedIgnores": [],
