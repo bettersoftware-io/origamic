@@ -77,18 +77,26 @@ verified, a case that is not covered.
   `core` and `runtime` also let them import its `domain` and `shared`. A
   `fetch` written by hand outside `adapters` is not caught, nor are rules 1,
   4 and 5 of [ARCHITECTURE.md](architecture/ARCHITECTURE.md), which are
-  questions for a review.
+  questions for a review. Nor is "the gateway imports the catalog's
+  manifest only": `mayImport` names a whole package, so once `apps/gateway`
+  names `packages/catalog`, an import of its React side passes the gate.
 - **The role `explicit` carries none of React's lint rules.** When
   `packages/catalog` first imports React, `pnpm check:react-policies` will
   ask for it under `reactWithoutPolicies` with a reason, or for a change to
   the kit that gives it a role's rules.
-
+- **Four importers in `pnpm-lock.yaml` are written by hand.**
+  `packages/core`, `catalog`, `runtime` and `adapters` have no dependency,
+  and pnpm 12 writes no importer for such a package, while its frozen
+  install (what CI runs) refuses a lockfile without one. Each has
+  `packages/<name>: {}`, added by hand on 2026-10-16; a plain `pnpm install`
+  keeps them, and they go when the package gets a dependency. A new package
+  with no dependency needs the same: run `pnpm install --frozen-lockfile`
+  before pushing, since `gate:full` stays green without it.
 - **In v1 the client enforces the schemas and the actions.** The browser
   writes to Supabase itself, and row-level security checks whose rows it
   writes, not what it writes. A client that bypasses `core` can put anything
   into its own owner's rows. It moves to the server before a second person
   uses Origamic ([ADR-0009](architecture/adr/0009-validation-in-v1-is-the-clients.md)).
-
 - **Two Scorecard alerts clear by themselves.** "Maintained" (alert 5) when
   the repository is 90 days old, which is 2027-01-10. "SAST" (alert 2) as
   more of the last commits have a CodeQL run: 4 of 6 on 2026-10-12.
