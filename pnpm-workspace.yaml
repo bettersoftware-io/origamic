@@ -1,5 +1,6 @@
 packages:
   - packages/*
+  - apps/*
 
 # A release younger than this many minutes is not installed (1440 is a day).
 # A release that turns out to be malicious is usually found and removed within

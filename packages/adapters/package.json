@@ -14,7 +14,10 @@
     "supabase": "supabase"
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.117.3"
+    "@origamic/core": "workspace:*",
+    "@origamic/spec": "workspace:*",
+    "@supabase/supabase-js": "2.117.3",
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "supabase": "2.121.0",

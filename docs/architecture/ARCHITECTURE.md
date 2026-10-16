@@ -80,7 +80,7 @@ RxJS its ports return.
 | `packages/core` | `spec` | `rxjs`, `zod` |
 | `packages/catalog` | `spec` | `react`, `zod`, and the libraries its implementation is built from. Its manifest entry: `spec` and `zod` only |
 | `packages/runtime` | `spec`, `core`, `catalog` | `react`, `rxjs` |
-| `packages/adapters` | `spec`, `core` | `@supabase/supabase-js`, and nothing else names it |
+| `packages/adapters` | `spec`, `core` | `@supabase/supabase-js`, and nothing else names it; `rxjs`, which its ports return |
 | `apps/web` | `runtime`, `adapters`, `core`, `spec` | `react`, `react-dom`, `dockview`, and nothing else names dockview |
 | `apps/gateway` | `spec`, the catalog's manifest | `@anthropic-ai/sdk`, and nothing else names it; Node's built-ins |
 
@@ -108,11 +108,14 @@ kit; where a role would grant more than the table, the package has the role
 | `packages/catalog` | `explicit`, naming `spec`; only `runtime` names it |
 | `packages/runtime` | `bindings`, naming `catalog` |
 | `packages/adapters` | `explicit`, naming `core` and `spec`; only the app will name it |
+| `apps/gateway` | `server`, naming `catalog`; nothing imports it but the integration tests |
 
-`react`, `zod` and `@supabase/supabase-js` may be imported only where the
-table says. The two apps get their lines when they are made, in the first
-slice. Rules 1, 4 and 5 cannot be decided from imports alone: they are
-questions for a review. Rule 3 is held for libraries (only `adapters`
+`react`, `zod`, `@supabase/supabase-js` and `@anthropic-ai/sdk` may be
+imported only where the table says. `apps/web` gets its line when it is
+made, in the first slice. That the gateway imports the catalog's manifest
+entry and not its React side is a question for a review: `mayImport` names
+a whole package. Rules 1, 4 and 5 cannot be decided from imports alone:
+they are questions for a review. Rule 3 is held for libraries (only `adapters`
 imports the Supabase client) and not for a `fetch` written by hand.
 
 ## The behavioural core (`packages/core`)
