@@ -28,17 +28,16 @@ A plan or a design is on the main branch, and nothing of it is built.
   Built: the schemas in `packages/spec`, reviewed by the author on
   2026-10-16, and the dependency rule, held by `architecture.config.mts`
   over four packages that are still empty (`core`, `catalog`, `runtime`,
-  `adapters`). Step 4 of [HANDOVER.md](../HANDOVER.md) is below, held.
+  `adapters`).
+- **The first slice.** Planned in
+  [plans/2026-10-16-first-slice.md](architecture/plans/2026-10-16-first-slice.md):
+  twelve pull requests in Origamic and two in the plugin, in the order its
+  graph gives. Nothing of it is built. Its part 2 changes the schemas, and
+  waits for the author's review before it merges.
 
 ## Planned, and held by something
 
 It waits on a release, a decision or other work. Each entry says on what.
-
-- **The plan of the first slice, step 4.** Held by what
-  [FIRST-SLICE.md](architecture/FIRST-SLICE.md) lists under "Before the
-  slice": the `e2e` add-on installed, a local Supabase the gate can start,
-  and how a catalog prop accepts a `$view` or `$state` reference. The plan
-  is the author's to approve before anything is built.
 
 ## Next, with no plan yet
 
