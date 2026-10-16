@@ -95,9 +95,16 @@ export async function startLocalSupabase(): Promise<LocalSupabase> {
   return readKeys((await supabaseOrThrow(["status", "-o", "json"])).stdout);
 }
 
-/** True when the Docker daemon answers. `docker info` honours `DOCKER_HOST` and the current context. */
+/** How long `docker info` may take before Docker counts as not answering. */
+const DOCKER_TIMEOUT_MS = 5000;
+
+/**
+ * True when the Docker daemon answers. `docker info` honours `DOCKER_HOST`
+ * and the current context. A daemon that is still starting can leave it
+ * waiting, so it is stopped after a few seconds and counts as not answering.
+ */
 async function dockerAnswers(): Promise<boolean> {
-  const { code } = await run("docker", ["info", "--format", "{{.ServerVersion}}"]);
+  const { code } = await run("docker", ["info", "--format", "{{.ServerVersion}}"], DOCKER_TIMEOUT_MS);
 
   return code === 0;
 }
@@ -156,12 +163,41 @@ function field(value: unknown, name: string): string | undefined {
   return typeof found === "string" ? found : undefined;
 }
 
-/** Runs a program to its end and collects what it printed. Never rejects. */
-function run(command: string, commandArguments: string[]): Promise<Finished> {
+/**
+ * Runs a program to its end and collects what it printed. Never rejects.
+ *
+ * With a timeout, a program still running then is killed with everything it
+ * started, and the answer is given at once with the code `null`: waiting for
+ * its output to close could wait on a child it left behind. So it runs in a
+ * process group of its own, which is what is killed.
+ */
+function run(command: string, commandArguments: string[], timeoutMs?: number): Promise<Finished> {
   return new Promise((resolve) => {
-    const child = spawn(command, commandArguments, { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(command, commandArguments, {
+      stdio: ["ignore", "pipe", "pipe"],
+      detached: timeoutMs !== undefined,
+    });
     let stdout = "";
     let stderr = "";
+    let settled = false;
+
+    function settle(finished: Finished): void {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        resolve(finished);
+      }
+    }
+
+    const timer =
+      timeoutMs === undefined
+        ? undefined
+        : setTimeout(() => {
+            killGroup(child.pid);
+            child.stdout.destroy();
+            child.stderr.destroy();
+            settle({ code: null, stdout, stderr: `${stderr}\`${command}\` gave no answer within ${String(timeoutMs)} ms` });
+          }, timeoutMs);
 
     child.stdout.on("data", (chunk: Buffer) => {
       stdout += chunk.toString();
@@ -170,10 +206,23 @@ function run(command: string, commandArguments: string[]): Promise<Finished> {
       stderr += chunk.toString();
     });
     child.on("error", (error) => {
-      resolve({ code: null, stdout, stderr: `${stderr}${error.message}` });
+      settle({ code: null, stdout, stderr: `${stderr}${error.message}` });
     });
     child.on("close", (code) => {
-      resolve({ code, stdout, stderr });
+      settle({ code, stdout, stderr });
     });
   });
+}
+
+/** Kills a process group led by `pid`, if it is still there. */
+function killGroup(pid: number | undefined): void {
+  if (pid === undefined) {
+    return;
+  }
+
+  try {
+    process.kill(-pid, "SIGKILL");
+  } catch {
+    // It ended on its own in the meantime.
+  }
 }

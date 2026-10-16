@@ -37,6 +37,7 @@ describe("the tables of the first migration", () => {
       const theirs = await owners.a.client.from(table).select();
       const mine = await owners.b.client.from(table).select();
 
+      expect(theirs.error, `${table}, read by its owner`).toBeNull();
       expect(theirs.data, `${table}, read by its owner`).not.toEqual([]);
       expect(mine.error, table).toBeNull();
       expect(mine.data, table).toEqual([]);

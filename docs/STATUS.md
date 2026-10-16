@@ -113,7 +113,10 @@ verified, a case that is not covered.
   applied fails the global setup with `MigrationMissingLocalError`. Bring
   that checkout up to main, or reset the database to its own migrations:
   `pnpm --filter @origamic/adapters supabase db reset --local`. The other
-  checkout applies its own again on its next run.
+  checkout applies its own again on its next run. Nor is a migration edited in
+  place applied again to a running stack: `migration up` skips a version the
+  database has recorded, so the stack keeps the old tables. Run the same
+  `db reset --local` after editing one.
 - **In v1 the client enforces the schemas and the actions.** The browser
   writes to Supabase itself, and row-level security checks whose rows it
   writes, not what it writes. A client that bypasses `core` can put anything
