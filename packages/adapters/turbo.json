@@ -1,0 +1,16 @@
+{
+  // This package's tests run against a local Supabase, and are skipped where
+  // Docker is not running. A cached result from there must never be replayed
+  // where they can run, so the test task is not cached.
+  //
+  // `CI` decides that nothing is skipped, and the Docker variables say which
+  // daemon `docker info` and the Supabase CLI talk to. Turbo passes all three
+  // today by its own list; they are named so that stays true.
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      "cache": false,
+      "passThroughEnv": ["CI", "DOCKER_HOST", "DOCKER_CONTEXT"]
+    }
+  }
+}
