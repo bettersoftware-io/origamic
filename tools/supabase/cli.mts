@@ -27,11 +27,40 @@ export interface Finished {
 /** Runs the CLI with these arguments on one stack's project. Never rejects. */
 export type SupabaseCommand = (supabaseArguments: string[]) => Promise<Finished>;
 
-/** The CLI, run on the project whose `supabase/` folder is in `workdir`. */
-export function supabaseIn(workdir: string): SupabaseCommand {
+/** Runs a program to its end, in this environment. Never rejects. */
+export type Runner = (
+  command: string,
+  commandArguments: string[],
+  environment: NodeJS.ProcessEnv,
+) => Promise<Finished>;
+
+/**
+ * The CLI, run on the project whose `supabase/` folder is in `workdir`.
+ *
+ * The CLI lets a variable override its config: `SUPABASE_PROJECT_ID`, and
+ * `SUPABASE_API_PORT` and every other `SUPABASE_*_PORT`. One left in the
+ * environment would point both stacks at the same project or port, so those
+ * are not passed on.
+ */
+export function supabaseIn(
+  workdir: string,
+  runner: Runner = run,
+  environment: NodeJS.ProcessEnv = process.env,
+): SupabaseCommand {
+  const childEnvironment = withoutStackOverrides(environment);
+
   return (supabaseArguments) => {
-    return run(CLI, [...supabaseArguments, "--workdir", workdir]);
+    return runner(CLI, [...supabaseArguments, "--workdir", workdir], childEnvironment);
   };
+}
+
+/** The environment without the variables that override which project or port the CLI uses. */
+function withoutStackOverrides(environment: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  return Object.fromEntries(
+    Object.entries(environment).filter(([name]) => {
+      return name !== "SUPABASE_PROJECT_ID" && !/^SUPABASE_\w*PORT$/.test(name);
+    }),
+  );
 }
 
 /** How long `docker info` may take before Docker counts as not answering. */
@@ -43,7 +72,7 @@ const DOCKER_TIMEOUT_MS = 5000;
  * waiting, so it is stopped after a few seconds and counts as not answering.
  */
 export async function dockerAnswers(): Promise<boolean> {
-  const { code } = await run("docker", ["info", "--format", "{{.ServerVersion}}"], DOCKER_TIMEOUT_MS);
+  const { code } = await run("docker", ["info", "--format", "{{.ServerVersion}}"], process.env, DOCKER_TIMEOUT_MS);
 
   return code === 0;
 }
@@ -57,14 +86,7 @@ export function failure(supabaseArguments: string[], finished: Finished): Error 
 
 /** The address and keys in what `supabase status -o json` printed. */
 export function readKeys(output: string): LocalSupabase {
-  // The CLI can print a notice before the JSON, such as a newer version.
-  const start = output.indexOf("{");
-
-  if (start === -1) {
-    throw new Error(`\`supabase status -o json\` printed no JSON:\n${output}`);
-  }
-
-  const status: unknown = JSON.parse(output.slice(start));
+  const status = readStatus(output);
   const url = field(status, "API_URL");
   const anonKey = field(status, "ANON_KEY");
   const serviceRoleKey = field(status, "SERVICE_ROLE_KEY");
@@ -74,6 +96,30 @@ export function readKeys(output: string): LocalSupabase {
   }
 
   return { url, anonKey, serviceRoleKey };
+}
+
+/** The port of the database, in what `supabase status -o json` printed; `undefined` when it names none. */
+export function readDatabasePort(output: string): number | undefined {
+  const url = field(readStatus(output), "DB_URL");
+
+  if (url === undefined) {
+    return undefined;
+  }
+
+  const port = Number(URL.parse(url)?.port);
+
+  return Number.isInteger(port) && port > 0 ? port : undefined;
+}
+
+function readStatus(output: string): unknown {
+  // The CLI can print a notice before the JSON, such as a newer version.
+  const start = output.indexOf("{");
+
+  if (start === -1) {
+    throw new Error(`\`supabase status -o json\` printed no JSON:\n${output}`);
+  }
+
+  return JSON.parse(output.slice(start));
 }
 
 /** The string `value` holds under `name`, if it is an object that holds one. */
@@ -95,9 +141,15 @@ function field(value: unknown, name: string): string | undefined {
  * its output to close could wait on a child it left behind. So it runs in a
  * process group of its own, which is what is killed.
  */
-function run(command: string, commandArguments: string[], timeoutMs?: number): Promise<Finished> {
+function run(
+  command: string,
+  commandArguments: string[],
+  environment: NodeJS.ProcessEnv,
+  timeoutMs?: number,
+): Promise<Finished> {
   return new Promise((resolve) => {
     const child = spawn(command, commandArguments, {
+      env: environment,
       stdio: ["ignore", "pipe", "pipe"],
       detached: timeoutMs !== undefined,
     });

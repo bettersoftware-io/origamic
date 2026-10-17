@@ -2,18 +2,50 @@ import { describe, expect, it } from "vitest";
 
 // biome-ignore-start lint/style/noRestrictedImports: the tool is in tools/, outside every package, where no #/ alias reaches; this test holds its rule because tools/ has no test runner
 import {
+  type Finished,
+  PROJECT,
+  supabaseIn,
+} from "../../../tools/supabase/cli.mts";
+import {
   type StartOptions,
   startDevSupabase,
   startLocalSupabase,
 } from "../../../tools/supabase/localSupabase.mts";
+import { TEST_WORKDIR } from "../../../tools/supabase/testStack.mts";
 
-// biome-ignore-end lint/style/noRestrictedImports: the import above
+// biome-ignore-end lint/style/noRestrictedImports: the imports above
 
 // How the two local stacks are started. The test stack's data is throwaway,
 // so a database whose migrations do not match this checkout is reset; the dev
-// stack's data is the author's, so it never is. The CLI is given: each test
-// says what each command answers, and reads back what was run.
+// stack's data is the author's, so it never is. What runs the CLI is given:
+// each test says what each command answers, and reads back what was run and
+// on which project.
 describe("starting the test stack", () => {
+  it("runs every command on the test stack's generated project, never on the committed one", async () => {
+    const cli = createCli({
+      status: [UP, UP, UP],
+      migrationUp: [missingLocally("20261016120000")],
+    });
+
+    await startLocalSupabase(cli.options);
+
+    expect(cli.workdirs.length).toBe(cli.ran.length);
+    expect(new Set(cli.workdirs)).toEqual(new Set([TEST_WORKDIR]));
+  });
+
+  it("refuses to reset a stack whose database is not on the test stack's port", async () => {
+    const cli = createCli({
+      status: [UP, DEV_UP],
+      migrationUp: [missingLocally("20261016120000")],
+    });
+
+    await expect(startLocalSupabase(cli.options)).rejects.toThrow(
+      "Refused to reset the database: the stack these commands reach has it on port 54322, not on the test stack's 54422. Nothing was reset.",
+    );
+    expect(cli.ran).not.toContain("db reset --local");
+    expect(cli.said).toEqual([]);
+  });
+
   it("starts it when it is not up, applies the migrations, and gives its address and keys", async () => {
     const cli = createCli({ status: [DOWN, UP] });
 
@@ -42,7 +74,7 @@ describe("starting the test stack", () => {
 
   it("resets it when it holds a migration this checkout lacks, and says which", async () => {
     const cli = createCli({
-      status: [UP, UP],
+      status: [UP, UP, UP],
       migrationUp: [missingLocally("20261016120000 20261017000000")],
     });
 
@@ -52,6 +84,7 @@ describe("starting the test stack", () => {
     expect(cli.ran).toEqual([
       "status -o json",
       "migration up --local",
+      "status -o json",
       "db reset --local",
       "status -o json",
     ]);
@@ -62,7 +95,7 @@ describe("starting the test stack", () => {
 
   it("reads which migration from the CLI's JSON form, as it answers an agent", async () => {
     const cli = createCli({
-      status: [UP, UP],
+      status: [UP, UP, UP],
       migrationUp: [asJson(missingLocally("20261017090000"))],
     });
 
@@ -75,7 +108,7 @@ describe("starting the test stack", () => {
 
   it("resets it when this checkout has a migration older than the last one it holds", async () => {
     const cli = createCli({
-      status: [UP, UP],
+      status: [UP, UP, UP],
       migrationUp: [insertedBefore("20261016000000_objects_and_specs.sql")],
     });
 
@@ -89,7 +122,7 @@ describe("starting the test stack", () => {
 
   it("names each older migration from the CLI's JSON form", async () => {
     const cli = createCli({
-      status: [UP, UP],
+      status: [UP, UP, UP],
       migrationUp: [
         asJson(
           insertedBefore(
@@ -121,7 +154,7 @@ describe("starting the test stack", () => {
 
   it("fails, and says why, when the reset fails", async () => {
     const cli = createCli({
-      status: [UP],
+      status: [UP, UP],
       migrationUp: [missingLocally("20261016120000")],
       dbReset: [failed('ERROR: relation "objects" already exists')],
     });
@@ -163,9 +196,57 @@ describe("starting the dev stack", () => {
     });
 
     await expect(startDevSupabase(cli.options)).rejects.toThrow(
-      "The dev database holds 20261016120000, which this checkout lacks, so `supabase migration up` refused. Nothing was reset: its data is yours. Check out a branch that has that migration, or, to drop the dev data and apply this checkout's migrations, run `pnpm --filter @origamic/adapters supabase db reset --local`.",
+      "The dev database holds 20261016120000, which this checkout lacks, so `supabase migration up` refused. Nothing was reset: the dev data is yours. Check out a branch that has that migration, or, to drop the dev data and apply this checkout's migrations, run `pnpm --filter @origamic/adapters supabase db reset --local`.",
     );
     expect(cli.ran).not.toContain("db reset --local");
+  });
+
+  it("never resets it: on a migration older than its last it fails, and offers the fix that keeps the data", async () => {
+    const cli = createCli({
+      status: [DEV_UP],
+      migrationUp: [insertedBefore("20261016500000_older.sql")],
+    });
+
+    await expect(startDevSupabase(cli.options)).rejects.toThrow(
+      "The dev database's last migration is newer than this checkout's 20261016500000_older.sql, so `supabase migration up` refused. Nothing was reset: the dev data is yours. To apply it as well and keep the dev data, run `pnpm --filter @origamic/adapters supabase migration up --local --include-all`.",
+    );
+    expect(cli.ran).not.toContain("db reset --local");
+  });
+
+  it("runs every command on the committed project", async () => {
+    const cli = createCli({ status: [DOWN, DEV_UP] });
+
+    await startDevSupabase(cli.options);
+
+    expect(new Set(cli.workdirs)).toEqual(new Set([PROJECT]));
+  });
+});
+
+describe("running the CLI", () => {
+  it("does not pass on a variable that would override the project or a port", async () => {
+    const given: NodeJS.ProcessEnv[] = [];
+    const supabase = supabaseIn(
+      "/work",
+      (_command, _arguments, environment) => {
+        given.push(environment);
+
+        return Promise.resolve(DONE);
+      },
+      {
+        PATH: "/bin",
+        SUPABASE_URL: "http://127.0.0.1:54421",
+        SUPABASE_PROJECT_ID: "origamic",
+        SUPABASE_API_PORT: "54321",
+        SUPABASE_DB_PORT: "54322",
+        SUPABASE_DB_SHADOW_PORT: "54320",
+      },
+    );
+
+    await supabase(["status"]);
+
+    expect(given).toEqual([
+      { PATH: "/bin", SUPABASE_URL: "http://127.0.0.1:54421" },
+    ]);
   });
 });
 
@@ -175,10 +256,22 @@ const KEYS = {
   serviceRoleKey: "service",
 };
 
-/** What `supabase status -o json` answers when the stack is up, after a notice as the CLI can print. */
+/** What `supabase status -o json` answers when the test stack is up, after a notice as the CLI can print. */
 const UP: Answer = {
   code: 0,
-  stdout: `A new version of Supabase CLI is available\n${JSON.stringify({ API_URL: KEYS.url, ANON_KEY: "anon", SERVICE_ROLE_KEY: "service" })}`,
+  stdout: `A new version of Supabase CLI is available\n${JSON.stringify({ API_URL: KEYS.url, DB_URL: "postgresql://postgres:postgres@127.0.0.1:54422/postgres", ANON_KEY: "anon", SERVICE_ROLE_KEY: "service" })}`,
+  stderr: "",
+};
+
+/** What `supabase status -o json` answers when the dev stack is up. */
+const DEV_UP: Answer = {
+  code: 0,
+  stdout: JSON.stringify({
+    API_URL: "http://127.0.0.1:54321",
+    DB_URL: "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+    ANON_KEY: "anon",
+    SERVICE_ROLE_KEY: "service",
+  }),
   stderr: "",
 };
 
@@ -190,11 +283,7 @@ const DOWN: Answer = {
 
 const DONE: Answer = { code: 0, stdout: "", stderr: "" };
 
-interface Answer {
-  code: number | null;
-  stdout: string;
-  stderr: string;
-}
+type Answer = Finished;
 
 interface Script {
   docker?: boolean;
@@ -207,6 +296,8 @@ interface Cli {
   options: StartOptions;
   /** Each command run, without `supabase` and the workdir. */
   ran: string[];
+  /** The workdir of each command run. */
+  workdirs: string[];
   said: string[];
 }
 
@@ -218,6 +309,7 @@ function createCli({
   dbReset = [],
 }: Script): Cli {
   const ran: string[] = [];
+  const workdirs: string[] = [];
   const said: string[] = [];
   const answers: Record<string, Answer[]> = {
     "status -o json": [...status],
@@ -227,6 +319,7 @@ function createCli({
 
   return {
     ran,
+    workdirs,
     said,
     options: {
       probe: () => {
@@ -235,9 +328,11 @@ function createCli({
       say: (line: string) => {
         said.push(line);
       },
-      supabase: (supabaseArguments: string[]) => {
-        const command = supabaseArguments.join(" ");
+      run: (_cli: string, commandArguments: string[]) => {
+        const at = commandArguments.indexOf("--workdir");
+        const command = commandArguments.slice(0, at).join(" ");
         ran.push(command);
+        workdirs.push(commandArguments[at + 1] ?? "");
 
         return Promise.resolve(answers[command]?.shift() ?? DONE);
       },

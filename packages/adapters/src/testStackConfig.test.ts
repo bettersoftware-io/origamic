@@ -1,10 +1,25 @@
-import { readFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-// biome-ignore lint/style/noRestrictedImports: the tool is in tools/, outside every package, where no #/ alias reaches; this test holds its rule because tools/ has no test runner
-import { testStackConfig } from "../../../tools/supabase/testStack.mts";
+// biome-ignore-start lint/style/noRestrictedImports: the tool is in tools/, outside every package, where no #/ alias reaches; this test holds its rule because tools/ has no test runner
+import {
+  prepareTestStack,
+  testStackConfig,
+  testStackPorts,
+} from "../../../tools/supabase/testStack.mts";
+
+// biome-ignore-end lint/style/noRestrictedImports: the import above
 
 // The test stack's config is made from the committed one, so that the two
 // stacks never share a container, a volume or a port. Only the project id and
@@ -115,6 +130,53 @@ describe("the test stack's config", () => {
         return devPorts.has(port);
       }),
     ).toEqual([]);
+  });
+});
+
+describe("the test stack's ports", () => {
+  it("are the API's and the database's, moved", () => {
+    expect(
+      testStackPorts(
+        'project_id = "origamic"\n[api]\nport = 54321\n[db]\nport = 54322\n',
+      ),
+    ).toEqual({ api: 54421, db: 54422 });
+  });
+});
+
+describe("writing the test stack's project", () => {
+  it("copies all of the committed folder but its config, writes the config, and drops what an earlier run wrote", () => {
+    const root = mkdtempSync(join(tmpdir(), "origamic-test-stack-"));
+    const source = join(root, "committed");
+    const workdir = join(root, "test");
+    const target = join(workdir, "supabase");
+
+    try {
+      mkdirSync(join(source, "migrations"), { recursive: true });
+      mkdirSync(join(source, ".temp"));
+      writeFileSync(join(source, "config.toml"), 'project_id = "origamic"\n');
+      writeFileSync(join(source, "migrations", "1_first.sql"), "select 1;");
+      writeFileSync(join(source, "seed.sql"), "select 2;");
+      writeFileSync(join(source, ".temp", "cli-latest"), "committed's");
+      mkdirSync(join(target, "migrations"), { recursive: true });
+      mkdirSync(join(target, ".temp"));
+      writeFileSync(join(target, "migrations", "0_gone.sql"), "select 0;");
+      writeFileSync(join(target, "old.sql"), "select 0;");
+      writeFileSync(join(target, ".temp", "cli-latest"), "the test stack's");
+
+      expect(prepareTestStack({ source, workdir })).toBe(workdir);
+
+      expect(readdirSync(join(target, "migrations"))).toEqual(["1_first.sql"]);
+      expect(readFileSync(join(target, "seed.sql"), "utf8")).toBe("select 2;");
+      expect(existsSync(join(target, "old.sql"))).toBe(false);
+      expect(readFileSync(join(target, ".temp", "cli-latest"), "utf8")).toBe(
+        "the test stack's",
+      );
+      expect(readFileSync(join(target, "config.toml"), "utf8")).toContain(
+        'project_id = "origamic-test"',
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 

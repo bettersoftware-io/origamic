@@ -9,8 +9,8 @@
 // It is written again on each start, so it never drifts from the committed
 // one, and nobody keeps a second config by hand.
 
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { basename, join } from "node:path";
 
 import { PROJECT } from "./cli.mts";
 
@@ -57,21 +57,80 @@ const GENERATED = [
   "",
 ];
 
+/** What the Supabase CLI writes for itself in a `supabase/` folder: never copied, never removed. */
+const CLI_STATE = new Set([".temp", ".branches"]);
+
+/** The seams of writing the test stack's project. */
+export interface PrepareOptions {
+  /** The committed `supabase/` folder. */
+  source?: string;
+  /** The folder the test stack's `supabase/` folder is written to. */
+  workdir?: string;
+}
+
 /**
  * Writes the test stack's project: its config, from the committed one, and a
- * fresh copy of the committed migrations, so it has exactly this checkout's.
+ * fresh copy of everything else in the committed `supabase/` folder (the
+ * migrations above all), so it has exactly this checkout's. What an earlier
+ * run wrote there is removed first, except what the CLI keeps for itself.
  * Gives the folder to run the CLI in.
  */
-export function prepareTestStack(): string {
-  const source = join(PROJECT, "supabase");
-  const target = join(TEST_WORKDIR, "supabase");
+export function prepareTestStack({
+  source = join(PROJECT, "supabase"),
+  workdir = TEST_WORKDIR,
+}: PrepareOptions = {}): string {
+  const target = join(workdir, "supabase");
 
   mkdirSync(target, { recursive: true });
-  writeFileSync(join(target, "config.toml"), testStackConfig(readFileSync(join(source, "config.toml"), "utf8")));
-  rmSync(join(target, "migrations"), { recursive: true, force: true });
-  cpSync(join(source, "migrations"), join(target, "migrations"), { recursive: true });
 
-  return TEST_WORKDIR;
+  for (const name of readdirSync(target)) {
+    if (!CLI_STATE.has(name)) {
+      rmSync(join(target, name), { recursive: true, force: true });
+    }
+  }
+
+  cpSync(source, target, {
+    recursive: true,
+    filter: (from) => {
+      return from === source || !(CLI_STATE.has(basename(from)) || from === join(source, "config.toml"));
+    },
+  });
+  writeFileSync(join(target, "config.toml"), testStackConfig(readFileSync(join(source, "config.toml"), "utf8")));
+
+  return workdir;
+}
+
+/** Where the test stack's API and database answer. */
+export interface TestStackPorts {
+  api: number;
+  db: number;
+}
+
+/** The test stack's ports, as its config (made from the committed one) names them. */
+export function testStackPorts(
+  committed: string = readFileSync(join(PROJECT, "supabase", "config.toml"), "utf8"),
+): TestStackPorts {
+  const config = testStackConfig(committed);
+
+  return { api: portIn(config, "api", "port"), db: portIn(config, "db", "port") };
+}
+
+/** The port at this key of this section of a TOML text. */
+function portIn(config: string, wanted: string, key: string): number {
+  let section = "";
+
+  for (const line of config.split("\n")) {
+    const header = /^\s*\[\[?([^\]]+)\]\]?\s*(#.*)?$/.exec(line);
+    const setting = /^\s*(\w+)\s*=\s*(\d+)/.exec(line);
+
+    if (header?.[1] !== undefined) {
+      section = header[1].trim();
+    } else if (section === wanted && setting?.[1] === key) {
+      return Number(setting[2]);
+    }
+  }
+
+  throw new Error(`The test stack's config names no ${key} under [${wanted}]`);
 }
 
 /** The committed config, as the test stack's: its own project id, and every port moved. */

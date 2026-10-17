@@ -112,19 +112,20 @@ verified, a case that is not covered.
   The adapters' tests run against the local Supabase `origamic-test` (the API
   on 54421, Postgres on 54422), apart from the dev stack `origamic` that
   `pnpm supabase:dev` starts (ADR-0004). A run holds
-  `/tmp/origamic-test-supabase.lock` until its tests end, so a second
-  checkout's run waits, up to ten minutes, and then fails; a vitest left in
-  watch mode holds it until it is stopped. Anything else that starts the test
-  stack (part 9's e2e `stack` mode) must take the same lock, as
-  `tools/supabase/globalSetup.mts` does. A lock left by a
-  process that is gone is taken over; but if its pid has been given to
-  another live process meanwhile, the next run waits the ten minutes and
-  fails naming the file: delete it. Both stacks' ports are published on
-  every interface with the CLI's default password. A migration edited in
-  place is not applied again to a running stack: `migration up` skips a
-  version the database has recorded. Reset the test stack after editing one,
-  with `pnpm --filter @origamic/adapters supabase db reset --local --workdir
-  .supabase-test`; the dev stack's `db reset --local` drops its data.
+  `/tmp/origamic-<uid>/origamic-test-supabase.lock` until its tests end, so
+  a second checkout's run waits, up to ten minutes for one holder, and then
+  fails; a vitest left in watch mode holds it until it is stopped. Anything
+  else that starts the test stack (part 9's e2e `stack` mode) must open it
+  as `tools/supabase/testDatabase.mts` does, lock and port check included. A
+  lock left by a process that is gone is taken over; but if its pid has been
+  given to another live process meanwhile, the next run waits the ten
+  minutes and fails naming the file: delete it. Both stacks' ports are
+  published on every interface with the CLI's default password. A migration
+  edited in place is not applied again to a running stack: `migration up`
+  skips a version the database has recorded. Reset the test stack after
+  editing one, with `pnpm --filter @origamic/adapters supabase db reset
+  --local --workdir .supabase-test`; the dev stack's `db reset --local`
+  drops its data.
 - **In v1 the client enforces the schemas and the actions.** The browser
   writes to Supabase itself, and row-level security checks whose rows it
   writes, not what it writes. A client that bypasses `core` can put anything

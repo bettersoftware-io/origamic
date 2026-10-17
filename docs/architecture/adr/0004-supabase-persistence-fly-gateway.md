@@ -78,10 +78,16 @@ the one shared database as the only way out.
   keeps a second config. Its data is throwaway. When its database holds a
   migration the checkout lacks, or lacks one older than the last it holds,
   the global setup resets it to the checkout's migrations and prints one line
-  that says so.
+  that says so. Before a reset it checks, by the database's port, that the
+  stack it reaches is the test stack, and refuses otherwise; and it hands the
+  tests an address only when the API is on the test stack's port. The CLI is
+  run without `SUPABASE_PROJECT_ID` and the `SUPABASE_*_PORT` variables,
+  which would override the config.
 - **One test run at a time uses the test stack**, across every checkout on
   the machine: the global setup holds a lock file
-  (`/tmp/origamic-test-supabase.lock`, holding its pid) from before it starts
-  the stack until the run ends. A run that finds it held waits up to ten
-  minutes, saying for which pid; a lock whose process is gone is taken over.
+  (`/tmp/origamic-<uid>/origamic-test-supabase.lock`, in a folder only the
+  user can open, holding its pid) from before it starts the stack until the
+  run ends. A run that finds it held waits, saying for which pid, up to ten
+  minutes from when that holder took it; a lock whose process is gone is
+  taken over, under a second file that keeps two runs from both taking it.
 - **CI is unchanged**: one fresh stack per run, now the test stack.

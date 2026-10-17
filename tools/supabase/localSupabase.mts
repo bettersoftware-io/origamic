@@ -52,11 +52,13 @@ import {
   failure,
   type LocalSupabase,
   PROJECT,
+  type Runner,
+  readDatabasePort,
   readKeys,
   type SupabaseCommand,
   supabaseIn,
 } from "./cli.mts";
-import { prepareTestStack } from "./testStack.mts";
+import { prepareTestStack, testStackPorts } from "./testStack.mts";
 
 export type { LocalSupabase } from "./cli.mts";
 
@@ -89,8 +91,8 @@ export async function supabaseTestsToSkip({
 
 /** The seams of starting a stack. Each has the real thing as its default. */
 export interface StartOptions {
-  /** The CLI, run on the stack's project. */
-  supabase?: SupabaseCommand;
+  /** What runs the CLI. */
+  run?: Runner;
   /** Whether Docker answers. */
   probe?: () => Promise<boolean>;
   say?: (line: string) => void;
@@ -102,13 +104,13 @@ export interface StartOptions {
  * them. It is left running. Hold the lock on it (testDatabaseLock.mts) first.
  */
 export async function startLocalSupabase({
-  supabase,
+  run,
   probe = dockerAnswers,
   say = console.log,
 }: StartOptions = {}): Promise<LocalSupabase> {
   await requireDocker(probe);
 
-  const cli = supabase ?? supabaseIn(prepareTestStack());
+  const cli = supabaseIn(prepareTestStack(), run);
 
   await startIfDown(cli);
 
@@ -121,6 +123,7 @@ export async function startLocalSupabase({
       throw failure(MIGRATION_UP, up);
     }
 
+    await requireTestStack(cli);
     await orThrow(cli, ["db", "reset", "--local"]);
     say(`Reset the test database to this checkout's migrations: ${mismatch.test}.`);
   }
@@ -133,11 +136,11 @@ export async function startLocalSupabase({
  * migrations applied. It is left running, and never reset: when its database
  * holds a migration this checkout lacks, this fails and says what to do.
  */
-export async function startDevSupabase({
-  supabase = supabaseIn(PROJECT),
-  probe = dockerAnswers,
-}: StartOptions = {}): Promise<LocalSupabase> {
+export async function startDevSupabase({ run, probe = dockerAnswers }: StartOptions = {}): Promise<LocalSupabase> {
   await requireDocker(probe);
+
+  const supabase = supabaseIn(PROJECT, run);
+
   await startIfDown(supabase);
 
   const up = await supabase(MIGRATION_UP);
@@ -149,9 +152,7 @@ export async function startDevSupabase({
       throw failure(MIGRATION_UP, up);
     }
 
-    throw new Error(
-      `${mismatch.dev}, so \`supabase migration up\` refused. Nothing was reset: its data is yours. Check out a branch that has that migration, or, to drop the dev data and apply this checkout's migrations, run \`pnpm --filter @origamic/adapters supabase db reset --local\`.`,
-    );
+    throw new Error(mismatch.dev);
   }
 
   return readKeys((await orThrow(supabase, STATUS)).stdout);
@@ -165,6 +166,21 @@ async function requireDocker(probe: () => Promise<boolean>): Promise<void> {
   if (!(await probe())) {
     throw new Error(
       "A local Supabase needs Docker, and Docker does not answer here (`docker info` failed). Start Docker and run again. In CI the tests against it are never left out, so this is a failure there.",
+    );
+  }
+}
+
+/**
+ * Fails unless the stack the CLI reaches is the test stack, by its database's
+ * port. A reset drops every row: it must never reach the dev stack.
+ */
+async function requireTestStack(cli: SupabaseCommand): Promise<void> {
+  const port = readDatabasePort((await orThrow(cli, STATUS)).stdout);
+  const expected = testStackPorts().db;
+
+  if (port !== expected) {
+    throw new Error(
+      `Refused to reset the database: the stack these commands reach has it on port ${String(port)}, not on the test stack's ${String(expected)}. Nothing was reset.`,
     );
   }
 }
@@ -185,11 +201,14 @@ async function orThrow(supabase: SupabaseCommand, supabaseArguments: string[]): 
   return finished;
 }
 
-/** What does not match, said of the test database and of the dev database. */
+/** What does not match: the line said when the test database is reset, and the dev stack's error. */
 interface Mismatch {
   test: string;
   dev: string;
 }
+
+/** The end of each error the dev stack fails with on a mismatch. */
+const NOTHING_RESET = "so `supabase migration up` refused. Nothing was reset: the dev data is yours.";
 
 /**
  * What does not match, when `migration up` refused because the database's
@@ -205,7 +224,7 @@ function migrationMismatch({ stdout, stderr }: Finished): Mismatch | undefined {
 
     return {
       test: `it held ${versions}, which this checkout lacks`,
-      dev: `The dev database holds ${versions}, which this checkout lacks`,
+      dev: `The dev database holds ${versions}, which this checkout lacks, ${NOTHING_RESET} Check out a branch that has that migration, or, to drop the dev data and apply this checkout's migrations, run \`pnpm --filter @origamic/adapters supabase db reset --local\`.`,
     };
   }
 
@@ -219,7 +238,7 @@ function migrationMismatch({ stdout, stderr }: Finished): Mismatch | undefined {
 
     return {
       test: `this checkout's ${older} comes before the last migration it held`,
-      dev: `The dev database's last migration is newer than this checkout's ${older}`,
+      dev: `The dev database's last migration is newer than this checkout's ${older}, ${NOTHING_RESET} To apply it as well and keep the dev data, run \`pnpm --filter @origamic/adapters supabase migration up --local --include-all\`.`,
     };
   }
 
