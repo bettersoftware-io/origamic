@@ -116,10 +116,7 @@ const config: ArchitectureConfig = {
   // A library named here may be imported only from the packages listed, so it
   // can be replaced by changing those alone.
   // Remove a line when its package gets a test script.
-  packagesWithoutTests: {
-    "packages/runtime":
-      "it holds no code yet: its first code comes with the first slice, and its tests with it",
-  },
+  packagesWithoutTests: {},
 
   vendorOnlyIn: {
     react: [

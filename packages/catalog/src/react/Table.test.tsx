@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Row } from "#/contract/props.ts";
+import type { Row } from "@origamic/spec";
 
 import { mountTable } from "./Table.page.tsx";
 

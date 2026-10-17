@@ -1,7 +1,9 @@
-# The local Supabase the adapters' tests run against (ADR-0004), started by
-# tools/supabase/localSupabase.mts. Only what Origamic uses is on: the
-# database, the API in front of it, and auth. A key left out takes the CLI's
-# default; `supabase init` prints them all.
+# The local Supabase (ADR-0004). As it is, this is the dev stack, for the
+# author's own use: `pnpm supabase:dev` starts it, and nothing resets it. The
+# test stack the adapters' tests run against is made from it on each run, with
+# its own project_id and ports (tools/supabase/testStack.mts). Only what
+# Origamic uses is on: the database, the API in front of it, and auth. A key
+# left out takes the CLI's default; `supabase init` prints them all.
 project_id = "origamic"
 
 [api]

@@ -36,18 +36,26 @@ Work that has started and is not finished.
   primitives; it exports spec's `PropKind` and `CatalogComponent`) and part 7
   (the Supabase adapters of the session, the ontology, the objects and the
   library, each passing its port's contract against the local Supabase, with
-  `createSupabaseAdapters` and a second migration) are on main. Two things
-  wait on part 6: the catalog types a view's rows with a `Row` of its own
-  (`src/contract/props.ts`), which part 6 swaps for spec's `Row` (on main
-  since part 3); and `Envelope`, what each implementation takes, is exported
-  from `@origamic/catalog` by part 6, its first importer. Part 8, the gateway
-  (`apps/gateway`) and the browser's client of it (`createHttpLlmGateway` in
-  `packages/adapters`), is built on parts 2, 3 and 5 and waits for review and
-  merge; the real model has not been asked yet (see "Waiting on a person").
-  Some exports wait for their first importer, since knip refuses an export
-  nobody imports: `Break` (in `core`'s `apps/compatibility.ts`),
-  `BuilderTarget` (in `builder/builder.ts`) and `LoadedApp` (in
-  `createCore.ts`) go by the part that first names them, likely part 9. Part
+  `createSupabaseAdapters` and a second migration) are on main. The client of
+  the LLM gateway, which the plan put in part 7, comes with the gateway in
+  part 8. Part 6 (the runtime) is on main too: `AppView`, which draws an
+  app's UI spec over the catalog and routes its events to the app session,
+  and `createShellViewModel`, the shell's hooks over the core. It changed the
+  catalog: a view's rows are spec's `Row`; `Envelope` and `PARTS` are
+  exported; and each implementation is behind its contract (`checked`), so it
+  takes props as the runtime resolves them and draws its component only with
+  what the schemas accept. A form whose submit wrote through an action, with
+  nothing refused, is drawn afresh, which empties a create form. Part 8, the
+  gateway (`apps/gateway`) and the browser's client of it
+  (`createHttpLlmGateway` in `packages/adapters`), is built on parts 2, 3 and
+  5, and waits for review and merge; the real model has not been asked yet
+  (see "Waiting on a person"). Some exports wait for their first
+  importer, since knip refuses an export nobody imports: `Break` (in `core`'s
+  `apps/compatibility.ts`), `BuilderTarget` (in `builder/builder.ts`) and
+  `LoadedApp` (in `createCore.ts`) go by the part that first names them,
+  likely part 9; so do the runtime's `ShellViewModelProvider`,
+  `useShellViewModel` and the type `ShellViewModel`
+  (`packages/runtime/src/viewModel/`), which only its tests use today. Part
   9's library is how a saved app that no panel shows is reopened: the builder
   refuses a new app whose id the library has, and says to open it from the
   library and revise it there, which is also what is left when an accept
@@ -64,8 +72,8 @@ A plan or a design is on the main branch, and nothing of it is built.
   2026-10-16, `core`'s ports, simulators and rules (part 3 of the slice),
   its app session, builder and workspace (part 4), the catalog (part 5), the
   Supabase adapters (part 7), and the dependency rule, held by
-  `architecture.config.mts` over one package that is still empty of code
-  (`runtime`). The gateway (part 8) is built and waits to merge.
+  `architecture.config.mts` over every package. The gateway (part 8) is built
+  and waits to merge.
 
 ## Planned, and held by something
 
@@ -107,7 +115,8 @@ between options. Each entry says who, and gives the command or the question.
   author, with an Anthropic API key; no test in the gate calls a model
   (ADR-0011). Expected: progress lines, then one `proposal` whose app binds
   `Book@1`, `createBook@1` and `updateBook@1`. Write the outcome in part 8's
-  pull request. With the local Supabase running, from the project's folder:
+  pull request. With the dev Supabase running (`pnpm supabase:dev`), from the
+  project's folder:
 
   ```bash
   eval "$(pnpm --silent --filter @origamic/adapters supabase status -o env | grep -E '^(API_URL|ANON_KEY)=')"
@@ -159,17 +168,29 @@ verified, a case that is not covered.
   of role `explicit`. Part 9, which makes `apps/web`, should make sure its
   compiler includes the catalog's source, or the catalog runs uncompiled
   with nothing failing.
-- **A create Form keeps what was typed after it is submitted.** Its inputs
-  hold their text until the page draws the form afresh; an edit Form is drawn
-  afresh each time its `values` change. Whether "Add" should clear the form,
-  and how the runtime says that it succeeded, is part 6's to decide.
-- **One importer in `pnpm-lock.yaml` is written by hand.**
-  `packages/runtime` has no dependency, and pnpm 12 writes no importer for
-  such a package, while its frozen install (what CI runs) refuses a
-  lockfile without one. It has `packages/runtime: {}`, added by hand on
-  2026-10-16; a plain `pnpm install` keeps it, and it goes when the package
-  gets a dependency. A new package with no dependency needs the same: run
-  `pnpm install --frozen-lockfile` before pushing, since `gate:full` stays green without it.
+- **A form drawn afresh after a submit loses the keyboard's focus.** The
+  runtime remounts an element whose event wrote through an action and was
+  not refused, which is how a create Form starts empty again; the focus
+  that was on its button goes back to the page. Nothing puts it back on the
+  form's first field.
+- **Every prop is checked against its schema on every render.** Each
+  catalog component is behind its contract (`checked`), which parses each
+  prop it is handed, a Table's rows included, each time it draws: linear in
+  rows times values. That is nothing at the slice's sizes; a view of
+  thousands of rows would want the rows checked once, where they arrive.
+- **A stream that fails ends the app's view until it is drawn again.**
+  `AppView` shows why in the panel's place, and does not retry; the view
+  comes back when it is mounted afresh or given another session or app
+  version.
+- **An app shows "Loading…" until each view its elements read has rows.**
+  `AppView` draws nothing of the app before every one of them has emitted
+  once, so a view whose store never answers keeps the whole panel waiting.
+  A view that fails is shown in the panel's place, with why.
+- **pnpm 12 writes no importer for a package with no dependency.** Its
+  frozen install (what CI runs) then refuses the lockfile. No package is in
+  that state today; a new one with no dependency needs `packages/<name>: {}`
+  added to `pnpm-lock.yaml` by hand. Run `pnpm install --frozen-lockfile`
+  before pushing, since `gate:full` stays green without it.
 - **Where Docker is not running, `pnpm gate:full` fails on
   `packages/adapters`'s coverage.** Its `*.supabase.test.ts` files are left
   out there (with a `SKIP` line), and the coverage gate knows only port tests
@@ -178,17 +199,24 @@ verified, a case that is not covered.
   the code. CI always has Docker. The fix is the coverage add-on's, in
   `bettersoftware-io/skills`: a package whose tests were left out is not
   judged.
-- **Every checkout on a machine shares one local Supabase.** Its project id
-  is `origamic`, on ports 54321 (the API) and 54322 (Postgres), which
-  Docker publishes on every interface with the CLI's default password. A
-  checkout whose `supabase/migrations/` lacks a migration another checkout
-  applied fails the global setup with `MigrationMissingLocalError`. Bring
-  that checkout up to main, or reset the database to its own migrations:
-  `pnpm --filter @origamic/adapters supabase db reset --local`. The other
-  checkout applies its own again on its next run. Nor is a migration edited in
-  place applied again to a running stack: `migration up` skips a version the
-  database has recorded, so the stack keeps the old tables. Run the same
-  `db reset --local` after editing one.
+- **Every checkout on a machine shares one test stack, one run at a time.**
+  The adapters' tests run against the local Supabase `origamic-test` (the API
+  on 54421, Postgres on 54422), apart from the dev stack `origamic` that
+  `pnpm supabase:dev` starts (ADR-0004). A run holds
+  `/tmp/origamic-<uid>/origamic-test-supabase.lock` until its tests end, so
+  a second checkout's run waits, up to ten minutes for one holder, and then
+  fails; a vitest left in watch mode holds it until it is stopped. Anything
+  else that starts the test stack (part 9's e2e `stack` mode) must open it
+  as `tools/supabase/testDatabase.mts` does, lock and port check included. A
+  lock left by a process that is gone is taken over; but if its pid has been
+  given to another live process meanwhile, the next run waits the ten
+  minutes and fails naming the file: delete it. Both stacks' ports are
+  published on every interface with the CLI's default password. A migration
+  edited in place is not applied again to a running stack: `migration up`
+  skips a version the database has recorded. Reset the test stack after
+  editing one, with `pnpm --filter @origamic/adapters supabase db reset
+  --local --workdir .supabase-test`; the dev stack's `db reset --local`
+  drops its data.
 - **The gateway limits no caller's rate or spend.** Any token Supabase
   accepts may ask the model as often as it likes; with one user in v1
   that is the author. A limit per caller comes before a second user, with
