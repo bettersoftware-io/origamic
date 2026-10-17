@@ -8,7 +8,7 @@
 // the organisation's or the account's settings. Until then no pull request is
 // opened and nothing reports an error.
 //
-// It drives version updates, and here the security fixes too: see
+// It drives version updates and the security fixes: see
 // `vulnerabilityAlerts` below.
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
@@ -36,13 +36,12 @@
   // issue, which is where the whole list is.
   "prConcurrentLimit": 5,
 
-  // A pull request that fixes a known advisory. The add-on leaves this off
-  // and relies on Dependabot security updates, a repository setting. Those
-  // cannot run here: Dependabot's updater has Node 24, and this project asks
-  // for Node 26 (`devEngines.runtime` in package.json), so pnpm stops it.
-  // Renovate installs the Node a project asks for.
-  // Drop when: a Dependabot security update opens a pull request here. Then
-  // set this to false again, or each fix arrives twice.
+  // A pull request that fixes a known advisory, from the repository's
+  // Dependabot alerts (a setting, which must be on). A fix does not wait for
+  // the schedule or the week above. Dependabot security updates, the other
+  // setting, stay off: its updater has Node 24, this project asks for Node 26
+  // (`devEngines.runtime` in package.json), and with both on each fix would
+  // arrive twice. `pnpm repo:settings` fails while they are on.
   "vulnerabilityAlerts": {
     "enabled": true
   },
