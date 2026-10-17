@@ -34,17 +34,11 @@ no mobile layout, no visual polish beyond shadcn defaults.
 
 ## Before the slice
 
-These are not part of the loop, and the loop cannot be built without them.
-Each is a part of [the slice's plan](plans/2026-10-16-first-slice.md), and
-`docs/STATUS.md` holds the plan until it is done.
-
-- How a catalog component's props say they accept a `$view` or a `$state`
-  reference (ADR-0002): settled in the plan, under "Settled: how a prop says
-  what it accepts", and built in its parts 2 and 5.
-- The packages `spec`, `core`, `catalog`, `runtime` and `adapters` and the
-  apps are built beside the starter's price list. The price list goes, and
-  `AGENTS.md`'s tables are rewritten for Origamic's packages, in the slice's
-  last pull request.
+Nothing is left here. Both things the loop could not be built without are
+done: how a prop says it accepts a `$view` or a `$state` (the
+[plan](plans/2026-10-16-first-slice.md)'s parts 2 and 5), and the removal of
+the starter's price list, with `AGENTS.md` rewritten for Origamic's packages
+(its part 10).
 
 ## Acceptance criteria (write these as tests before building)
 

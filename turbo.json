@@ -5,12 +5,7 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
-      "env": [
-        "VITE_SERVER_URL",
-        "VITE_SUPABASE_URL",
-        "VITE_SUPABASE_ANON_KEY",
-        "VITE_GATEWAY_URL"
-      ]
+      "env": ["VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY", "VITE_GATEWAY_URL"]
     },
     "transit": {
       "dependsOn": ["^transit"]
@@ -25,7 +20,6 @@
       "cache": false,
       "persistent": true,
       "env": [
-        "VITE_SERVER_URL",
         "VITE_SUPABASE_URL",
         "VITE_SUPABASE_ANON_KEY",
         "VITE_GATEWAY_URL",

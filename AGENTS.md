@@ -1,14 +1,14 @@
 # Working in this project
 
-A TypeScript monorepo built on ports and adapters, with a streaming UI on RxJS.
-The rules below are enforced by checks, not by convention.
+Origamic: a TypeScript monorepo built on ports and adapters, with a streaming
+UI on RxJS and React. The rules below are enforced by checks, not by
+convention.
 
 ## Commands
 
 ```bash
 pnpm dev          # Origamic's web app, every port on its simulator and the model scripted
 pnpm dev:stack    # the web app on a local Supabase, with the gateway when ANTHROPIC_API_KEY is set
-pnpm dev:fs       # the starter's price list: its server and its client together (goes in the slice's last part)
 pnpm gate:fast    # architecture gates, React checks, lint, typecheck: seconds, for while you work
 pnpm gate:full    # gate:fast, then tests and the build: what CI runs
 pnpm gate:full:quiet   # the same commands and verdict, printing only the stage that failed
@@ -39,70 +39,94 @@ never skips them.
 
 Dependencies point inward only. `architecture.config.mts` is the declaration
 the gates read; a package that is not listed there fails.
+[ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) holds the same rule as
+a table, and says why.
 
 | Package | Role | Holds | May import |
 |---|---|---|---|
-| `packages/spec` | leaf | Origamic's spec schemas and their reference checks | nothing (runtime: `zod` only) |
-| `packages/core` | core | Origamic's ports, ontology, actions, views, library and builder. Empty until the first slice | spec (runtime: `rxjs`, `zod`) |
-| `packages/catalog` | explicit | Origamic's components: contracts and their React implementations. Empty until the first slice | spec |
-| `packages/runtime` | bindings | Origamic's spec interpreter. Empty until the first slice | spec, core, catalog |
-| `packages/adapters` | explicit | Origamic's real adapters: Supabase, the gateway's client. Empty until the first slice | core, spec |
-| `packages/domain` | domain | Entities, use cases, port interfaces, simulators | nothing (runtime: `rxjs` only) |
-| `packages/shared` | shared | The wire protocol | domain |
-| `packages/client-core` | core | Adapters, presenters, state machines, the composition of the app | domain, shared |
-| `packages/react-bindings` | bindings | The view model: the only place RxJS meets React | core, domain |
-| `packages/client-react` | client | `src/app` (composition root) and `src/ui` (dumb components) | bindings, core, domain |
-| `packages/server` | server | The WebSocket server | domain, shared |
-| `packages/integration` | integration | Tests that run a client adapter against the real server. Tests only | every package above; nothing imports it |
+| `packages/spec` | leaf | The schemas of every spec, and the pure functions over them: the reference checks, `applyChangeSet`, `validateApp` | nothing (npm: `zod` only) |
+| `packages/core` | core | The ports, their contracts and simulators; the ontology's rules (`planWrite`); the session of an open app, the builder, the workspace; `createCore` | spec (npm: `rxjs`, `zod`) |
+| `packages/catalog` | explicit | The components a spec can name: each one's contract and its React implementation; the manifest the model is held to | spec (npm: `react`, `zod`, and what its shadcn primitives are built from) |
+| `packages/runtime` | bindings | The spec interpreter (`AppView`) and the shell's view model: the only place RxJS meets React | spec, core, catalog; never adapters (npm: `react`, `rxjs`) |
+| `packages/adapters` | explicit | The real adapters: the Supabase stores and session, the gateway's HTTP client; the local Supabase's migrations | spec, core (npm: `@supabase/supabase-js`, `rxjs`) |
+| `apps/web` | client | `src/app` (the composition root) and `src/ui` (the shell's dumb components, on dockview) | runtime, core, spec, adapters (npm: `react`, `react-dom`, `dockview`) |
+| `apps/gateway` | server | The one place that calls the model, and checks what it returns | spec, the catalog's manifest (npm: `@anthropic-ai/sdk`, Node's built-ins) |
+| `packages/integration` | integration | Tests that run a client adapter against a real server: the gateway. Tests only | every package above; nothing imports it |
+| `packages/e2e` | e2e | The end-to-end specs, run on the built web app in a browser | no source of the app: its test ids, and types |
 
 ## Where a thing goes
 
-- **It needs the outside world** (network, storage, clock): declare a port in
-  `packages/domain/src/ports`, in domain words. Write a contract test beside it
-  in `__contracts__`. Implement it as a simulator in the domain and as a real
-  adapter in `client-core/src/adapters`, and run the contract against both.
-- **It is application behaviour** (what data exists, what happens on an intent,
-  anything on a timer): a presenter or a state machine in `client-core`.
-- **It turns the wire format into domain terms**: the adapter. Nothing past an
-  adapter sees a wire message.
+- **It needs the outside world** (storage, the session, the model): declare a
+  port in `packages/core/src/ports`, as `<Name>Port` in `<name>Port.ts`, in
+  the ontology's words. Write its contract beside it, in
+  `__contracts__/<Name>PortContract.ts`. Implement it as a simulator in
+  `packages/core/src/simulators` and as a real adapter in
+  `packages/adapters/src`, and run the contract against both. The gates find
+  a port, and hold an adapter to its contract, only by that name.
+- **It is the shape of a spec, or a pure check over one** (a schema, a
+  reference, applying a change set): `packages/spec`. It takes the ontology
+  and the catalog's manifest as data.
+- **It is application behaviour** (what an action writes, what a view
+  returns, the builder's conversation with the model, the panels of the
+  workspace): a rule, a presenter or a state machine in `packages/core`.
+  `createCore` builds them over the ports.
+- **It turns a row or a response into the spec's terms**: the adapter, which
+  parses it with a schema of `spec`. Nothing past an adapter names a table, a
+  column, a query or an address.
+- **It is a component a spec can name**: a catalog entry, with its contract in
+  `packages/catalog/src/contract/components` and its implementation in
+  `packages/catalog/src/react`. It is a pure function of its props and emits
+  events. Never a component written by hand in the shell when an entry would
+  do.
+- **It draws a UI spec, or turns the core's streams into hooks**:
+  `packages/runtime`.
 - **It reads configuration or picks an adapter**: the composition root,
-  `client-react/src/app`. Nowhere else.
-- **It checks that the client and the server agree**: a test in
+  `apps/web/src/app`. Nowhere else.
+- **It is the shell on screen** (signing in, the builder, the library, the
+  workspace): a component in `apps/web/src/ui`, reading from the view model.
+  No RxJS, storage, `fetch`, environment or timers there.
+- **It asks the model**: `apps/gateway`, and nothing else.
+- **It checks that a client adapter and a server agree**: a test in
   `packages/integration`, the only package that may import both. Each side's
   own tests stay where they are; this is for what neither can see alone.
-- **It is drawn on screen**: a component in `client-react/src/ui`, reading from
-  the view model. No RxJS, storage, `fetch`, environment or timers there.
 - **It is a new package**: list it in `architecture.config.mts` with its role,
   and give it a `typecheck` and a `test` script. One that holds only types
   also says `typesOnly: true`.
 
 Four rules about imports:
 
-- A presenter or a state machine takes its port as an argument. It never
-  imports from an `adapters` folder.
-- No Node built-in (`node:fs`, `node:path`) outside `packages/server`, except
-  in tests: everything else runs in the browser.
-- `react` and `react-dom` are imported only in `react-bindings` and
-  `client-react`; `ws` only in `server`.
+- A presenter or a state machine takes its ports as arguments. It never
+  imports an adapter.
+- No Node built-in (`node:fs`, `node:path`) outside `apps/gateway`, except in
+  tests: everything else runs in the browser.
+- `react` is imported only in `catalog`, `runtime` and `apps/web`;
+  `react-dom` and `dockview` only in `apps/web`; `@supabase/supabase-js` only
+  in `adapters`; `@anthropic-ai/sdk` only in `apps/gateway`; `zod` only in
+  `spec`, `core` and `catalog`.
 - What is written for tests (a `testing/` folder, a `*.page.tsx`, a test) is
   imported only by tests.
 
-The price list is a worked example of every one of these. Copy its shape:
+The first slice, the book tracker, is a worked example of every one of
+these. Copy its shape:
 
 | Pattern | File |
 |---|---|
-| Port | `packages/domain/src/ports/pricePort.ts` |
-| Contract test | `packages/domain/src/ports/__contracts__/PricePortContract.ts` |
-| Simulator | `packages/domain/src/simulators/priceSimulator.ts` |
-| Use case | `packages/domain/src/useCases/trackMovement.ts` |
-| Real adapter | `packages/client-core/src/adapters/wsPrice.ts` |
-| Presenter (shared state, timers) | `packages/client-core/src/presenters/pricesPresenter.ts` |
-| State machine (per-component state) | `packages/client-core/src/machines/selectionMachine.ts` |
-| View model | `packages/react-bindings/src/createViewModel.ts` |
-| Composition root | `packages/client-react/src/app/startApp.tsx` |
-| Client adapter against the real server | `packages/integration/src/priceOverWebSocket.port.test.ts` |
-| Dumb component | `packages/client-react/src/ui/PriceList.tsx` |
-| Page object and its test | `packages/client-react/src/ui/PriceList.page.tsx`, `PriceList.test.tsx` |
+| Port | `packages/core/src/ports/objectStorePort.ts` |
+| Contract test | `packages/core/src/ports/__contracts__/ObjectStorePortContract.ts` |
+| Simulator, and the contract run against it | `packages/core/src/simulators/objectStoreSimulator.ts`, `objectStoreSimulator.test.ts` |
+| Real adapter, and the contract run against it | `packages/adapters/src/supabase/supabaseObjectStore.ts`, `supabaseObjectStore.supabase.test.ts` |
+| A rule of the ontology, a pure function | `packages/core/src/actions/planWrite.ts` |
+| Presenter (shared state) | `packages/core/src/workspace/workspacePresenter.ts` |
+| State machine | `packages/core/src/builder/builder.ts` |
+| The core's composition, and its one harness | `packages/core/src/createCore.ts`, `packages/core/src/testing/coreHarness.ts` |
+| Catalog component: contract, implementation, page object and test | `packages/catalog/src/contract/components/select.ts`, `packages/catalog/src/react/Select.tsx`, `Select.page.tsx`, `Select.test.tsx` |
+| Spec interpreter | `packages/runtime/src/AppView.tsx` |
+| View model | `packages/runtime/src/viewModel/createShellViewModel.ts` |
+| Composition root, and the choice of adapters | `apps/web/src/app/startApp.tsx`, `apps/web/src/app/composePorts.ts` |
+| Dumb component | `apps/web/src/ui/Library.tsx` |
+| Page object and its test | `apps/web/src/ui/Library.page.tsx`, `Library.test.tsx` |
+| Server | `apps/gateway/src/server.ts` |
+| Client adapter against the real server | `packages/integration/src/llmGatewayOverHttp.port.test.ts` |
 
 ## Tests
 
@@ -110,15 +134,23 @@ The price list is a worked example of every one of these. Copy its shape:
   A test never sleeps.
 - A UI test talks to a page object. Only the page object touches the testing
   library.
-- A test id is a constant in `packages/client-react/src/ui/testids.ts`, used
-  by the component and by the page object. Never a string literal.
-- A test that needs the whole application asks `createAppHarness`, in
-  `packages/client-core/src/testing/appHarness.ts`. Only that file calls
-  `createApp`.
-- A port's contract imports the port, the entities and the test runner. Never
-  a simulator or an adapter: each one's test passes itself in.
+- A test id is a constant, never a string literal. The shell's are in
+  `apps/web/src/ui/testids.ts`, used by the component, its page object and
+  the end-to-end specs. An element of a UI spec has `spec.<element id>`,
+  which the runtime derives (`packages/runtime/src/elementTestId.ts`), and a
+  part of it adds `.<part>` (`packages/catalog/src/react/testIds.ts`).
+- A test that needs the whole core asks `createCoreHarness`, in
+  `packages/core/src/testing/coreHarness.ts`: every port on its simulator,
+  the model scripted. No other test, page object or `testing/` file calls
+  `createCore`.
+- A port's contract imports the port, the spec, the fixtures beside it and
+  the test runner. Never a simulator or an adapter: each one's test passes
+  itself in.
 - A test that opens a real port is named `*.port.test.ts`, so it can be left
-  out, and said to be left out, where a port cannot be opened.
+  out, and said to be left out, where a port cannot be opened. One that needs
+  the local Supabase is named `*.supabase.test.ts` (see "Origamic" below).
+- No test asks the real model. The gateway and everything above it are
+  tested on a scripted model (ADR-0011).
 - A fixture factory is named `create…`.
 - Tests come first in a test file; helpers go below them.
 
@@ -157,29 +189,30 @@ get past the `package-manager` gate.
   variable, a class property, a cast or a type argument: declare an
   `interface` and use it.
 - One import statement per module, with an inline `type` on each type:
-  `import { type Price, read } from "./price.ts"`. A statement that names only
+  `import { type Ontology, validateApp } from "@origamic/spec"`. A statement that names only
   types stays `import type`. (fix)
 - No CommonJS: no `require`, `module.exports`, `__dirname` or `__filename`,
   and no `.cts` file. Use `import` and `import.meta.dirname`.
 - One class in a file, and the file has its name.
 - In a component, take the hooks out of the view model by name:
-  `const { usePrices } = useViewModel()`. Never keep the bundle in a variable
+  `const { useLibrary } = useShellViewModel()`. Never keep the bundle in a variable
   or call through it.
 - A component follows React's rules: a hook is called at the top level, an
   effect lists what it reads, and nothing reads a ref or sets state while
   rendering.
 - No `style={{ … }}` in a component: styling goes in a stylesheet, by class.
-- `packages/react-bindings` uses no `useMemo`, `useCallback` or `memo`. Logic
-  that needs one belongs in the core.
-- `packages/client-react` uses none of the three either, for another reason:
-  the React Compiler memoizes at build time. Write the plain value, and a
-  function declaration for a callback.
+- `packages/runtime` uses no `useMemo`, `useCallback` or `memo`. Logic that
+  needs one belongs in the core.
+- `apps/web` and `packages/catalog` use none of the three either, for another
+  reason: the React Compiler memoizes at build time. Write the plain value,
+  and a function declaration for a callback.
 
 ## The React Compiler
 
-The client's build runs the React Compiler
-(`packages/client-react/vite.config.ts`). It skips a function it cannot
-compile and says nothing, so two checks in `gate:fast` hold it:
+The web app's build runs the React Compiler (`apps/web/vite.config.ts`), over
+its own components and the catalog's; the runtime is left out of it. The
+compiler skips a function it cannot compile and says nothing, so two checks
+in `gate:fast` hold it:
 
 - `pnpm check:react-policies` fails when `reactCompiler` in
   `architecture.config.mts` and the build disagree, and when a package that
@@ -190,10 +223,10 @@ compile and says nothing, so two checks in `gate:fast` hold it:
 What no check decides:
 
 - **A component that reads the view model is not compiled.** Its hooks come
-  out of a value (`const { usePrices } = useViewModel()`), and the compiler
-  skips such a function. Keep that component thin: it reads, and hands plain
-  props to components that take only props. Those are compiled.
-  `packages/client-react/src/ui/PriceList.tsx` shows both.
+  out of a value (`const { useLibrary } = useShellViewModel()`), and the
+  compiler skips such a function. Keep that component thin: it reads, and
+  hands plain props to components that take only props. Those are compiled.
+  `apps/web/src/ui/Library.tsx` shows both.
 - **When to add an entry to `compilerTracked`.** When a component depends on
   the compiler to keep something stable or cheap: a costly derived value, a
   callback a child compares. Skip it for a component whose render is cheap
@@ -205,8 +238,8 @@ What no check decides:
 ## Imports inside a package
 
 An import of a file in the same package is relative and climbs one folder at
-most, as in `../entities/price.ts`. Anything deeper is written from the
-package's `src` with the `#/` alias: `#/entities/price.ts`. Every package
+most, as in `../ports/objectStorePort.ts`. Anything deeper is written from
+the package's `src` with the `#/` alias: `#/ports/objectStorePort.ts`. Every package
 declares it (`"imports": { "#/*": "./src/*" }` in its `package.json`), and
 Node, Vite, Vitest and `tsc` all read it from there. A new package declares it
 too.

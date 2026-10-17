@@ -31,9 +31,9 @@
         "@babel/core",
         "babel-plugin-react-compiler"
       ],
-      // The visual add-on's scripts here run Playwright in the package that
-      // installs it (`pnpm --dir packages/client-react exec playwright`). knip
-      // reads them as run at the root, where Playwright is not a dependency.
+      // `pnpm e2e:install` runs Playwright in the package that installs it
+      // (`pnpm --dir packages/e2e exec playwright`). knip reads it as run at
+      // the root, where Playwright is not a dependency.
       "ignoreBinaries": ["playwright"]
     },
     // The apps: a composition root each, run by its `start` script. The same

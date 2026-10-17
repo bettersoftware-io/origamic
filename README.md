@@ -1,6 +1,9 @@
 # origamic
 
-A TypeScript monorepo built on ports and adapters, with a streaming UI on RxJS
+A user describes a small app; Origamic builds it in front of them, saves it to
+their library, and runs it, without generating code that must be deployed.
+An app is a bundle of specs, data the runtime interprets. This is a
+TypeScript monorepo built on ports and adapters, with a streaming UI on RxJS
 and React, and the checks that keep it that way.
 
 ## First
@@ -18,35 +21,35 @@ first change, so a later failure is known to come from the change.
 ## Every day
 
 ```bash
-pnpm dev          # http://localhost:5173, on the in-browser simulator
-pnpm dev:fs       # the server and the client together
+pnpm dev          # http://localhost:5173: the web app, every port on its simulator and the model scripted
+pnpm dev:stack    # the web app on a local Supabase, with the gateway when ANTHROPIC_API_KEY is set
 pnpm gate:fast    # architecture gates, lint, typecheck
 pnpm gate:full    # gate:fast, then tests and the build: everything CI runs
 pnpm gate:full:quiet   # the same commands and verdict, printing only the stage that failed
-pnpm --filter @origamic/domain test   # one package's tests
+pnpm --filter @origamic/core test     # one package's tests
 ```
 
 ## What is in it
 
-Eight packages under `packages/`, each named `@origamic/<folder>` and imported
-by that name:
+Seven packages under `packages/` and two apps under `apps/`, each named
+`@origamic/<folder>` and imported by that name:
 
 ```ts
-import type { PricePort } from "@origamic/domain";
+import type { ObjectStorePort } from "@origamic/core";
 ```
 
-Seven of them hold one small feature, a live price list, built the way every
-feature is meant to be built. It is an example to copy, not part of the
-product, and it goes when the first slice of Origamic has an example of each
-pattern. The eighth, `packages/spec`, is the first package of Origamic
-itself: the schemas of its specs.
+`spec` holds the schemas of the specs, `core` the ports and the behaviour,
+`catalog` the components a spec can name, `runtime` the interpreter of a UI
+spec, and `adapters` the real adapters (a local Supabase, the gateway's
+client). `apps/web` is the composition root and the shell; `apps/gateway`
+is the one place that calls the model. `packages/integration` and
+`packages/e2e` hold tests only.
 [docs/architecture/](docs/architecture/ARCHITECTURE.md) describes the
-product.
-[AGENTS.md](AGENTS.md) says where each kind of code goes and lists the file
-that shows each pattern.
+product, and [AGENTS.md](AGENTS.md) says where each kind of code goes and
+lists the file that shows each pattern.
 
-Packages export their TypeScript source. Nothing is compiled except the client,
-which Vite bundles; the server and the tooling are run by Node directly. This
+Packages export their TypeScript source. Nothing is compiled except the web
+app, which Vite bundles; the gateway and the tooling are run by Node directly. This
 needs Node 26 or later.
 
 ## The checks
@@ -63,6 +66,9 @@ Added when the project was created:
 - `coverage`: A per-file coverage gate for every package, a ranked list of the gaps, a check that proves a test can fail, and a published coverage report.
 - `format-lint`: Biome as the formatter, the general linter and the import sorter, with one check in gate:fast.
 - `strict-lint`: Two checks in gate:fast: the ESLint rules that need types (a promise nobody waits for, a switch that misses a case), and knip for unused files, exports and dependencies.
+
+Added since: `agent-workflow` (how a change leaves the machine) and `e2e`
+(the end-to-end tests, in a real browser).
 
 ## By hand
 
