@@ -146,6 +146,7 @@ function Dock({
       },
     });
 
+    let disposed = false;
     const activated = created.api.onDidActivePanelChange(({ panel }) => {
       latest.current.onActivePanel(panel?.id ?? null);
     });
@@ -164,6 +165,12 @@ function Dock({
       // Nothing waits: the workspace without the panel arrives through the
       // view model, and a failure is handled here.
       void latest.current.onClosePanel(panel.id).catch((error: unknown) => {
+        // The dock may be gone by then (its owner signed out while the close
+        // was saving): there is nothing left to put back in step.
+        if (disposed) {
+          return;
+        }
+
         setCloseProblem(`The panel was not closed: ${messageOf(error)}`);
         keepInStep({
           dock: created.api,
@@ -177,6 +184,7 @@ function Dock({
     dock.current = created.api;
 
     return (): void => {
+      disposed = true;
       activated.dispose();
       removed.dispose();
       created.dispose();

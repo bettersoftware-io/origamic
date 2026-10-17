@@ -724,6 +724,36 @@ describe("the builder", () => {
     });
   });
 
+  it("a stopped accept that ends after the next owner asked leaves the next owner's proposal as it is", async () => {
+    const { core, deps } = createCoreHarness({
+      replies: [createNewBookReply(), createNewBookReply()],
+    });
+    const loadApp = deps.library.loadApp.bind(deps.library);
+    const hold = createHold();
+
+    vi.spyOn(deps.library, "loadApp").mockImplementation(
+      async (id: string, version?: number) => {
+        await hold.promise;
+
+        return loadApp(id, version);
+      },
+    );
+    await core.workspace.open();
+    core.builder.ask("a tracker for the books I'm reading");
+    await until(core, "proposed");
+
+    const accepting = core.builder.accept();
+
+    core.handOver();
+    core.builder.ask("a tracker for the books I'm reading");
+    await until(core, "proposed");
+    hold.release();
+    await accepting;
+
+    expect((await currentState(core)).kind).toBe("proposed");
+    expect(await loadApp("books")).toBeNull();
+  });
+
   it("close() after the change set applied saves no app and adds no panel", async () => {
     const { core, deps } = createCoreHarness({
       replies: [createNewBookReply()],
@@ -867,5 +897,27 @@ function proposal(changeSet: unknown, app: unknown): GenerationEvent {
   return {
     kind: "proposal",
     proposal: Proposal.parse({ explanation: "As asked.", changeSet, app }),
+  };
+}
+
+/** A promise a test settles when it chooses. */
+interface Hold {
+  promise: Promise<void>;
+  release: () => void;
+}
+
+function createHold(): Hold {
+  const settles: (() => void)[] = [];
+  const promise = new Promise<void>((resolve) => {
+    settles.push(resolve);
+  });
+
+  return {
+    promise,
+    release: (): void => {
+      for (const settle of settles) {
+        settle();
+      }
+    },
   };
 }

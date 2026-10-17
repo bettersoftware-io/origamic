@@ -94,6 +94,8 @@ function EntryView({ entry, onOpen }: EntryViewProps): ReactElement {
       </span>
       <form className="flex items-center gap-1" onSubmit={openEntry}>
         <select
+          // Drawn afresh when a version is saved, so it offers the latest.
+          key={entry.latest}
           data-testid={TESTIDS.libraryVersion}
           aria-label={`The version of ${entry.name} to open`}
           className="field py-1 text-xs"

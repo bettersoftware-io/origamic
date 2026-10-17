@@ -78,8 +78,9 @@ export interface Builder {
   /**
    * Forgets the owner's conversation, as when another signs in or the owner
    * signs out: what is generated or proposed is dropped, an accept under
-   * way stores nothing more (it ends saying it was stopped), and the
-   * builder is idle on a new app. Unlike `target`, it is not ignored while
+   * way stores nothing more (it ends saying it was stopped, unless the
+   * builder has moved on since the close: what the next owner does there is
+   * theirs), and the builder is idle on a new app. Unlike `target`, it is not ignored while
    * accepting.
    */
   close(): void;
@@ -104,6 +105,8 @@ export function createBuilder(ports: BuilderPorts): Builder {
   let asked = 0;
   /** Counts the closes: an accept that began before one stores nothing more. */
   let owners = 0;
+  /** The state the last close showed: an accept it stopped says so only while the builder is still in it. */
+  let closedAs: BuilderState | undefined;
 
   function show(next: BuilderState): void {
     state.next(next);
@@ -339,7 +342,13 @@ export function createBuilder(ports: BuilderPorts): Builder {
         outcome = failed(target, messageOf(error), []);
       }
 
-      show(stillOwned(accepting) ? outcome : stopped());
+      if (stillOwned(accepting)) {
+        show(outcome);
+      } else if (state.getValue() === closedAs) {
+        // Only over what the close left: the next owner's own conversation
+        // (an ask, a proposal, an accept) is theirs.
+        show(stopped());
+      }
     },
     reject: (): void => {
       const target = drop();
@@ -353,7 +362,8 @@ export function createBuilder(ports: BuilderPorts): Builder {
       asked += 1;
       generation?.unsubscribe();
       generation = undefined;
-      show({ kind: "idle", target: { kind: "new" } });
+      closedAs = { kind: "idle", target: { kind: "new" } };
+      show(closedAs);
     },
   };
 }

@@ -46,6 +46,18 @@ describe("the library", () => {
     });
   });
 
+  it("opens the latest version after a new one is saved, the version left as it was offered", async () => {
+    const page = mountLibrary();
+
+    await page.saveBookTracker();
+    await page.saveNextVersion();
+    await page.open("books");
+
+    expect(page.workspace()?.panels).toEqual({
+      books: { app: "books", appVersion: 2 },
+    });
+  });
+
   it("says why an app could not be opened", async () => {
     const page = mountLibrary();
 

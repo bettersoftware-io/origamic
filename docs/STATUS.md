@@ -96,6 +96,14 @@ It waits on a release, a decision or other work. Each entry says on what.
 
 The next step is known, and nobody has written a plan for it.
 
+- **Keep a store call to the owner it began for.** In the client, each
+  adapter call reads the access token once and sends it with every request
+  of the call, so a call that began as A ends as A; or `apply` and `save`
+  each become one database function, one request each. That narrows the
+  window of the known limit "A store call in flight when the owner
+  changes". The full fix is the server's check (ADR-0009): a write names
+  its owner and the server refuses it for any other.
+
 - **Nothing holds "a required property is added with a `default`".**
   `ontology.ts` states it, and neither `ChangeSet` nor `applyChangeSet`
   checks it, so a change set can add a required property that every stored
@@ -299,16 +307,20 @@ verified, a case that is not covered.
   "want"` leaves out a book written before `status` existed. Nothing
   affects the book tracker; it matters once a change set adds a property
   with a default that a view filters on.
-- **A change of owner inside one store's call is not caught.** At each
-  change of owner the shell hands the core over (`core.handOver()`): the
-  workspace closes, the builder drops what it was asked or proposed, an
-  accept under way stops before its next store, and a workspace change
-  decided before is refused. Each check is made right before a store is
-  called; a store's own call that is already under way (an `apply`
-  reading then writing, a save in flight) finishes with whatever session
-  the client has by then. The shell does not let the builder sign out while
-  an accept is saved, which leaves a sign-in in another tab. The fix is the
-  checks moving to the server (ADR-0009), where a write names its owner.
+- **A store call in flight when the owner changes can write into the next
+  owner's rows.** At each change of owner the shell hands the core over
+  (`core.handOver()`): the workspace closes, the builder drops what it was
+  asked or proposed, an accept under way stops before its next store, and
+  a workspace change decided before is refused. Each check is made right
+  before a store is called. But a call already under way when the owner
+  changes in another tab (a sign-out there, or a token refresh that fails;
+  a sign-out in this tab waits for an accept) goes on, and the Supabase
+  client sends B's token on its next request as soon as it has switched,
+  before `onAuthStateChange` reaches `handOver`. So it can write A's next
+  ontology version (`apply` reads, then writes), A's app (`saveApp` reads
+  the latest version, then writes), or an object an app's action plans
+  (`execute`) into B's rows. The window is one read's round trip plus that
+  delay. The narrowing and the fix are under "Next, with no plan yet".
 - **The workspace presenter saves each change from the copy it holds,**
   not from the library's latest, so a version saved elsewhere since (another
   tab) is overwritten by the next panel added or closed or pin moved here.
