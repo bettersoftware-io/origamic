@@ -25,24 +25,32 @@ Work that has started and is not finished.
   the price list (removed in part 10, modes replaced in part 9); part 1b, a
   local Supabase that `pnpm gate:full` and CI start, with the first migration.
   Part 2, the spec's additions, part 3 (`core`'s five ports with their
-  contracts and simulators, `planWrite`, `valueSchema`,
-  `checkCompatibility`, `createCore` and `createCoreHarness`, which added
-  `Row` to `packages/spec`) and part 7 (the Supabase adapters of the
-  session, the ontology, the objects and the library, each passing its
-  port's contract against the local Supabase, with `createSupabaseAdapters`
-  and a second migration) are on main. The client of the LLM gateway, which
-  the plan put in part 7, comes with the gateway in part 8. Part 5, the
-  catalog, is built on part 2 and waits for review and merge: the five
-  contracts, the manifest and `checkElement`, what the model is held to,
-  and the React implementations on shadcn's primitives. It exports spec's
-  `PropKind` and `CatalogComponent`. Two things wait on part 6: the catalog
-  types a view's rows with a `Row` of its own (`src/contract/props.ts`),
-  which part 6 swaps for spec's `Row` (on main since part 3); and
-  `Envelope`, what each implementation takes, is exported from
-  `@origamic/catalog` by part 6, its first importer. Some exports wait for
-  their first importer, since knip refuses an export nobody imports:
-  `Break` (in `apps/compatibility.ts`) and `SavedApp` (in `createCore.ts`)
-  go by the part that first names them, likely part 4.
+  contracts and simulators, `planWrite`, `valueSchema`, `checkCompatibility`,
+  `createCore` and `createCoreHarness`, which added `Row` to `packages/spec`),
+  part 4 (`core`'s app session, builder and workspace presenter with
+  `resolveView`, `describeChangeSet` and `diffApps`, and `Core` at its full
+  shape; it let a workspace with no panel have no layout (`null`) and added
+  `createBookChange` to the book tracker's fixtures in `packages/spec`) and
+  part 7 (the Supabase adapters of the session, the ontology, the objects and
+  the library, each passing its port's contract against the local Supabase,
+  with `createSupabaseAdapters` and a second migration) are on main. The
+  client of the LLM gateway, which the plan put in part 7, comes with the
+  gateway in part 8. Part 5, the catalog, is built on part 2 and waits for
+  review and merge: the five contracts, the manifest and `checkElement`, what
+  the model is held to, and the React implementations on shadcn's primitives.
+  It exports spec's `PropKind` and `CatalogComponent`. Two things wait on part
+  6: the catalog types a view's rows with a `Row` of its own
+  (`src/contract/props.ts`), which part 6 swaps for spec's `Row` (on main
+  since part 3); and `Envelope`, what each implementation takes, is exported
+  from `@origamic/catalog` by part 6, its first importer. Some exports wait
+  for their first importer, since knip refuses an export nobody imports:
+  `Break` (in `core`'s `apps/compatibility.ts`), `BuilderTarget` (in
+  `builder/builder.ts`) and `LoadedApp` (in `createCore.ts`) go by the part
+  that first names them, likely part 9. Part 9's library is how a saved app
+  that no panel shows is reopened: the builder refuses a new app whose id the
+  library has, and says to open it from the library and revise it there, which
+  is also what is left when an accept saved the app and then failed to add its
+  panel.
 
 ## Designed, not built
 
@@ -53,9 +61,10 @@ A plan or a design is on the main branch, and nothing of it is built.
   by [the first reading](architecture/reviews/2026-10-14-first-reading.md).
   Built: the schemas in `packages/spec`, reviewed by the author on
   2026-10-16, `core`'s ports, simulators and rules (part 3 of the slice),
-  and the dependency rule, held by `architecture.config.mts` over one
-  package that is still empty of code (`runtime`). The catalog (part 5) is
-  built and waits to merge.
+  its app session, builder and workspace (part 4), the Supabase adapters
+  (part 7), and the dependency rule, held by `architecture.config.mts` over
+  one package that is still empty of code (`runtime`). The catalog (part 5)
+  is built and waits to merge.
 
 ## Planned, and held by something
 
@@ -212,6 +221,20 @@ verified, a case that is not covered.
   that its handlers pass to an action. A property only a component's props
   name (a table's column, a form's field) is not checked: that needs the
   catalog's knowledge of its props.
+- **A view's filter and sort do not see a property's `default`.** A row
+  shows the default for a property its object lacks (ADR-0005), but the
+  store compares and sorts that object as having no value, so `status eq
+  "want"` leaves out a book written before `status` existed. Nothing
+  affects the book tracker; it matters once a change set adds a property
+  with a default that a view filters on.
+- **The workspace presenter keeps what it opened across a sign-out.**
+  `core.workspace` (one workspace per owner, id `main`) and the builder
+  hold their state until `open()` or `target()` is called again; nothing
+  clears them when the user changes. One user in v1, so the shell calls
+  `open()` after a sign-in. It also saves each change from the copy it
+  holds, not from the library's latest, so a version saved elsewhere since
+  (another tab) is overwritten by the next panel added or closed or pin
+  moved here.
 - **In v1 the client enforces the schemas and the actions.** The browser
   writes to Supabase itself, and row-level security checks whose rows it
   writes, not what it writes. A client that bypasses `core` can put anything
