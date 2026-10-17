@@ -84,7 +84,7 @@ export function createBookChange(): ChangeSetInput {
   };
 }
 
-/** Slice step 7: "add a 'date finished' field". */
+/** Slice step 7: "add a 'date finished' field". `updateBook` keeps everything it had, and also sets the date. */
 export function createDateFinishedChange(): ChangeSetInput {
   return {
     format: 1,
@@ -102,6 +102,7 @@ export function createDateFinishedChange(): ChangeSetInput {
           kind: "update",
           type: "Book",
           fields: ["title", "author", "status", "rating", "dateFinished"],
+          rules: [{ kind: "range", property: "rating", min: 1, max: 5 }],
         },
       },
     ],
