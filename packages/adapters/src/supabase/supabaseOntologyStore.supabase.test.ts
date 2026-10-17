@@ -1,3 +1,4 @@
+import { firstValueFrom } from "rxjs";
 import { afterAll, describe, expect, it } from "vitest";
 
 import {
@@ -5,8 +6,11 @@ import {
   createDateFinishedChange,
 } from "@origamic/core/ports/__contracts__/fixtures.ts";
 import { describeOntologyStorePortContract } from "@origamic/core/ports/__contracts__/OntologyStorePortContract.ts";
+import { ChangeSet, Ontology } from "@origamic/spec";
 
 import { createOwners } from "#/testing/owners.ts";
+
+import { createSupabaseOntologyStore } from "./supabaseOntologyStore.ts";
 
 const owners = createOwners();
 
@@ -22,6 +26,34 @@ describeOntologyStorePortContract("Supabase", async (initial) => {
   }
 
   return owner.adapters.ontology;
+});
+
+describe("a change whose base was read before another was stored", () => {
+  it("is stale at the stored version, and stores nothing", async () => {
+    const owner = await owners.create();
+
+    await owners.writeOntology(owner, createBookOntology());
+
+    // The read a loser of the race made: the ontology as it stood at version 0.
+    const store = createSupabaseOntologyStore(
+      await owners.createClientOf(owner),
+      {
+        readBase: () => {
+          return Promise.resolve(
+            Ontology.parse({ format: 1, version: 0, objectTypes: [] }),
+          );
+        },
+      },
+    );
+
+    expect(await store.apply(createFirstChange())).toEqual({
+      kind: "stale",
+      current: 1,
+    });
+    expect(await firstValueFrom(owner.adapters.ontology.current())).toEqual(
+      Ontology.parse(createBookOntology()),
+    );
+  });
 });
 
 describe("two changes on one base, applied at once", () => {
@@ -47,3 +79,20 @@ describe("two changes on one base, applied at once", () => {
     expect(results).toContainEqual({ kind: "stale", current: 2 });
   });
 });
+
+function createFirstChange(): ChangeSet {
+  return ChangeSet.parse({
+    format: 1,
+    baseVersion: 0,
+    operations: [
+      {
+        op: "addObjectType",
+        objectType: {
+          name: "Shelf",
+          titleProperty: "name",
+          properties: [{ name: "name", type: "string", required: true }],
+        },
+      },
+    ],
+  });
+}

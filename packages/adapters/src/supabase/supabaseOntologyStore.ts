@@ -17,7 +17,11 @@ import { type Client, dataOf } from "./rows.ts";
  * one; the table's key (owner, version) refuses a second write of the same
  * version, so of two changes on one base, one is stored and one is stale.
  */
-export function createSupabaseOntologyStore(client: Client): OntologyStorePort {
+export function createSupabaseOntologyStore(
+  client: Client,
+  options: OntologyStoreOptions = {},
+): OntologyStorePort {
+  const readBase = options.readBase ?? readOntology;
   const changed = new BehaviorSubject<undefined>(undefined);
 
   return {
@@ -29,7 +33,7 @@ export function createSupabaseOntologyStore(client: Client): OntologyStorePort {
       );
     },
     apply: async (change: ChangeSet): Promise<Applied> => {
-      const applied = applyChangeSet(await readOntology(client), change);
+      const applied = applyChangeSet(await readBase(client), change);
 
       if (applied.kind !== "applied") {
         return applied;
@@ -52,6 +56,12 @@ export function createSupabaseOntologyStore(client: Client): OntologyStorePort {
       return applied;
     },
   };
+}
+
+/** How the store reads. Not part of the port: the composition root leaves it out. */
+export interface OntologyStoreOptions {
+  /** Reads the ontology a change set is applied to; a test passes one that reads an earlier version, as the loser of a race did. */
+  readBase?: (client: Client) => Promise<Ontology>;
 }
 
 /** The signed-in owner's latest ontology, parsed; an empty one at version 0 when they have none. */
