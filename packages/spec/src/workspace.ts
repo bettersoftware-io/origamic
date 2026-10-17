@@ -66,6 +66,7 @@ type WorkspaceFields = z.infer<typeof WorkspaceFields>;
 
 /** A workspace before the library has saved it. */
 export const WorkspaceDraft = WorkspaceFields.superRefine(checkPlacement);
+export type WorkspaceDraft = z.infer<typeof WorkspaceDraft>;
 
 /** A saved layout of apps in panels, itself a spec. */
 export const Workspace = WorkspaceFields.extend({
