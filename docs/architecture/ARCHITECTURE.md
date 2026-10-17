@@ -78,7 +78,7 @@ RxJS its ports return.
 |---|---|---|
 | `packages/spec` | nothing | `zod` |
 | `packages/core` | `spec` | `rxjs`, `zod` |
-| `packages/catalog` | `spec` | `react`, `zod`, and the libraries its implementation is built from. Its manifest entry: `zod` only |
+| `packages/catalog` | `spec` | `react`, `zod`, and the libraries its implementation is built from. Its manifest entry: `spec` and `zod` only |
 | `packages/runtime` | `spec`, `core`, `catalog` | `react`, `rxjs` |
 | `packages/adapters` | `spec`, `core` | `@supabase/supabase-js`, and nothing else names it; `rxjs`, for the ports it implements |
 | `apps/web` | `runtime`, `adapters`, `core`, `spec` | `react`, `react-dom`, `dockview`, and nothing else names dockview |

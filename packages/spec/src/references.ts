@@ -7,10 +7,10 @@ import { problemsOf } from "./refine.ts";
 import type { Element, View } from "./ui-spec.ts";
 
 /** What a prop accepts (ADR-0002): a `fixed` one a value, a `state` one a value or a `$state`, a `view` one a `$view` and nothing else. */
-type PropKind = "fixed" | "state" | "view";
+export type PropKind = "fixed" | "state" | "view";
 
 /** What the reference checks need of a catalog component: its props by kind, and the events it emits. The props' schemas are the catalog's to check. */
-interface CatalogComponent {
+export interface CatalogComponent {
   props: Readonly<Record<string, PropKind>>;
   /** Event → the fields its payload carries; null when the fields come from the element's props (a Form's fields). */
   events: Readonly<Record<string, readonly string[] | null>>;

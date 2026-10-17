@@ -24,32 +24,33 @@ Work that has started and is not finished.
   graph gives. Built: part 1a, the `e2e` add-on, whose five specs still test
   the price list (removed in part 10, modes replaced in part 9); part 1b, a
   local Supabase that `pnpm gate:full` and CI start, with the first migration.
-  Part 2, the spec's additions, is built and waits for the author's review
-  before it merges. Part 3, `core`'s five ports with their contracts and
-  simulators, `planWrite`, `valueSchema`, `checkCompatibility`, `createCore`
-  and `createCoreHarness`, is built on part 2 and waits likewise; it added
   Part 2, the spec's additions, part 3 (`core`'s five ports with their
-  contracts and simulators, `planWrite`, `valueSchema`,
-  `checkCompatibility`, `createCore` and `createCoreHarness`, which added
-  `Row` to `packages/spec`) and part 7 (the Supabase adapters of the
-  session, the ontology, the objects and the library, each passing its
-  port's contract against the local Supabase, with `createSupabaseAdapters`
-  and a second migration) are on main. The client of the LLM gateway, which
-  the plan put in part 7, comes with the gateway in part 8. Part 4, `core`'s
-  app session, builder and workspace presenter with `resolveView`,
-  `describeChangeSet` and `diffApps`, and `Core` at its full shape, is built
-  on part 3 and waits for review and merge; it let a workspace with no
-  panel have no layout (`null`) and added `createBookChange` to the book
-  tracker's fixtures in `packages/spec`. Some exports wait for their first
-  importer, since knip refuses an export nobody imports: `PropKind` and
-  `CatalogComponent`, private to `references.ts`, are exported by part 5;
+  contracts and simulators, `planWrite`, `valueSchema`, `checkCompatibility`,
+  `createCore` and `createCoreHarness`, which added `Row` to `packages/spec`),
+  part 4 (`core`'s app session, builder and workspace presenter with
+  `resolveView`, `describeChangeSet` and `diffApps`, and `Core` at its full
+  shape; it let a workspace with no panel have no layout (`null`) and added
+  `createBookChange` to the book tracker's fixtures in `packages/spec`) and
+  part 7 (the Supabase adapters of the session, the ontology, the objects and
+  the library, each passing its port's contract against the local Supabase,
+  with `createSupabaseAdapters` and a second migration) are on main. The
+  client of the LLM gateway, which the plan put in part 7, comes with the
+  gateway in part 8. Part 5, the catalog, is built on part 2 and waits for
+  review and merge: the five contracts, the manifest and `checkElement`, what
+  the model is held to, and the React implementations on shadcn's primitives.
+  It exports spec's `PropKind` and `CatalogComponent`. Two things wait on part
+  6: the catalog types a view's rows with a `Row` of its own
+  (`src/contract/props.ts`), which part 6 swaps for spec's `Row` (on main
+  since part 3); and `Envelope`, what each implementation takes, is exported
+  from `@origamic/catalog` by part 6, its first importer. Some exports wait
+  for their first importer, since knip refuses an export nobody imports:
   `Break` (in `core`'s `apps/compatibility.ts`), `BuilderTarget` (in
-  `builder/builder.ts`) and `LoadedApp` (in `createCore.ts`) by the part
+  `builder/builder.ts`) and `LoadedApp` (in `createCore.ts`) go by the part
   that first names them, likely part 9. Part 9's library is how a saved app
-  that no panel shows is reopened: the builder refuses a new app whose id
-  the library has, and says to open it from the library and revise it
-  there, which is also what is left when an accept saved the app and then
-  failed to add its panel.
+  that no panel shows is reopened: the builder refuses a new app whose id the
+  library has, and says to open it from the library and revise it there, which
+  is also what is left when an accept saved the app and then failed to add its
+  panel.
 
 ## Designed, not built
 
@@ -60,9 +61,10 @@ A plan or a design is on the main branch, and nothing of it is built.
   by [the first reading](architecture/reviews/2026-10-14-first-reading.md).
   Built: the schemas in `packages/spec`, reviewed by the author on
   2026-10-16, `core`'s ports, simulators and rules (part 3 of the slice),
-  and the dependency rule, held by `architecture.config.mts` over two
-  packages that are still empty of code (`catalog`, `runtime`). `core`'s
-  app session, builder and workspace (part 4) are built and wait to merge.
+  its app session, builder and workspace (part 4), the Supabase adapters
+  (part 7), and the dependency rule, held by `architecture.config.mts` over
+  one package that is still empty of code (`runtime`). The catalog (part 5)
+  is built and waits to merge.
 
 ## Planned, and held by something
 
@@ -92,6 +94,13 @@ The next step is known, and nobody has written a plan for it.
 
 A step or a decision an agent cannot take: a setting, an account, a choice
 between options. Each entry says who, and gives the command or the question.
+
+- **Whether to take the kit's new "Adding a check" section into
+  `AGENTS.md`.** The author decides. The kit update of the first slice's
+  part 5 added it to the template (a new check, or a newer copy of the kit or
+  an add-on, comes through the installer); `AGENTS.md` is the project's
+  file, so the installer did not change it. The text is in
+  `tools/arch/templates/AGENTS.md.txt`, under "Adding a check".
 
 - **Two Scorecard alerts to dismiss, or to accept as open.** "Code review"
   (alert 4) and "Branch protection" (alert 1) ask for a second person to
@@ -126,16 +135,33 @@ verified, a case that is not covered.
   questions for a review. Nor is "the gateway imports the catalog's
   manifest only": `mayImport` names a whole package, so once `apps/gateway`
   names `packages/catalog`, an import of its React side passes the gate.
-- **The role `explicit` carries none of React's lint rules.** When
-  `packages/catalog` first imports React, `pnpm check:react-policies` will
-  ask for it under `reactWithoutPolicies` with a reason, or for a change to
-  the kit that gives it a role's rules.
-- **Two importers in `pnpm-lock.yaml` are written by hand.**
-  `packages/catalog` and `runtime` have no dependency,
-  and pnpm 12 writes no importer for such a package, while its frozen
-  install (what CI runs) refuses a lockfile without one. Each has
-  `packages/<name>: {}`, added by hand on 2026-10-16; a plain `pnpm install`
-  keeps them, and they go when the package gets a dependency. A new package
+- **Part 8: strip the limits from the schema before it is sent.**
+  `generationSchema()` passes the walk ADR-0011 asks for (every object
+  closed, no recursion, `anyOf` and never `oneOf`), and still carries
+  keywords Anthropic's structured outputs do not hold the model to. Before
+  the gateway sends it, remove `minLength`, `minItems`, `minimum`,
+  `maximum` and `exclusiveMinimum`, and check whether the API accepts
+  `pattern`, `format`, `default` and `type` written as a list (remove any it
+  refuses), or pass the schema through the SDK's own helper for this.
+  `readGenerated` keeps checking all of them on the reply, so nothing is
+  lost by stripping them.
+- **Nothing checks that the app's React Compiler reaches the catalog.**
+  `packages/catalog` declares `reactCompiler: true`, so its lint bans
+  `useMemo`, `useCallback` and `memo`; but the build that compiles it is
+  `apps/web`'s, and the kit does not read a `vite.config.ts` for a package
+  of role `explicit`. Part 9, which makes `apps/web`, should make sure its
+  compiler includes the catalog's source, or the catalog runs uncompiled
+  with nothing failing.
+- **A create Form keeps what was typed after it is submitted.** Its inputs
+  hold their text until the page draws the form afresh; an edit Form is drawn
+  afresh each time its `values` change. Whether "Add" should clear the form,
+  and how the runtime says that it succeeded, is part 6's to decide.
+- **One importer in `pnpm-lock.yaml` is written by hand.**
+  `packages/runtime` has no dependency, and pnpm 12 writes no importer for
+  such a package, while its frozen install (what CI runs) refuses a
+  lockfile without one. It has `packages/runtime: {}`, added by hand on
+  2026-10-16; a plain `pnpm install` keeps it, and it goes when the package
+  gets a dependency. A new package
   with no dependency needs the same: run `pnpm install --frozen-lockfile`
   before pushing, since `gate:full` stays green without it.
 - **Where Docker is not running, `pnpm gate:full` fails on
