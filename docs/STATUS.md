@@ -28,16 +28,28 @@ Work that has started and is not finished.
   before it merges. Part 3, `core`'s five ports with their contracts and
   simulators, `planWrite`, `valueSchema`, `checkCompatibility`, `createCore`
   and `createCoreHarness`, is built on part 2 and waits likewise; it added
-  `Row` to `packages/spec`. Some exports wait for their first importer,
-  since knip refuses an export nobody imports: `PropKind` and
+  Part 2, the spec's additions, part 3 (`core`'s five ports with their
+  contracts and simulators, `planWrite`, `valueSchema`,
+  `checkCompatibility`, `createCore` and `createCoreHarness`, which added
+  `Row` to `packages/spec`) and part 7 (the Supabase adapters of the
+  session, the ontology, the objects and the library, each passing its
+  port's contract against the local Supabase, with `createSupabaseAdapters`
+  and a second migration) are on main. The client of the LLM gateway, which
+  the plan put in part 7, comes with the gateway in part 8. Part 4, `core`'s
+  app session, builder and workspace presenter with `resolveView`,
+  `describeChangeSet` and `diffApps`, and `Core` at its full shape, is built
+  on part 3 and waits for review and merge; it let a workspace with no
+  panel have no layout (`null`) and added `createBookChange` to the book
+  tracker's fixtures in `packages/spec`. Some exports wait for their first
+  importer, since knip refuses an export nobody imports: `PropKind` and
   `CatalogComponent`, private to `references.ts`, are exported by part 5;
-  `Break` (in `apps/compatibility.ts`) and `SavedApp` (in `createCore.ts`)
-  by the part that first names them, likely part 4. Part 7, the Supabase
-  adapters of the session, the ontology, the objects and the library, each
-  passing its port's contract against the local Supabase, with
-  `createSupabaseAdapters` and a second migration, is built on part 3 and
-  waits likewise. The client of the LLM gateway, which the plan put in part
-  7, comes with the gateway in part 8.
+  `Break` (in `core`'s `apps/compatibility.ts`), `BuilderTarget` (in
+  `builder/builder.ts`) and `LoadedApp` (in `createCore.ts`) by the part
+  that first names them, likely part 9. Part 9's library is how a saved app
+  that no panel shows is reopened: the builder refuses a new app whose id
+  the library has, and says to open it from the library and revise it
+  there, which is also what is left when an accept saved the app and then
+  failed to add its panel.
 
 ## Designed, not built
 
@@ -49,7 +61,8 @@ A plan or a design is on the main branch, and nothing of it is built.
   Built: the schemas in `packages/spec`, reviewed by the author on
   2026-10-16, `core`'s ports, simulators and rules (part 3 of the slice),
   and the dependency rule, held by `architecture.config.mts` over two
-  packages that are still empty of code (`catalog`, `runtime`).
+  packages that are still empty of code (`catalog`, `runtime`). `core`'s
+  app session, builder and workspace (part 4) are built and wait to merge.
 
 ## Planned, and held by something
 
@@ -182,6 +195,20 @@ verified, a case that is not covered.
   that its handlers pass to an action. A property only a component's props
   name (a table's column, a form's field) is not checked: that needs the
   catalog's knowledge of its props.
+- **A view's filter and sort do not see a property's `default`.** A row
+  shows the default for a property its object lacks (ADR-0005), but the
+  store compares and sorts that object as having no value, so `status eq
+  "want"` leaves out a book written before `status` existed. Nothing
+  affects the book tracker; it matters once a change set adds a property
+  with a default that a view filters on.
+- **The workspace presenter keeps what it opened across a sign-out.**
+  `core.workspace` (one workspace per owner, id `main`) and the builder
+  hold their state until `open()` or `target()` is called again; nothing
+  clears them when the user changes. One user in v1, so the shell calls
+  `open()` after a sign-in. It also saves each change from the copy it
+  holds, not from the library's latest, so a version saved elsewhere since
+  (another tab) is overwritten by the next panel added or closed or pin
+  moved here.
 - **In v1 the client enforces the schemas and the actions.** The browser
   writes to Supabase itself, and row-level security checks whose rows it
   writes, not what it writes. A client that bypasses `core` can put anything
