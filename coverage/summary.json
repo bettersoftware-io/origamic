@@ -1,8 +1,8 @@
 {
-  "commit": "2c3a7d82b463e282b9a5b73b360a44e5898071a3",
+  "commit": "1469ac291e8c34af8360a30433383dff35f38b50",
   "uncommittedChanges": false,
   "ref": "main",
-  "builtAt": "2026-10-17T09:20:04.106Z",
+  "builtAt": "2026-10-17T09:33:59.293Z",
   "thresholds": {
     "lines": 95,
     "statements": 95,
@@ -17,14 +17,26 @@
     "**/__testUtils__/**": "test code",
     "**/testing/**": "test harnesses that other packages' tests import",
     "packages/client-react/src/main.tsx": "the browser's entry point: it only calls startApp(), which is tested; importing it in a test would start the app",
+    "apps/gateway/src/main.ts": "the gateway's entry point: it only reads the environment and calls createGatewayServer(), which is tested; importing it in a test would start a server",
+    "apps/gateway/src/anthropicModel.ts": "the one call to the real model: no test in the gate calls a model (ADR-0011), and what it sends is anthropicSchemaOf(), which is tested",
     "packages/server/src/index.ts": "the server's entry point: it only reads the port and calls startServer(), which is tested; importing it in a test would start a server"
   },
   "packages": [
     {
+      "directory": "apps/gateway",
+      "verdict": "PASS",
+      "reason": "8 files at or above the bar",
+      "measuredFiles": 8,
+      "emptyFiles": 1,
+      "underTheBar": [],
+      "unexplainedIgnores": [],
+      "failedTests": []
+    },
+    {
       "directory": "packages/adapters",
       "verdict": "PASS",
-      "reason": "6 files at or above the bar",
-      "measuredFiles": 6,
+      "reason": "7 files at or above the bar",
+      "measuredFiles": 7,
       "emptyFiles": 1,
       "underTheBar": [],
       "unexplainedIgnores": [],
