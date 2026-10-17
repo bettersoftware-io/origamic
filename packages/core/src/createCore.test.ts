@@ -1,7 +1,7 @@
 import { firstValueFrom } from "rxjs";
 import { describe, expect, it } from "vitest";
 
-import { AppDraft, Ontology } from "@origamic/spec";
+import { App, AppDraft, Ontology } from "@origamic/spec";
 import {
   createBookApp,
   createBookOntology,
@@ -63,6 +63,28 @@ describe("createCore", () => {
 
     expect(await firstValueFrom(core.session.user())).toMatchObject({
       email: "reader@example.com",
+    });
+  });
+
+  it("handOver() closes the workspace, drops the builder's conversation, and counts the owners", async () => {
+    const { core } = createCoreHarness();
+
+    await core.workspace.open();
+    core.builder.target({
+      kind: "revise",
+      panel: "books",
+      app: App.parse({ ...createBookApp(), version: 1 }),
+    });
+
+    expect(core.owner()).toBe(0);
+
+    core.handOver();
+
+    expect(core.owner()).toBe(1);
+    expect(await firstValueFrom(core.workspace.workspace())).toBeNull();
+    expect(await firstValueFrom(core.builder.state())).toEqual({
+      kind: "idle",
+      target: { kind: "new" },
     });
   });
 });

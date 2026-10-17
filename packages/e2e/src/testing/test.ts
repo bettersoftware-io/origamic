@@ -1,27 +1,11 @@
 import { test as base, expect, type Page } from "@playwright/test";
 
-import {
-  createPriceListPage,
-  type PriceListPage,
-} from "../pages/PriceList.page.ts";
-import {
-  type ServerFeedPage,
-  watchServerFeed,
-} from "../pages/ServerFeed.page.ts";
-
-/** What the Playwright config sets for each mode, as far as these fixtures read it. */
-interface ModeOptions {
-  /**
-   * The host and port of the mode's server, as in `localhost:4000`. Whatever
-   * the server answers on that port (a socket, an HTTP API) is at this host.
-   * Empty in a mode that has none.
-   */
-  serverHost: string;
-}
+import { createShellPage, type ShellPage } from "../pages/Shell.page.ts";
+import { createSpecAppPage, type SpecAppPage } from "../pages/SpecApp.page.ts";
 
 interface PageObjects {
-  priceList: PriceListPage;
-  serverFeed: ServerFeedPage;
+  shell: ShellPage;
+  specApp: SpecAppPage;
   /** Fails a test whose page threw. Every test has it, asked for or not. */
   crashes: string[];
 }
@@ -30,21 +14,13 @@ interface PageObjects {
  * The `test` every spec imports. It hands out page objects, and that is how a
  * spec reaches the browser: a new page object is added here.
  */
-export const test = base.extend<PageObjects & ModeOptions>({
-  serverHost: ["", { option: true }],
-
-  priceList: async (
-    { page }: WithPage,
-    use: Use<PriceListPage>,
-  ): Promise<void> => {
-    await use(createPriceListPage(page));
+export const test = base.extend<PageObjects>({
+  shell: async ({ page }: WithPage, use: Use<ShellPage>): Promise<void> => {
+    await use(createShellPage(page));
   },
 
-  serverFeed: async (
-    { page, serverHost }: WithPage & ModeOptions,
-    use: Use<ServerFeedPage>,
-  ): Promise<void> => {
-    await use(watchServerFeed(page, serverHost));
+  specApp: async ({ page }: WithPage, use: Use<SpecAppPage>): Promise<void> => {
+    await use(createSpecAppPage(page));
   },
 
   crashes: [

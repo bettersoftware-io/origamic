@@ -9,8 +9,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
-    "@origamic/client-react": "workspace:*",
-    "@origamic/shared": "workspace:*",
+    "@origamic/web": "workspace:*",
     "@playwright/test": "1.63.0",
     "@types/node": "^26.2.0"
   }

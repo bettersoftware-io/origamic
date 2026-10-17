@@ -42,6 +42,12 @@
       "entry": ["src/main.ts"],
       "includeEntryExports": true
     },
+    // The web app: its entry is the page's script, src/main.tsx, which
+    // index.html loads (knip's Vite plugin reads the config, not the page).
+    "apps/web": {
+      "entry": ["src/main.tsx"],
+      "includeEntryExports": true
+    },
     "packages/*": {
       // A package's `exports` map (`./*` to `./src/*`) makes every file under
       // src/ an entry, and knip does not judge the exports of an entry unless

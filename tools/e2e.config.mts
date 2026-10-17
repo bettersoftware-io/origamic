@@ -1,4 +1,5 @@
-import { type E2eConfig, OUT_DIR, SERVER_URL } from "./e2e/lib/config.mts";
+import { type E2eConfig, OUT_DIR } from "./e2e/lib/config.mts";
+import { openE2eTestDatabase } from "./supabase/e2eDatabase.mts";
 
 // What `pnpm e2e` builds, starts and runs. This file is the project's: add a
 // mode, or change a command, here. The runner is in tools/e2e and belongs to
@@ -9,16 +10,16 @@ import { type E2eConfig, OUT_DIR, SERVER_URL } from "./e2e/lib/config.mts";
 // lives on. Every address is printed by the program that owns it and read
 // from its `ready` line, so no port is written down here.
 //
-// A mode's `env` may name the server two ways. `SERVER_URL` is the address
-// as the server printed it. `SERVER_HOST` (import it beside `SERVER_URL`) is
-// its host and port alone, for a server that answers a second protocol on
-// the same port: `VITE_API_URL: \`http://${SERVER_HOST}\``.
+// Both modes run Origamic's web app (apps/web) with the model scripted: no
+// gateway is started, so the app's LLM port is the simulator on its dev
+// script (apps/web/src/app/devScript.ts). The real model is asked outside the
+// gate (ADR-0011).
 const config: E2eConfig = {
   // The package that holds the specs. The specs of a mode are in src/<mode>/.
   tests: "packages/e2e",
 
   client: {
-    cwd: "packages/client-react",
+    cwd: "apps/web",
     // A production build, not the dev server: it is what ships, and a page
     // loads as a few files instead of one request for each module.
     build: ["node_modules/.bin/vite", "build", "--outDir", OUT_DIR, "--emptyOutDir"],
@@ -28,22 +29,20 @@ const config: E2eConfig = {
   },
 
   modes: {
-    // The client alone, on its in-browser simulator. The variable is set to
-    // nothing so that one left in the shell cannot turn this into the other mode.
+    // Every port a simulator (the plan's decision 8). Each variable is set to
+    // nothing so that one left in the shell cannot turn this into the other
+    // mode.
     sim: {
-      env: { VITE_SERVER_URL: "" },
+      env: { VITE_SUPABASE_URL: "", VITE_SUPABASE_ANON_KEY: "", VITE_GATEWAY_URL: "" },
     },
 
-    // The client against the real server, started the way it is in production.
-    fullstack: {
-      server: {
-        cwd: "packages/server",
-        command: ["node", "src/index.ts"],
-        // 0 asks the system for a free port; the server prints the one it got.
-        env: { PORT: "0" },
-        ready: /listening on (ws:\/\/\S+)/,
-      },
-      env: { VITE_SERVER_URL: SERVER_URL },
+    // The session, the ontology, the objects and the library on the local
+    // test Supabase (`origamic-test`), never the dev one: the mode holds the
+    // test database's lock for the run, as the adapters' tests do. It needs
+    // Docker, which the Playwright container has not, so it runs on the host.
+    stack: {
+      host: true,
+      env: openE2eTestDatabase,
     },
   },
 };

@@ -1,0 +1,125 @@
+@import "tailwindcss";
+@import "dockview/dist/styles/dockview.css";
+
+/* Tailwind reads the classes it generates from the source. The catalog's
+   components and the runtime's are drawn here, and their source is in the
+   workspace, outside this package: name it. */
+@source "../../../packages/catalog/src";
+@source "../../../packages/runtime/src";
+
+/* shadcn's neutral theme: the colours the catalog's primitives name
+   (ADR-0010: "no visual polish beyond shadcn defaults"). Every colour has a
+   name here, and a rule uses the name. */
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --added: oklch(0.527 0.154 150.069);
+  --removed: oklch(0.577 0.245 27.325);
+
+  font-family: system-ui, sans-serif;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .shell {
+    display: grid;
+    grid-template-columns: minmax(18rem, 24rem) 1fr;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+  }
+
+  .shell-header {
+    @apply flex items-center justify-between border-b px-4 py-2;
+
+    grid-column: 1 / -1;
+  }
+
+  .shell-side {
+    @apply flex flex-col gap-6 overflow-auto border-r p-4;
+  }
+
+  .shell-main {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  .dock {
+    position: absolute;
+    inset: 0;
+  }
+
+  .panel-content {
+    height: 100%;
+    overflow: auto;
+  }
+
+  .field {
+    @apply rounded-md border border-input bg-transparent px-3 py-2 text-sm;
+  }
+
+  .button {
+    @apply inline-flex items-center justify-center rounded-md border border-input px-3 py-1.5 text-sm font-medium hover:bg-accent disabled:opacity-50;
+  }
+
+  .button-primary {
+    @apply border-primary bg-primary text-primary-foreground hover:bg-primary/90;
+  }
+
+  .button-small {
+    @apply px-2 py-1 text-xs;
+  }
+
+  .diff {
+    @apply flex flex-col gap-0.5 font-mono text-xs;
+  }
+
+  .diff [data-change="added"] {
+    color: var(--added);
+  }
+
+  .diff [data-change="removed"] {
+    color: var(--removed);
+  }
+}

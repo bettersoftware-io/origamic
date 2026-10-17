@@ -21,45 +21,33 @@ Work that has started and is not finished.
 - **The first slice.** Planned in
   [plans/2026-10-16-first-slice.md](architecture/plans/2026-10-16-first-slice.md):
   twelve pull requests in Origamic and two in the plugin, in the order its
-  graph gives. Built: part 1a, the `e2e` add-on, whose five specs still test
-  the price list (removed in part 10, modes replaced in part 9); part 1b, a
-  local Supabase that `pnpm gate:full` and CI start, with the first migration.
-  Part 2, the spec's additions, part 3 (`core`'s five ports with their
+  graph gives. On main: part 1a (the `e2e` add-on), part 1b (a local Supabase
+  that `pnpm gate:full` and CI start; the tests run on a stack of their own),
+  part 2 (the spec's additions), part 3 (`core`'s five ports with their
   contracts and simulators, `planWrite`, `valueSchema`, `checkCompatibility`,
-  `createCore` and `createCoreHarness`, which added `Row` to `packages/spec`),
-  part 4 (`core`'s app session, builder and workspace presenter with
-  `resolveView`, `describeChangeSet` and `diffApps`, and `Core` at its full
-  shape; it let a workspace with no panel have no layout (`null`) and added
-  `createBookChange` to the book tracker's fixtures in `packages/spec`),
-  part 5 (the catalog: the five contracts, the manifest and `checkElement`,
-  what the model is held to, and the React implementations on shadcn's
-  primitives; it exports spec's `PropKind` and `CatalogComponent`) and part 7
-  (the Supabase adapters of the session, the ontology, the objects and the
-  library, each passing its port's contract against the local Supabase, with
-  `createSupabaseAdapters` and a second migration) are on main. The client of
-  the LLM gateway, which the plan put in part 7, comes with the gateway in
-  part 8. Part 6 (the runtime) is on main too: `AppView`, which draws an
-  app's UI spec over the catalog and routes its events to the app session,
-  and `createShellViewModel`, the shell's hooks over the core. It changed the
-  catalog: a view's rows are spec's `Row`; `Envelope` and `PARTS` are
-  exported; and each implementation is behind its contract (`checked`), so it
-  takes props as the runtime resolves them and draws its component only with
-  what the schemas accept. A form whose submit wrote through an action, with
-  nothing refused, is drawn afresh, which empties a create form. Part 8, the
-  gateway (`apps/gateway`) and the browser's client of it
-  (`createHttpLlmGateway` in `packages/adapters`), is built on parts 2, 3 and
-  5, and waits for review and merge; the real model has not been asked yet
-  (see "Waiting on a person"). Some exports wait for their first
-  importer, since knip refuses an export nobody imports: `Break` (in `core`'s
-  `apps/compatibility.ts`), `BuilderTarget` (in `builder/builder.ts`) and
-  `LoadedApp` (in `createCore.ts`) go by the part that first names them,
-  likely part 9; so do the runtime's `ShellViewModelProvider`,
-  `useShellViewModel` and the type `ShellViewModel`
-  (`packages/runtime/src/viewModel/`), which only its tests use today. Part
-  9's library is how a saved app that no panel shows is reopened: the builder
-  refuses a new app whose id the library has, and says to open it from the
-  library and revise it there, which is also what is left when an accept
-  saved the app and then failed to add its panel.
+  `createCore` and `createCoreHarness`), part 4 (`core`'s app session,
+  builder and workspace presenter, and `Core` at its full shape), part 5
+  (the catalog), part 6 (the runtime), part 7 (the Supabase adapters) and
+  part 8 (the gateway, `apps/gateway`, and the browser's client of it,
+  `createHttpLlmGateway`); the real model has not been asked yet (see
+  "Waiting on a person"). Part 9, the web app (`apps/web`: the composition
+  root, the shell on dockview, `pnpm dev` on the simulators and `pnpm
+  dev:stack` on the dev Supabase and the gateway), is on main too. It exported `Break` and `LoadedApp` from `core`, and
+  the runtime's `ShellViewModelProvider` and `useShellViewModel`; it gave
+  `core` an owner (`handOver()`, `owner()`), the workspace presenter
+  `close()` and an epoch each change carries, and the builder `close()`; and
+  it gave the shell's view model the intents, the app a panel pins, the
+  workspace's problem, a user who is `undefined` until the session answers,
+  and a library and workspace read for each signed-in owner. The end-to-end
+  tests run it in two modes, `sim` and `stack` (on the host, on the test
+  stack); the price list's specs and page objects are gone, and its packages
+  and `pnpm dev:fs` stay until part 10, which removes the price list.
+  `BuilderTarget` (in `core`'s `builder/builder.ts`) and the runtime's type
+  `ShellViewModel` are not exported: nothing imports them yet, and knip
+  refuses an export nobody imports. Left: part 10, which removes the price
+  list and rewrites `AGENTS.md`'s tables for Origamic's packages, and the
+  walk of the loop with the real model, which waits on the author (see
+  "Waiting on a person").
 
 ## Designed, not built
 
@@ -71,9 +59,9 @@ A plan or a design is on the main branch, and nothing of it is built.
   Built: the schemas in `packages/spec`, reviewed by the author on
   2026-10-16, `core`'s ports, simulators and rules (part 3 of the slice),
   its app session, builder and workspace (part 4), the catalog (part 5), the
-  Supabase adapters (part 7), and the dependency rule, held by
-  `architecture.config.mts` over every package. The gateway (part 8) is built
-  and waits to merge.
+  runtime (part 6), the Supabase adapters (part 7), the gateway (part 8), the
+  web app (part 9), and the dependency rule, held by `architecture.config.mts`
+  over every package.
 
 ## Planned, and held by something
 
@@ -84,6 +72,13 @@ It waits on a release, a decision or other work. Each entry says on what.
 
 The next step is known, and nobody has written a plan for it.
 
+- **Keep a store call to the owner it began for.** In the client, each
+  adapter call reads the access token once and sends it with every request
+  of the call, so a call that began as A ends as A; or `apply` and `save`
+  each become one database function, one request each. That narrows the
+  window of the known limit "A store call in flight when the owner
+  changes". The full fix is the server's check (ADR-0009): a write names
+  its owner and the server refuses it for any other.
 - **Nothing holds "a required property is added with a `default`".**
   `ontology.ts` states it, and neither `ChangeSet` nor `applyChangeSet`
   checks it, so a change set can add a required property that every stored
@@ -114,8 +109,9 @@ between options. Each entry says who, and gives the command or the question.
 - **Ask the real model once, by hand (the slice's part 8, step 6).** The
   author, with an Anthropic API key; no test in the gate calls a model
   (ADR-0011). Expected: progress lines, then one `proposal` whose app binds
-  `Book@1`, `createBook@1` and `updateBook@1`. Write the outcome in part 8's
-  pull request. With the dev Supabase running (`pnpm supabase:dev`), from the
+  `Book@1`, `createBook@1` and `updateBook@1`. Write the outcome into this
+  page (remove this entry, or say what failed), or into the pull request of
+  the next part. With the dev Supabase running (`pnpm supabase:dev`), from the
   project's folder:
 
   ```bash
@@ -127,6 +123,25 @@ between options. Each entry says who, and gives the command or the question.
   curl -N http://localhost:8787/generate -H "authorization: Bearer $TOKEN" -H 'content-type: application/json' \
     -d '{"format":1,"intent":"a simple tracker for the books I am reading, with title, author, status (want / reading / done) and a rating","ontology":{"format":1,"version":0,"objectTypes":[]}}'
   ```
+
+- **Walk the first slice's loop with the real model (the slice's part 9,
+  step 5).** The author, with an Anthropic API key, on a clean database; no
+  test in the gate calls a model (ADR-0011). `pnpm dev` and both end-to-end
+  modes walk the loop with the scripted model. From the project's folder:
+
+  ```bash
+  pnpm --filter @origamic/adapters supabase db reset --local   # empties the dev database: the author's data
+  ANTHROPIC_API_KEY=… pnpm dev:stack
+  # open http://localhost:5173, sign up, and walk FIRST-SLICE.md's seven steps:
+  # ask for the book tracker, accept, add two books, reload, then ask for
+  # "add a 'date finished' field" and accept
+  ```
+
+  Write what happened at each of the seven steps into this page (remove this
+  entry, or say what failed), or into the pull request of the next part.
+  `pnpm dev:stack` starts the dev stack (`origamic`, 54321) and never resets
+  it; the `db reset` above is the author's choice, and touches the dev
+  stack only, not the tests' (`origamic-test`).
 
 - **Two Scorecard alerts to dismiss, or to accept as open.** "Code review"
   (alert 4) and "Branch protection" (alert 1) ask for a second person to
@@ -152,22 +167,31 @@ verified, a case that is not covered.
   reference dangling, since a literal names nothing; it only loses part of
   the literal. Every record of a spec refuses the key instead.
 
-- **The dependency rule is held only where a package exists.** `apps/web`
-  gets its line in `architecture.config.mts` when it is made, in the first
-  slice. Until the price list is removed, the roles of
-  `core` and `runtime` also let them import its `domain` and `shared`. A
+- **The dependency rule is held by role, for whole packages and their
+  imports only.** A role can grant more than ARCHITECTURE.md's table: until
+  the price list is removed, the roles of `core` and `runtime` also let them
+  import its `domain` and `shared`. A
   `fetch` written by hand outside `adapters` is not caught, nor are rules 1,
   4 and 5 of [ARCHITECTURE.md](architecture/ARCHITECTURE.md), which are
   questions for a review. Nor is "the gateway imports the catalog's
   manifest only": `mayImport` names a whole package, so once `apps/gateway`
   names `packages/catalog`, an import of its React side passes the gate.
-- **Nothing checks that the app's React Compiler reaches the catalog.**
-  `packages/catalog` declares `reactCompiler: true`, so its lint bans
-  `useMemo`, `useCallback` and `memo`; but the build that compiles it is
-  `apps/web`'s, and the kit does not read a `vite.config.ts` for a package
-  of role `explicit`. Part 9, which makes `apps/web`, should make sure its
-  compiler includes the catalog's source, or the catalog runs uncompiled
-  with nothing failing.
+- **Dragging or resizing a panel is not saved** (the plan's decision 11).
+  The workspace saves a version when a panel is added or closed and when a
+  pin moves; where a person dragged a panel, and the sizes of a split, last
+  until the page is loaded again. Nor does the shell give dockview a saved
+  split's sizes or a tab group's active tab (`apps/web/src/ui/dockviewSteps.ts`):
+  v1 saves neither, so every part takes an equal share.
+- **A panel checks its app's compatibility when it opens it, not again.**
+  The app a panel pins is read with its compatibility once for each pinned
+  version; a change set accepted for another app does not make an open panel
+  check again until its pin moves or the page is loaded again.
+- **The web app is one script of 1.1 MB** (300 kB compressed), and its build
+  says so. Nothing splits it yet.
+- **AGENTS.md's end-to-end section is the add-on's.** Part 9 pointed it at
+  Origamic's modes and specs (the `agent-docs` gate requires a named file to
+  exist); the add-on's next update rewrites the section from its template,
+  and its references then need the same care again.
 - **A form drawn afresh after a submit loses the keyboard's focus.** The
   runtime remounts an element whose event wrote through an action and was
   not refused, which is how a create Form starts empty again; the focus
@@ -206,8 +230,10 @@ verified, a case that is not covered.
   `/tmp/origamic-<uid>/origamic-test-supabase.lock` until its tests end, so
   a second checkout's run waits, up to ten minutes for one holder, and then
   fails; a vitest left in watch mode holds it until it is stopped. Anything
-  else that starts the test stack (part 9's e2e `stack` mode) must open it
-  as `tools/supabase/testDatabase.mts` does, lock and port check included. A
+  else that starts the test stack must open it as
+  `tools/supabase/testDatabase.mts` does, lock and port check included: the
+  e2e `stack` mode does (`tools/supabase/e2eDatabase.mts`), and holds the
+  lock for its whole run, so a gate started meanwhile waits for it. A
   lock left by a process that is gone is taken over; but if its pid has been
   given to another live process meanwhile, the next run waits the ten
   minutes and fails naming the file: delete it. Both stacks' ports are
@@ -270,14 +296,23 @@ verified, a case that is not covered.
   "want"` leaves out a book written before `status` existed. Nothing
   affects the book tracker; it matters once a change set adds a property
   with a default that a view filters on.
-- **The workspace presenter keeps what it opened across a sign-out.**
-  `core.workspace` (one workspace per owner, id `main`) and the builder
-  hold their state until `open()` or `target()` is called again; nothing
-  clears them when the user changes. One user in v1, so the shell calls
-  `open()` after a sign-in. It also saves each change from the copy it
-  holds, not from the library's latest, so a version saved elsewhere since
-  (another tab) is overwritten by the next panel added or closed or pin
-  moved here.
+- **A store call in flight when the owner changes can write into the next
+  owner's rows.** At each change of owner the shell hands the core over
+  (`core.handOver()`): the workspace closes, the builder drops what it was
+  asked or proposed, an accept under way stops before its next store, and
+  a workspace change decided before is refused. Each check is made right
+  before a store is called. But a call already under way when the owner
+  changes in another tab (a sign-out there, or a token refresh that fails;
+  a sign-out in this tab waits for an accept) goes on, and the Supabase
+  client sends B's token on its next request as soon as it has switched,
+  before `onAuthStateChange` reaches `handOver`. So it can write A's next
+  ontology version (`apply` reads, then writes), A's app (`saveApp` reads
+  the latest version, then writes), or an object an app's action plans
+  (`execute`) into B's rows. The window is one read's round trip plus that
+  delay. The narrowing and the fix are under "Next, with no plan yet".
+- **The workspace presenter saves each change from the copy it holds,**
+  not from the library's latest, so a version saved elsewhere since (another
+  tab) is overwritten by the next panel added or closed or pin moved here.
 - **In v1 the client enforces the schemas and the actions.** The browser
   writes to Supabase itself, and row-level security checks whose rows it
   writes, not what it writes. A client that bypasses `core` can put anything

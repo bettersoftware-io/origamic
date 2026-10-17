@@ -1,7 +1,7 @@
 import type { ActionType, App, ObjectType, Ontology } from "@origamic/spec";
 
 /** One thing an app binds that the ontology no longer supports as the app uses it. */
-interface Break {
+export interface Break {
   /** The binding, as the app writes it: `Book@1`, `updateBook@1`. */
   binding: string;
   /** The property of that binding the app uses, when the break is about one. */

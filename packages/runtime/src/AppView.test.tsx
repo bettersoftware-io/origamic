@@ -12,10 +12,13 @@ import { mountAppView } from "./AppView.page.tsx";
 
 describe("the app view", () => {
   it("the saved spec renders a table with the two books", async () => {
-    const page = mountAppView(await openSavedBookApp());
+    const { app, session } = await openSavedBookApp();
 
-    await page.submitForm("addForm", { title: "Emma" });
-    await page.submitForm("addForm", { title: "Dune", status: "done" });
+    // Through the session, as the form's button does: the form's own typing is covered below.
+    await session.emit("addForm", "submit", { title: "Emma" });
+    await session.emit("addForm", "submit", { title: "Dune", status: "done" });
+
+    const page = mountAppView({ app, session });
 
     expect(await page.bookTitles()).toEqual(["Dune", "Emma"]);
   });

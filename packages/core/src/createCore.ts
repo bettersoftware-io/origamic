@@ -29,7 +29,7 @@ export interface CoreDeps {
 }
 
 /** An app as loaded from the library, with whether it still works on the current ontology (ADR-0005). */
-interface LoadedApp {
+export interface LoadedApp {
   app: App;
   compatibility: Compatibility;
 }
@@ -48,15 +48,26 @@ export interface Core {
   openApp(app: App): AppSession;
   /** The app at that version, with the compatibility check against the current ontology; `null` when the library has no such version. */
   loadApp(id: string, version: number): Promise<LoadedApp | null>;
+  /**
+   * Forgets the owner, when another signs in or the owner signs out: the
+   * workspace is closed and the builder's conversation dropped, an accept
+   * under way included. The stores answer whoever their session holds, so
+   * nothing decided for one owner may reach them after this.
+   */
+  handOver(): void;
+  /** Counts the hand-overs: a value read before an await is the owner's still when it is the same after it. */
+  owner(): number;
 }
 
 /** Builds the core over its ports. Only `createCoreHarness` calls it in a test; the composition root calls it in the app. */
 export function createCore(deps: CoreDeps): Core {
   const workspace = createWorkspacePresenter(deps.library);
+  const builder = createBuilder({ ...deps, workspace });
+  let owners = 0;
 
   return {
     session: deps.session,
-    builder: createBuilder({ ...deps, workspace }),
+    builder,
     workspace,
     library: deps.library,
     openApp: (app: App): AppSession => {
@@ -72,6 +83,14 @@ export function createCore(deps: CoreDeps): Core {
       const ontology = await firstValueFrom(deps.ontology.current());
 
       return { app, compatibility: checkCompatibility(app, ontology) };
+    },
+    handOver: (): void => {
+      owners += 1;
+      workspace.close();
+      builder.close();
+    },
+    owner: (): number => {
+      return owners;
     },
   };
 }

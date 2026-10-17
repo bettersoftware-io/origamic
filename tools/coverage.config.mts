@@ -7,6 +7,8 @@ const config: ProjectCoverageConfig = {
   exclude: {
     "packages/client-react/src/main.tsx":
       "the browser's entry point: it only calls startApp(), which is tested; importing it in a test would start the app",
+    "apps/web/src/main.tsx":
+      "the browser's entry point: it only reads the build's variables and calls startApp(), each of which is tested; importing it in a test would start the app",
     "apps/gateway/src/main.ts":
       "the gateway's entry point: it only reads the environment and calls createGatewayServer(), which is tested; importing it in a test would start a server",
     "apps/gateway/src/anthropicModel.ts":

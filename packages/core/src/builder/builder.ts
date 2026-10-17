@@ -75,6 +75,15 @@ export interface Builder {
   accept(): Promise<void>;
   /** Drops the proposal, or a generation or a failure, and stores nothing. Ignored while accepting. */
   reject(): void;
+  /**
+   * Forgets the owner's conversation, as when another signs in or the owner
+   * signs out: what is generated or proposed is dropped, an accept under
+   * way stores nothing more (it ends saying it was stopped, unless the
+   * builder has moved on since the close: what the next owner does there is
+   * theirs), and the builder is idle on a new app. Unlike `target`, it is not ignored while
+   * accepting.
+   */
+  close(): void;
 }
 
 /** What the builder works through. */
@@ -94,6 +103,10 @@ export function createBuilder(ports: BuilderPorts): Builder {
   let generation: Subscription | undefined;
   /** Counts the asks, so the ontology read for one that was dropped starts nothing. */
   let asked = 0;
+  /** Counts the closes: an accept that began before one stores nothing more. */
+  let owners = 0;
+  /** The state the last close showed: an accept it stopped says so only while the builder is still in it. */
+  let closedAs: BuilderState | undefined;
 
   function show(next: BuilderState): void {
     state.next(next);
@@ -199,9 +212,15 @@ export function createBuilder(ports: BuilderPorts): Builder {
       });
   }
 
+  /** Whether the owner the accept began for is still the builder's. Read right before each store, with no await between. */
+  function stillOwned(accepting: Accepting): boolean {
+    return accepting.owner === owners;
+  }
+
   async function store(
     target: BuilderTarget,
     proposal: Proposal,
+    accepting: Accepting,
   ): Promise<BuilderState> {
     const ontology = await firstValueFrom(ports.ontology.current());
     const checked = await check(ports, target, proposal, ontology);
@@ -211,6 +230,10 @@ export function createBuilder(ports: BuilderPorts): Builder {
     }
 
     let moved: string | undefined;
+
+    if (!stillOwned(accepting)) {
+      return stopped();
+    }
 
     if (proposal.changeSet !== null) {
       const applied = await ports.ontology.apply(proposal.changeSet);
@@ -225,6 +248,10 @@ export function createBuilder(ports: BuilderPorts): Builder {
       }
 
       moved = `The ontology moved to v${applied.ontology.version}`;
+    }
+
+    if (!stillOwned(accepting)) {
+      return stopped();
     }
 
     let app: App;
@@ -243,12 +270,12 @@ export function createBuilder(ports: BuilderPorts): Builder {
 
     try {
       if (target.kind === "revise") {
-        await ports.workspace.movePin(target.panel, app);
+        await ports.workspace.movePin(target.panel, app, accepting.asOf);
 
         return { kind: "idle", target: { ...target, app } };
       }
 
-      await ports.workspace.addPanel(app);
+      await ports.workspace.addPanel(app, accepting.asOf);
 
       return { kind: "idle", target };
     } catch (error: unknown) {
@@ -300,13 +327,27 @@ export function createBuilder(ports: BuilderPorts): Builder {
       }
 
       const { target, proposal } = current;
+      const accepting: Accepting = {
+        owner: owners,
+        asOf: ports.workspace.epoch(),
+      };
 
       show({ kind: "accepting", target });
 
+      let outcome: BuilderState;
+
       try {
-        show(await store(target, proposal));
+        outcome = await store(target, proposal, accepting);
       } catch (error: unknown) {
-        show(failed(target, messageOf(error), []));
+        outcome = failed(target, messageOf(error), []);
+      }
+
+      if (stillOwned(accepting)) {
+        show(outcome);
+      } else if (state.getValue() === closedAs) {
+        // Only over what the close left: the next owner's own conversation
+        // (an ask, a proposal, an accept) is theirs.
+        show(stopped());
       }
     },
     reject: (): void => {
@@ -316,7 +357,29 @@ export function createBuilder(ports: BuilderPorts): Builder {
         show({ kind: "idle", target });
       }
     },
+    close: (): void => {
+      owners += 1;
+      asked += 1;
+      generation?.unsubscribe();
+      generation = undefined;
+      closedAs = { kind: "idle", target: { kind: "new" } };
+      show(closedAs);
+    },
   };
+}
+
+/** What an accept began for one owner and closed under it saw: the owner, and the workspace's epoch, when it began. */
+interface Accepting {
+  owner: number;
+  asOf: number;
+}
+
+const STOPPED =
+  "The accept was stopped: who is signed in changed before it was saved, and nothing more was saved.";
+
+/** An accept that its owner's sign-out or another's sign-in stopped: the builder is on a new app, and says so. */
+function stopped(): Failed {
+  return failed({ kind: "new" }, STOPPED, []);
 }
 
 const STALE =

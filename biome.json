@@ -1,4 +1,10 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "extends": ["./tools/format-lint/biome.base.json"]
+  "extends": ["./tools/format-lint/biome.base.json"],
+  "overrides": [
+    {
+      "includes": ["apps/web/src/**/*.css"],
+      "css": { "parser": { "tailwindDirectives": true } }
+    }
+  ]
 }

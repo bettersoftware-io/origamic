@@ -109,10 +109,10 @@ kit; where a role would grant more than the table, the package has the role
 | `packages/runtime` | `bindings`, naming `catalog` |
 | `packages/adapters` | `explicit`, naming `core` and `spec`; only the app will name it |
 | `apps/gateway` | `server`, naming `catalog`; nothing imports it but the integration tests |
+| `apps/web` | `client`, naming `adapters`; it builds the catalog with the React Compiler |
 
-`react`, `zod`, `@supabase/supabase-js` and `@anthropic-ai/sdk` may be
-imported only where the table says. `apps/web` gets its line when it is
-made, in the first slice. That the gateway imports the catalog's manifest
+`react`, `react-dom`, `dockview`, `zod`, `@supabase/supabase-js` and
+`@anthropic-ai/sdk` may be imported only where the table says. That the gateway imports the catalog's manifest
 entry and not its React side is a question for a review: `mayImport` names
 a whole package. Rules 1, 4 and 5 cannot be decided from imports alone:
 they are questions for a review. Rule 3 is held for libraries (only `adapters`

@@ -6,8 +6,9 @@ The rules below are enforced by checks, not by convention.
 ## Commands
 
 ```bash
-pnpm dev          # the React client on the in-browser simulator (no server)
-pnpm dev:fs       # the server and the client together
+pnpm dev          # Origamic's web app, every port on its simulator and the model scripted
+pnpm dev:stack    # the web app on a local Supabase, with the gateway when ANTHROPIC_API_KEY is set
+pnpm dev:fs       # the starter's price list: its server and its client together (goes in the slice's last part)
 pnpm gate:fast    # architecture gates, React checks, lint, typecheck: seconds, for while you work
 pnpm gate:full    # gate:fast, then tests and the build: what CI runs
 pnpm gate:full:quiet   # the same commands and verdict, printing only the stage that failed
@@ -931,19 +932,21 @@ project:
 ## End-to-end tests
 
 `packages/e2e` drives the built client in a real browser, with Playwright. It
-runs in two modes, and a mode's specs are in the folder of its name:
+runs Origamic's web app (`apps/web`) in two modes, and a mode's specs are in
+the folder of its name. The model is scripted in both (the app's
+`src/app/devScript.ts`):
 
 | Mode | What runs | Specs |
 |---|---|---|
-| `sim` | The client alone, on its in-browser simulator | `packages/e2e/src/sim` |
-| `fullstack` | The client against the real server | `packages/e2e/src/fullstack` |
+| `sim` | The web app alone, every port on its simulator | `packages/e2e/src/sim` |
+| `stack` | The web app on a local Supabase (`host: true`: it needs Docker) | `packages/e2e/src/stack` |
 
 ```bash
 pnpm e2e                              # build, serve, run every spec in both modes, stop everything
 pnpm e2e --mode sim                   # one mode: only what it needs is built and started
 pnpm e2e --where host                 # the modes that say host: true; --where container, the others
-pnpm e2e src/sim/selection.spec.ts    # one spec
-pnpm e2e -g "marks the row"           # the tests whose title matches
+pnpm e2e src/sim/bookTracker.spec.ts  # one spec
+pnpm e2e -g "after a reload"          # the tests whose title matches
 pnpm e2e --mode sim --headed          # a visible browser; --ui opens Playwright's own runner
 pnpm e2e:install                      # once on a machine: downloads the browser
 ```
@@ -978,7 +981,7 @@ belongs in a test that controls time.
 
 ### How a spec is written
 
-Copy `packages/e2e/src/sim/selection.spec.ts`.
+Copy `packages/e2e/src/sim/bookTracker.spec.ts`.
 
 - A spec imports `test` and `expect` from `#/testing/test.ts`, takes page
   objects as fixtures, and asserts on what they return. It never holds the
@@ -987,21 +990,20 @@ Copy `packages/e2e/src/sim/selection.spec.ts`.
   the words of a user, and a function that builds it from Playwright's
   `Page`. Add it to the fixtures in `packages/e2e/src/testing/test.ts`.
 - A page object finds an element by a test id from
-  `packages/client-react/src/ui/testids.ts`, or by its role. Add the id to the
+  `apps/web/src/ui/testids.ts`, or by its role. Add the id to the
   client first. It reads what it reports in one step, so the page cannot
   change between two reads.
 - The package imports nothing else of the application. Use `import type` for
-  a type of the wire protocol.
+  a type of the application's (a spec's, a port's): a type is not an edge.
 
 ### Waiting
 
-- Wait for a state, never for time. `await expect.poll(priceList.rows)` asks
+- Wait for a state, never for time. `await expect.poll(() => shell.caption("books"))` asks
   again until it holds; `await expect(async () => { … }).toPass()` does the
   same for two things that must agree.
 - Read a value to compare with only after waiting for the state it depends on.
 - When the state depends on chance, work out the odds and write them beside
-  the timeout, as `packages/e2e/src/sim/priceList.spec.ts` does. Better: assert
-  something that does not depend on chance.
+  the timeout. Better: assert something that does not depend on chance.
 - Do not add a retry, and do not raise a timeout to make a spec pass. A spec
   that fails now and then waits on the wrong thing.
 
@@ -1019,8 +1021,9 @@ so does a mode with no spec.
   address. Write each of the client's variables around `SERVER_HOST`, its
   host and port (`http://${SERVER_HOST}/api`), and give a new page object
   the `serverHost` option to tell that server's responses from any other.
-- To prove a mode uses the server, compare the screen with what came over the
-  wire (`serverFeed`). The simulator makes prices that look the same.
+- To prove a mode uses the server, show what only the server can: a state
+  that outlives a reload, as `packages/e2e/src/stack/reopen.spec.ts` does. The
+  simulators answer the same way until the page is loaded again.
 - A mode that needs Docker (a local database) says `host: true`: the
   container's job cannot start it, and a job on the runner does. Read its
   keys with an `env` function that asks the running stack (its status
