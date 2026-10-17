@@ -548,10 +548,13 @@ with `any`, and hand-writing a component when a catalog entry would do.
 Don't.
 
 The tests named `*.supabase.test.ts` run against a local Supabase in Docker,
-which the gate starts and leaves running (ADR-0004). Where Docker is not
-running they are left out, and the run prints `SKIP supabase — Docker is not
-running here; …`. Report that as not run, as for a port. In CI they always
-run.
+the test stack, which the gate starts and leaves running (ADR-0004). Where
+Docker is not running they are left out, and the run prints `SKIP supabase —
+Docker is not running here; …`. Report that as not run, as for a port. In CI
+they always run. The test stack's data is throwaway: a run resets it when its
+migrations do not match the checkout's, and says so, and runs from several
+checkouts take turns on it. The dev stack, apart from it, is the author's:
+`pnpm supabase:dev` starts it, and nothing resets it.
 
 <!-- add-on: agent-workflow -->
 ## Agent workflow
