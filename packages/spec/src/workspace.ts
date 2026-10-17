@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { Format, Id, Version } from "./common.ts";
-import { type Path, report } from "./refine.ts";
+import { type Path, report, withoutProtoKey } from "./refine.ts";
 
 /** A panel hosts one app at one version. Accepting a revision of that app moves the pin (ADR-0005). */
 const Panel = z.strictObject({ app: Id, appVersion: Version });
@@ -34,7 +34,7 @@ type LayoutShape = PanelLeaf | Split | Tabs;
 /**
  * Where the panels are: Origamic's own format, which the shell translates
  * to dockview and back (ADR-0003). A tree, because no model writes a layout
- * in v1.
+ * in v1. A workspace with no panel has none (`null`).
  */
 const Layout: z.ZodType<LayoutShape> = z.lazy(() => {
   return z.discriminatedUnion("kind", [
@@ -58,14 +58,15 @@ const WorkspaceFields = z.strictObject({
   format: Format,
   id: Id,
   name: z.string().min(1),
-  panels: z.record(Id, Panel),
-  layout: Layout,
+  panels: withoutProtoKey(z.record(Id, Panel)),
+  layout: Layout.nullable(),
 });
 
 type WorkspaceFields = z.infer<typeof WorkspaceFields>;
 
 /** A workspace before the library has saved it. */
 export const WorkspaceDraft = WorkspaceFields.superRefine(checkPlacement);
+export type WorkspaceDraft = z.infer<typeof WorkspaceDraft>;
 
 /** A saved layout of apps in panels, itself a spec. */
 export const Workspace = WorkspaceFields.extend({
@@ -80,7 +81,9 @@ function checkPlacement(
 ): void {
   const placed = new Set<string>();
 
-  place(workspace.layout, ["layout"]);
+  if (workspace.layout !== null) {
+    place(workspace.layout, ["layout"]);
+  }
 
   for (const id of Object.keys(workspace.panels)) {
     if (!placed.has(id)) {
@@ -112,7 +115,7 @@ function checkPlacement(
     }
 
     for (const panel of panels) {
-      if (!(panel in workspace.panels)) {
+      if (!Object.hasOwn(workspace.panels, panel)) {
         report(ctx, path, `the layout places "${panel}", which is not a panel`);
       } else if (placed.has(panel)) {
         report(ctx, path, `the layout places "${panel}" twice`);

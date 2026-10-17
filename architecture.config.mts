@@ -28,17 +28,36 @@ const config: ArchitectureConfig = {
     // The schemas: imports nothing but zod, and every package may import it.
     "packages/spec": { role: "leaf", npm: ["zod"], noNodeBuiltins: true },
     // spec only. The role also grants the price list's domain and shared,
-    // until the slice removes them.
+    // until the slice removes them. Origamic's ports are here, not in a
+    // domain (ADR-0012). The function that builds the core is `createCore`,
+    // not the kit's `createApp`: "app" is a word the glossary keeps for a
+    // saved spec (the slice's plan, decision 5).
     "packages/core": {
       role: "core",
       npm: ["rxjs", "zod"],
       noNodeBuiltins: true,
+      ports: "src/ports",
+      compose: "createCore",
+      appHarness: "src/testing/coreHarness.ts",
     },
-    // spec only, and only the runtime imports it (the runtime names it).
+    // spec only, and only the runtime imports it (the runtime names it). Its
+    // React code is held to a client's rules, the compiler's included: it is
+    // compiled by the app's build, which runs the React Compiler. The
+    // libraries after react and zod are what its shadcn primitives are built
+    // from (ADR-0010).
     "packages/catalog": {
       role: "explicit",
       mayImport: ["packages/spec"],
-      npm: ["react", "zod"],
+      reactRules: "client",
+      reactCompiler: true,
+      npm: [
+        "react",
+        "zod",
+        "radix-ui",
+        "cn",
+        "class-variance-authority",
+        "lucide-react",
+      ],
       noNodeBuiltins: true,
     },
     // spec, core and catalog; never adapters. The bindings role is the
@@ -50,10 +69,11 @@ const config: ArchitectureConfig = {
       noNodeBuiltins: true,
     },
     // core and spec, and only the app imports it (the app will name it).
+    // RxJS because the ports it implements return observables, as core's do.
     "packages/adapters": {
       role: "explicit",
       mayImport: ["packages/core", "packages/spec"],
-      npm: ["@supabase/supabase-js"],
+      npm: ["@supabase/supabase-js", "rxjs"],
       noNodeBuiltins: true,
     },
     "packages/shared": { role: "shared", noNodeBuiltins: true },
@@ -79,6 +99,7 @@ const config: ArchitectureConfig = {
   // every port it implements.
   adapters: [
     "packages/domain/src/simulators",
+    "packages/core/src/simulators",
     "packages/client-core/src/adapters",
     "packages/adapters/src",
   ],
@@ -87,10 +108,6 @@ const config: ArchitectureConfig = {
   // can be replaced by changing those alone.
   // Remove a line when its package gets a test script.
   packagesWithoutTests: {
-    "packages/core":
-      "it holds no code yet: its first code comes with the first slice, and its tests with it",
-    "packages/catalog":
-      "it holds no code yet: its first code comes with the first slice, and its tests with it",
     "packages/runtime":
       "it holds no code yet: its first code comes with the first slice, and its tests with it",
   },
@@ -108,6 +125,13 @@ const config: ArchitectureConfig = {
     // language only where the table allows it.
     "@supabase/supabase-js": ["packages/adapters"],
     zod: ["packages/spec", "packages/core", "packages/catalog"],
+    // What the catalog's shadcn primitives are built from (ADR-0010): only
+    // its implementation layer may name them, so replacing shadcn changes
+    // that package alone.
+    "radix-ui": ["packages/catalog"],
+    cn: ["packages/catalog"],
+    "class-variance-authority": ["packages/catalog"],
+    "lucide-react": ["packages/catalog"],
   },
 };
 

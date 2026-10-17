@@ -68,9 +68,11 @@ describe("the tables of the first migration", () => {
     ];
 
     for (const ends of attempts) {
-      const { error } = await owners.a.client
-        .from("links")
-        .insert({ link_type: "writtenBy", ...ends });
+      const { error } = await owners.a.client.from("links").insert({
+        link_type: "writtenBy",
+        cardinality: "many-to-many",
+        ...ends,
+      });
 
       expect(error?.code).toBe("23503");
     }
@@ -158,6 +160,7 @@ type LinkRow = {
   id: string;
   owner: string;
   link_type: string;
+  cardinality: string;
   from_id: string;
   to_id: string;
   created_at: string;
@@ -168,6 +171,7 @@ type LinkInsert = {
   id?: string;
   owner?: string;
   link_type: string;
+  cardinality: string;
   from_id: string;
   to_id: string;
 };
@@ -279,9 +283,12 @@ async function writeOneOfEach(client: Client): Promise<string> {
   });
 
   await expectNoError(
-    client
-      .from("links")
-      .insert({ link_type: "writtenBy", from_id: book, to_id: author }),
+    client.from("links").insert({
+      link_type: "writtenBy",
+      cardinality: "many-to-many",
+      from_id: book,
+      to_id: author,
+    }),
   );
   await expectNoError(
     client

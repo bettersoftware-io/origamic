@@ -44,3 +44,44 @@ Replacing shadcn, or Tailwind, changes the implementation layer and no saved
 spec. The contract is also the input of the schema the model is held to
 (ADR-0006, ADR-0011), so the quality of its descriptions is the main lever on
 what the model builds, as ADR-0002 said.
+
+## Amended 2026-10-16: the five components of the first slice
+
+Built in part 5 of [the first slice's plan](../plans/2026-10-16-first-slice.md).
+Each prop has a kind (ADR-0002): `fixed` holds a value, `state` a value or a
+`$state`, `view` a `$view` and nothing else.
+
+| Component | Props (kind) | Events (payload) |
+|---|---|---|
+| `Stack` | `gap` (fixed: `"small" \| "medium" \| "large"`, optional) | none |
+| `Text` | `text` (state: string), `tone` (fixed: `"body" \| "heading" \| "muted"`, optional) | none |
+| `Select` | `label`, `options`, `emptyLabel` (fixed, the last optional), `value` (state: string or null) | `change` (`value`; null for the empty choice) |
+| `Table` | `rows` (view), `columns` (fixed: `{ property, label }[]`), `selected` (state: a row's id or null, optional) | `select` (`id`, `values`) |
+| `Form` | `fields` (fixed: `{ name, label, input, options? }[]`, `input` one of `text`, `longText`, `number`, `select`, `date`, `checkbox`), `submitLabel` (fixed), `mode` (fixed: `"create" \| "edit"`), `values` (state: a record or null, optional) | `submit` (one field per entry of `fields`; an empty field is left out) |
+
+How the two layers are laid out in `packages/catalog`:
+
+- **The contract** is `src/contract/`, read through the entry
+  `@origamic/catalog/manifest`: `contracts`, `catalog` (the manifest and
+  `checkElement`, which `validateApp` takes), and what the model is held to,
+  `generationSchema()` and `readGenerated`. It imports `spec` and `zod`, and a
+  test of the package holds it to that.
+- **The implementation** is `src/react/`, read through the entry
+  `@origamic/catalog`: `implementations`, one component per contract, each
+  taking an `Envelope` of its props, children, `emit`, test id and problems.
+  Its React code is held to a client's lint rules (`reactRules: "client"`),
+  since the app's build compiles it.
+- **Only a `Stack` shows children.** A contract says so (`showsChildren`);
+  the schema the model is held to offers `children` to that component alone,
+  and `checkElement` refuses children on any other.
+- **Each prop's note is its schema's `.describe()`**, so the schema the model
+  is held to carries it beside the prop.
+- **shadcn's primitives** are in `src/react/primitives/`: `button`, `input`,
+  `label`, `select`, `table` and `checkbox` of the `new-york-v4` style, one
+  component to a file as the project's lint asks. What no catalog entry
+  uses was not copied: the button's other variants and sizes and its
+  `asChild`, the table's footer and caption, the select's group, label,
+  separator, sizes and popper position. They bring `radix-ui`, `cn`,
+  `class-variance-authority` and `lucide-react`, which only this package
+  may import (`vendorOnlyIn`). A `longText` field is a plain `textarea`: no
+  primitive of shadcn's was copied for it.

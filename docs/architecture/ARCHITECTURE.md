@@ -46,7 +46,7 @@ Agents misuse these words unless pinned. Use them exactly.
 
 ```mermaid
 flowchart TB
-  spec["packages/spec<br/>Zod schemas and reference checks"]
+  spec["packages/spec<br/>Zod schemas, reference checks and applying a change set"]
   core["packages/core<br/>ports, ontology, actions, views, library, builder — RxJS at the boundaries"]
   catalog["packages/catalog<br/>contracts (Zod) and their React implementations"]
   runtime["packages/runtime<br/>spec interpreter: renders UI specs over the catalog, wires views, state and actions"]
@@ -78,9 +78,9 @@ RxJS its ports return.
 |---|---|---|
 | `packages/spec` | nothing | `zod` |
 | `packages/core` | `spec` | `rxjs`, `zod` |
-| `packages/catalog` | `spec` | `react`, `zod`, and the libraries its implementation is built from. Its manifest entry: `zod` only |
+| `packages/catalog` | `spec` | `react`, `zod`, and the libraries its implementation is built from. Its manifest entry: `spec` and `zod` only |
 | `packages/runtime` | `spec`, `core`, `catalog` | `react`, `rxjs` |
-| `packages/adapters` | `spec`, `core` | `@supabase/supabase-js`, and nothing else names it |
+| `packages/adapters` | `spec`, `core` | `@supabase/supabase-js`, and nothing else names it; `rxjs`, for the ports it implements |
 | `apps/web` | `runtime`, `adapters`, `core`, `spec` | `react`, `react-dom`, `dockview`, and nothing else names dockview |
 | `apps/gateway` | `spec`, the catalog's manifest | `@anthropic-ai/sdk`, and nothing else names it; Node's built-ins |
 
@@ -120,31 +120,48 @@ imports the Supabase client) and not for a `fetch` written by hand.
 Framework-agnostic. Ports as interfaces; streams as RxJS observables at the
 boundaries. Each port has a contract test, an in-memory simulator in `core`
 and a real adapter in `adapters`, and the contract runs against both
-(ADR-0012). The ports in v1, in outline:
+(ADR-0012). The ports in v1, in outline. Each is `<Name>Port`, in
+`packages/core/src/ports/<name>Port.ts`: that is how the kit's contract gate
+finds a port, and an adapter is held to the contract only when it names the
+port so.
 
 ```ts
-interface OntologyStore {
-  current(): Observable<Ontology>;
-  apply(change: ChangeSet): Promise<OntologyVersion>;
+interface OntologyStorePort {
+  current(): Observable<Ontology>;            // version 0 for an owner with none
+  apply(change: ChangeSet): Promise<Applied>; // applied, stale or invalid
 }
-interface ObjectStore {
-  view(query: ViewQuery): Observable<ObjectPage>;
-  execute(action: ActionInvocation): Promise<ActionResult>;
+interface ObjectStorePort {
+  view(query: ViewQuery): Observable<readonly StoredObject[]>; // again after each action
+  execute(invocation: ActionInvocation): Promise<ActionResult>; // planWrite decides
 }
-interface SpecLibrary {
-  apps(): Observable<LibraryEntry[]>;
-  loadApp(id: AppId, version?: SpecVersion): Promise<App>;
-  saveApp(draft: AppDraft): Promise<SpecVersion>;
-  loadWorkspace(id: WorkspaceId, version?: SpecVersion): Promise<Workspace>;
-  saveWorkspace(draft: WorkspaceDraft): Promise<SpecVersion>;
+interface SpecLibraryPort {
+  apps(): Observable<readonly LibraryEntry[]>;
+  workspaces(): Observable<readonly LibraryEntry[]>;
+  loadApp(id: string, version?: number): Promise<App | null>;
+  saveApp(draft: AppDraft): Promise<App>;
+  loadWorkspace(id: string, version?: number): Promise<Workspace | null>;
+  saveWorkspace(draft: WorkspaceDraft): Promise<Workspace>;
 }
-interface LlmGateway {
-  generate(req: GenerationRequest): Observable<GenerationEvent>;
+interface LlmGatewayPort {
+  generate(request: GenerationRequest): Observable<GenerationEvent>;
 }
-interface Session {
+interface SessionPort {
   user(): Observable<User | null>;
+  signIn(email: string, password: string): Promise<SignInResult>;
+  signUp(email: string, password: string): Promise<SignInResult>;
+  signOut(): Promise<void>;
 }
 ```
+
+Every `ObjectStorePort` checks an action with `planWrite`, a pure function of
+the ontology, the invocation and the object it acts on: the action at the
+version the app binds, each value against its property's type
+(`valueSchema`), the action's rules, and what is required. A store writes
+what it plans, and nothing when it is refused (ADR-0009). Loading an app
+against a newer ontology runs `checkCompatibility`, which answers
+`compatible` or a report of each break. `createCore` builds the core over
+the five ports and the catalog; a test asks `createCoreHarness`, which runs
+it on the simulators.
 
 Supabase and the Fly.io gateway are adapters behind these. Beyond the stores,
 `core` holds the builder: a state machine for the conversation with the
@@ -163,6 +180,13 @@ at. No per-type tables. The ontology itself is data in an `ontology_versions`
 table, one ontology per owner. Compilation to real tables is a later
 optimisation that the dependency rule keeps invisible to everything above
 `adapters`. Row-level security is on for every table (ADR-0004).
+
+A view is read through one database function, `view_objects`, run as the
+caller so that row-level security holds: it compares and orders values as
+`ObjectStorePort` says (numbers as numbers, text by its code units), which
+PostgREST's query builder cannot. A link carries its link type's
+cardinality as it was when the link was written, and unique indexes hold
+each link to it, so two links written at once cannot both pass.
 
 ## Generation model
 

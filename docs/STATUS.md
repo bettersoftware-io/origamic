@@ -24,8 +24,33 @@ Work that has started and is not finished.
   graph gives. Built: part 1a, the `e2e` add-on, whose five specs still test
   the price list (removed in part 10, modes replaced in part 9); part 1b, a
   local Supabase that `pnpm gate:full` and CI start, with the first migration.
-  Its part 2 changes the schemas, and waits for the author's review before it
-  merges.
+  Part 2, the spec's additions, part 3 (`core`'s five ports with their
+  contracts and simulators, `planWrite`, `valueSchema`, `checkCompatibility`,
+  `createCore` and `createCoreHarness`, which added `Row` to `packages/spec`),
+  part 4 (`core`'s app session, builder and workspace presenter with
+  `resolveView`, `describeChangeSet` and `diffApps`, and `Core` at its full
+  shape; it let a workspace with no panel have no layout (`null`) and added
+  `createBookChange` to the book tracker's fixtures in `packages/spec`) and
+  part 7 (the Supabase adapters of the session, the ontology, the objects and
+  the library, each passing its port's contract against the local Supabase,
+  with `createSupabaseAdapters` and a second migration) are on main. The
+  client of the LLM gateway, which the plan put in part 7, comes with the
+  gateway in part 8. Part 5, the catalog, is built on part 2 and waits for
+  review and merge: the five contracts, the manifest and `checkElement`, what
+  the model is held to, and the React implementations on shadcn's primitives.
+  It exports spec's `PropKind` and `CatalogComponent`. Two things wait on part
+  6: the catalog types a view's rows with a `Row` of its own
+  (`src/contract/props.ts`), which part 6 swaps for spec's `Row` (on main
+  since part 3); and `Envelope`, what each implementation takes, is exported
+  from `@origamic/catalog` by part 6, its first importer. Some exports wait
+  for their first importer, since knip refuses an export nobody imports:
+  `Break` (in `core`'s `apps/compatibility.ts`), `BuilderTarget` (in
+  `builder/builder.ts`) and `LoadedApp` (in `createCore.ts`) go by the part
+  that first names them, likely part 9. Part 9's library is how a saved app
+  that no panel shows is reopened: the builder refuses a new app whose id the
+  library has, and says to open it from the library and revise it there, which
+  is also what is left when an accept saved the app and then failed to add its
+  panel.
 
 ## Designed, not built
 
@@ -35,23 +60,32 @@ A plan or a design is on the main branch, and nothing of it is built.
   [docs/architecture/](architecture/ARCHITECTURE.md) describe it, as settled
   by [the first reading](architecture/reviews/2026-10-14-first-reading.md).
   Built: the schemas in `packages/spec`, reviewed by the author on
-  2026-10-16, and the dependency rule, held by `architecture.config.mts`
-  over four packages that are still empty of code (`core`, `catalog`,
-  `runtime`, `adapters`). `adapters` holds the first migration and its test.
+  2026-10-16, `core`'s ports, simulators and rules (part 3 of the slice),
+  its app session, builder and workspace (part 4), the Supabase adapters
+  (part 7), and the dependency rule, held by `architecture.config.mts` over
+  one package that is still empty of code (`runtime`). The catalog (part 5)
+  is built and waits to merge.
 
 ## Planned, and held by something
 
 It waits on a release, a decision or other work. Each entry says on what.
 
-- **`@supabase/supabase-js` at 2.118.0, as the slice's plan says.** It is
-  at 2.117.3: 2.118.0 was published on 2026-10-15 at 12:57 UTC, and
-  `minimumReleaseAge` refuses it until a day later. Move to it in any part
-  after that (part 7 is the first that uses the client outside a test).
 
 ## Next, with no plan yet
 
 The next step is known, and nobody has written a plan for it.
 
+- **Nothing holds "a required property is added with a `default`".**
+  `ontology.ts` states it, and neither `ChangeSet` nor `applyChangeSet`
+  checks it, so a change set can add a required property that every stored
+  object lacks.
+- **The kit counts a port's contract as production code.** Its
+  `no-test-scaffolding-in-production` rule does not treat `__contracts__`
+  as test code, though the coverage add-on does, so a contract may not
+  import `packages/spec/src/testing/bookTracker.ts`.
+  `packages/core/src/ports/__contracts__/fixtures.ts` keeps a small copy of
+  the book tracker for the contracts instead. The fix is the kit's, in
+  `bettersoftware-io/skills`; then the copy goes.
 - **Merges on main have two kinds of subject.** "Merge PR #5: …" and GitHub's
   own "Merge pull request #6 from …". `AGENTS.md` names no subject. Pick one,
   or leave GitHub's.
@@ -60,6 +94,13 @@ The next step is known, and nobody has written a plan for it.
 
 A step or a decision an agent cannot take: a setting, an account, a choice
 between options. Each entry says who, and gives the command or the question.
+
+- **Whether to take the kit's new "Adding a check" section into
+  `AGENTS.md`.** The author decides. The kit update of the first slice's
+  part 5 added it to the template (a new check, or a newer copy of the kit or
+  an add-on, comes through the installer); `AGENTS.md` is the project's
+  file, so the installer did not change it. The text is in
+  `tools/arch/templates/AGENTS.md.txt`, under "Adding a check".
 
 - **Two Scorecard alerts to dismiss, or to accept as open.** "Code review"
   (alert 4) and "Branch protection" (alert 1) ask for a second person to
@@ -79,6 +120,12 @@ between options. Each entry says who, and gives the command or the question.
 What is true of the project and will not be fixed soon: a thing that was not
 verified, a case that is not covered.
 
+- **A `__proto__` key inside a JSON literal is dropped without a word.** A
+  prop's value or a state key's `initial` is parsed by `z.json()`, which
+  leaves the key out, as `JSON.parse` input can carry it. It cannot leave a
+  reference dangling, since a literal names nothing; it only loses part of
+  the literal. Every record of a spec refuses the key instead.
+
 - **The dependency rule is held only where a package exists.** `apps/web`
   and `apps/gateway` get their lines in `architecture.config.mts` when they
   are made, in the first slice. Until the price list is removed, the roles of
@@ -88,26 +135,43 @@ verified, a case that is not covered.
   questions for a review. Nor is "the gateway imports the catalog's
   manifest only": `mayImport` names a whole package, so once `apps/gateway`
   names `packages/catalog`, an import of its React side passes the gate.
-- **The role `explicit` carries none of React's lint rules.** When
-  `packages/catalog` first imports React, `pnpm check:react-policies` will
-  ask for it under `reactWithoutPolicies` with a reason, or for a change to
-  the kit that gives it a role's rules.
-- **Three importers in `pnpm-lock.yaml` are written by hand.**
-  `packages/core`, `catalog` and `runtime` have no dependency,
-  and pnpm 12 writes no importer for such a package, while its frozen
-  install (what CI runs) refuses a lockfile without one. Each has
-  `packages/<name>: {}`, added by hand on 2026-10-16; a plain `pnpm install`
-  keeps them, and they go when the package gets a dependency. A new package
+- **Part 8: strip the limits from the schema before it is sent.**
+  `generationSchema()` passes the walk ADR-0011 asks for (every object
+  closed, no recursion, `anyOf` and never `oneOf`), and still carries
+  keywords Anthropic's structured outputs do not hold the model to. Before
+  the gateway sends it, remove `minLength`, `minItems`, `minimum`,
+  `maximum` and `exclusiveMinimum`, and check whether the API accepts
+  `pattern`, `format`, `default` and `type` written as a list (remove any it
+  refuses), or pass the schema through the SDK's own helper for this.
+  `readGenerated` keeps checking all of them on the reply, so nothing is
+  lost by stripping them.
+- **Nothing checks that the app's React Compiler reaches the catalog.**
+  `packages/catalog` declares `reactCompiler: true`, so its lint bans
+  `useMemo`, `useCallback` and `memo`; but the build that compiles it is
+  `apps/web`'s, and the kit does not read a `vite.config.ts` for a package
+  of role `explicit`. Part 9, which makes `apps/web`, should make sure its
+  compiler includes the catalog's source, or the catalog runs uncompiled
+  with nothing failing.
+- **A create Form keeps what was typed after it is submitted.** Its inputs
+  hold their text until the page draws the form afresh; an edit Form is drawn
+  afresh each time its `values` change. Whether "Add" should clear the form,
+  and how the runtime says that it succeeded, is part 6's to decide.
+- **One importer in `pnpm-lock.yaml` is written by hand.**
+  `packages/runtime` has no dependency, and pnpm 12 writes no importer for
+  such a package, while its frozen install (what CI runs) refuses a
+  lockfile without one. It has `packages/runtime: {}`, added by hand on
+  2026-10-16; a plain `pnpm install` keeps it, and it goes when the package
+  gets a dependency. A new package
   with no dependency needs the same: run `pnpm install --frozen-lockfile`
   before pushing, since `gate:full` stays green without it.
-- **Where Docker is not running, `packages/adapters` is measured without its
-  tests.** Its `*.supabase.test.ts` files are left out there (with a `SKIP`
-  line), and the coverage gate knows only port tests as a reason not to judge
-  a package. Today the package has no code to cover, so nothing fails; once
-  part 7 puts adapters in it, a run without Docker fails the coverage bar for
-  a reason that is not in the code. CI always has Docker. The fix is the
-  coverage add-on's, in `bettersoftware-io/skills`: a package whose tests
-  were left out is not judged.
+- **Where Docker is not running, `pnpm gate:full` fails on
+  `packages/adapters`'s coverage.** Its `*.supabase.test.ts` files are left
+  out there (with a `SKIP` line), and the coverage gate knows only port tests
+  as a reason not to judge a package, so it measures the adapters without
+  the tests that reach them and fails the bar for a reason that is not in
+  the code. CI always has Docker. The fix is the coverage add-on's, in
+  `bettersoftware-io/skills`: a package whose tests were left out is not
+  judged.
 - **Every checkout on a machine shares one test stack, one run at a time.**
   The adapters' tests run against the local Supabase `origamic-test` (the API
   on 54421, Postgres on 54422), apart from the dev stack `origamic` that
@@ -126,6 +190,58 @@ verified, a case that is not covered.
   editing one, with `pnpm --filter @origamic/adapters supabase db reset
   --local --workdir .supabase-test`; the dev stack's `db reset --local`
   drops its data.
+- **The Supabase object store reads a view in pages, each a query of its
+  own.** The API cuts every answer at `max_rows` (1000, in
+  `packages/adapters/supabase/config.toml`), so a view of more objects is
+  read 1000 at a time. A write between two pages can move an object across
+  the boundary, so it is read twice or not at all in that one emission; the
+  next action re-reads. Raising `max_rows` past the page size changes
+  nothing; lowering it below 1000 needs the page size lowered with it.
+- **The Supabase object store's text order and `contains` can differ from
+  the simulator's outside ASCII.** Postgres's `COLLATE "C"` orders by UTF-8
+  bytes, which is code point order: a supplementary character (U+10000 and
+  above) sorts after U+E000 to U+FFFF there, and before them in the
+  simulator's UTF-16 code units. `contains` is ILIKE, which lowercases by the
+  database's ctype (en_US.UTF-8), where the simulator uses JavaScript's
+  `toLowerCase`; the two can differ on other scripts' case folding.
+- **Two updates of one object at once: the last wins.** The Supabase object
+  store's update writes every value `planWrite` planned from the object
+  as it was read, so of two updates of one object at once the last wins
+  whole. One builder does not meet it; it moves with the checks to the
+  server (ADR-0009).
+- **A link keeps the cardinality its type had when it was written.** The
+  unique indexes that hold a link to its cardinality read it from the link's
+  own row, since the database does not read the ontology. A change set that
+  changed a link type's cardinality would leave the links written before it
+  held to the old one; no change set operation does so today.
+- **`packages/adapters` is typechecked with Node's types over all of
+  `src`.** Its code runs in the browser, and only its tests need Node (they
+  read the stack's keys from `process.env`). The typed lint reads each file
+  with the `tsconfig.json` nearest to it, so a second tsconfig for the tests
+  would leave them read by none. `noNodeBuiltins` holds the imports; a Node
+  global (`process`, `Buffer`) in the adapters' own code is caught by no
+  check, only by review.
+- **A port is `<Name>Port`, in `<name>Port.ts`.** The kit's contract gate
+  finds a port, and an adapter that implements it, only by that name.
+- **The compatibility check reads only what `core` can read.** It finds a
+  deprecated or missing property that an app's views filter or sort on, or
+  that its handlers pass to an action. A property only a component's props
+  name (a table's column, a form's field) is not checked: that needs the
+  catalog's knowledge of its props.
+- **A view's filter and sort do not see a property's `default`.** A row
+  shows the default for a property its object lacks (ADR-0005), but the
+  store compares and sorts that object as having no value, so `status eq
+  "want"` leaves out a book written before `status` existed. Nothing
+  affects the book tracker; it matters once a change set adds a property
+  with a default that a view filters on.
+- **The workspace presenter keeps what it opened across a sign-out.**
+  `core.workspace` (one workspace per owner, id `main`) and the builder
+  hold their state until `open()` or `target()` is called again; nothing
+  clears them when the user changes. One user in v1, so the shell calls
+  `open()` after a sign-in. It also saves each change from the copy it
+  holds, not from the library's latest, so a version saved elsewhere since
+  (another tab) is overwritten by the next panel added or closed or pin
+  moved here.
 - **In v1 the client enforces the schemas and the actions.** The browser
   writes to Supabase itself, and row-level security checks whose rows it
   writes, not what it writes. A client that bypasses `core` can put anything
