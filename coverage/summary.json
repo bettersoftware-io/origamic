@@ -1,8 +1,8 @@
 {
-  "commit": "996f1f5bc60118e652e6b4679782387f138a7757",
+  "commit": "f76a3d6b96256cb315e2ff9f91bf7d1dd38aed62",
   "uncommittedChanges": false,
   "ref": "main",
-  "builtAt": "2026-10-17T09:04:11.992Z",
+  "builtAt": "2026-10-17T09:12:23.827Z",
   "thresholds": {
     "lines": 95,
     "statements": 95,
@@ -33,8 +33,8 @@
     {
       "directory": "packages/catalog",
       "verdict": "PASS",
-      "reason": "33 files at or above the bar",
-      "measuredFiles": 33,
+      "reason": "36 files at or above the bar",
+      "measuredFiles": 36,
       "emptyFiles": 2,
       "underTheBar": [],
       "unexplainedIgnores": [],
@@ -112,9 +112,9 @@
     },
     {
       "directory": "packages/runtime",
-      "verdict": "SKIP",
-      "reason": "1 file, none with code to cover (types and re-exports only)",
-      "measuredFiles": 0,
+      "verdict": "PASS",
+      "reason": "9 files at or above the bar",
+      "measuredFiles": 9,
       "emptyFiles": 1,
       "underTheBar": [],
       "unexplainedIgnores": [],
