@@ -1,10 +1,9 @@
 import type { KeyboardEvent, ReactElement } from "react";
 
-import type { JsonValue } from "@origamic/spec";
+import type { JsonValue, Row } from "@origamic/spec";
 
 import type { Table as TableContract } from "#/contract/components/table.ts";
 import type { PropsOf } from "#/contract/defineComponent.ts";
-import type { Row } from "#/contract/props.ts";
 
 import type { Envelope } from "./envelope.ts";
 import { Table as TableRoot } from "./primitives/table/Table.tsx";

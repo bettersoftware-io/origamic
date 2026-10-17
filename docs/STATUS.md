@@ -30,27 +30,33 @@ Work that has started and is not finished.
   part 4 (`core`'s app session, builder and workspace presenter with
   `resolveView`, `describeChangeSet` and `diffApps`, and `Core` at its full
   shape; it let a workspace with no panel have no layout (`null`) and added
-  `createBookChange` to the book tracker's fixtures in `packages/spec`) and
-  part 7 (the Supabase adapters of the session, the ontology, the objects and
-  the library, each passing its port's contract against the local Supabase,
-  with `createSupabaseAdapters` and a second migration) are on main. The
-  client of the LLM gateway, which the plan put in part 7, comes with the
-  gateway in part 8. Part 5, the catalog, is built on part 2 and waits for
-  review and merge: the five contracts, the manifest and `checkElement`, what
-  the model is held to, and the React implementations on shadcn's primitives.
-  It exports spec's `PropKind` and `CatalogComponent`. Two things wait on part
-  6: the catalog types a view's rows with a `Row` of its own
-  (`src/contract/props.ts`), which part 6 swaps for spec's `Row` (on main
-  since part 3); and `Envelope`, what each implementation takes, is exported
-  from `@origamic/catalog` by part 6, its first importer. Some exports wait
-  for their first importer, since knip refuses an export nobody imports:
-  `Break` (in `core`'s `apps/compatibility.ts`), `BuilderTarget` (in
-  `builder/builder.ts`) and `LoadedApp` (in `createCore.ts`) go by the part
-  that first names them, likely part 9. Part 9's library is how a saved app
-  that no panel shows is reopened: the builder refuses a new app whose id the
-  library has, and says to open it from the library and revise it there, which
-  is also what is left when an accept saved the app and then failed to add its
-  panel.
+  `createBookChange` to the book tracker's fixtures in `packages/spec`),
+  part 5 (the catalog: the five contracts, the manifest and `checkElement`,
+  what the model is held to, and the React implementations on shadcn's
+  primitives; it exports spec's `PropKind` and `CatalogComponent`) and part 7
+  (the Supabase adapters of the session, the ontology, the objects and the
+  library, each passing its port's contract against the local Supabase, with
+  `createSupabaseAdapters` and a second migration) are on main. The client of
+  the LLM gateway, which the plan put in part 7, comes with the gateway in
+  part 8. Part 6, the runtime, is built on parts 4 and 5 and waits for review
+  and merge: `AppView`, which draws an app's UI spec over the catalog and
+  routes its events to the app session, and `createShellViewModel`, the
+  shell's hooks over the core. It changed the catalog: a view's rows are
+  spec's `Row`; `Envelope` and `PARTS` are exported; and each implementation
+  is behind its contract (`checked`), so it takes props as the runtime
+  resolves them and draws its component only with what the schemas accept. A
+  form whose submit wrote through an action, with nothing refused, is drawn
+  afresh, which empties a create form. Some exports wait for their first
+  importer, since knip refuses an export nobody imports: `Break` (in `core`'s
+  `apps/compatibility.ts`), `BuilderTarget` (in `builder/builder.ts`) and
+  `LoadedApp` (in `createCore.ts`) go by the part that first names them,
+  likely part 9; so do the runtime's `ShellViewModelProvider`,
+  `useShellViewModel` and the type `ShellViewModel`
+  (`packages/runtime/src/viewModel/`), which only its tests use today. Part
+  9's library is how a saved app that no panel shows is reopened: the builder
+  refuses a new app whose id the library has, and says to open it from the
+  library and revise it there, which is also what is left when an accept
+  saved the app and then failed to add its panel.
 
 ## Designed, not built
 
@@ -61,10 +67,10 @@ A plan or a design is on the main branch, and nothing of it is built.
   by [the first reading](architecture/reviews/2026-10-14-first-reading.md).
   Built: the schemas in `packages/spec`, reviewed by the author on
   2026-10-16, `core`'s ports, simulators and rules (part 3 of the slice),
-  its app session, builder and workspace (part 4), the Supabase adapters
-  (part 7), and the dependency rule, held by `architecture.config.mts` over
-  one package that is still empty of code (`runtime`). The catalog (part 5)
-  is built and waits to merge.
+  its app session, builder and workspace (part 4), the catalog (part 5), the
+  Supabase adapters (part 7), and the dependency rule, held by
+  `architecture.config.mts` over every package. The runtime (part 6) is built
+  and waits to merge.
 
 ## Planned, and held by something
 
@@ -152,17 +158,28 @@ verified, a case that is not covered.
   of role `explicit`. Part 9, which makes `apps/web`, should make sure its
   compiler includes the catalog's source, or the catalog runs uncompiled
   with nothing failing.
-- **A create Form keeps what was typed after it is submitted.** Its inputs
-  hold their text until the page draws the form afresh; an edit Form is drawn
-  afresh each time its `values` change. Whether "Add" should clear the form,
-  and how the runtime says that it succeeded, is part 6's to decide.
-- **One importer in `pnpm-lock.yaml` is written by hand.**
-  `packages/runtime` has no dependency, and pnpm 12 writes no importer for
-  such a package, while its frozen install (what CI runs) refuses a
-  lockfile without one. It has `packages/runtime: {}`, added by hand on
-  2026-10-16; a plain `pnpm install` keeps it, and it goes when the package
-  gets a dependency. A new package
-  with no dependency needs the same: run `pnpm install --frozen-lockfile`
+- **A form drawn afresh after a submit loses the keyboard's focus.** The
+  runtime remounts an element whose event wrote through an action and was
+  not refused, which is how a create Form starts empty again; the focus
+  that was on its button goes back to the page. Nothing puts it back on the
+  form's first field.
+- **Every prop is checked against its schema on every render.** Each
+  catalog component is behind its contract (`checked`), which parses each
+  prop it is handed, a Table's rows included, each time it draws: linear in
+  rows times values. That is nothing at the slice's sizes; a view of
+  thousands of rows would want the rows checked once, where they arrive.
+- **A stream that fails ends the app's view until it is drawn again.**
+  `AppView` shows why in the panel's place, and does not retry; the view
+  comes back when it is mounted afresh or given another session or app
+  version.
+- **An app shows "Loading…" until each view its elements read has rows.**
+  `AppView` draws nothing of the app before every one of them has emitted
+  once, so a view whose store never answers keeps the whole panel waiting.
+  A view that fails is shown in the panel's place, with why.
+- **pnpm 12 writes no importer for a package with no dependency.** Its
+  frozen install (what CI runs) then refuses the lockfile. No package is in
+  that state today; a new one with no dependency needs `packages/<name>: {}`
+  added to `pnpm-lock.yaml` by hand. Run `pnpm install --frozen-lockfile`
   before pushing, since `gate:full` stays green without it.
 - **Where Docker is not running, `pnpm gate:full` fails on
   `packages/adapters`'s coverage.** Its `*.supabase.test.ts` files are left
