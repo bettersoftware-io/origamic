@@ -16,22 +16,23 @@
   </head>
   <body>
     <h1>Coverage report</h1>
-    <p class="build">Built from commit 1469ac2 (main) on 2026-10-17 09:33 UTC.</p>
+    <p class="build">Built from commit 1171cc4 (main) on 2026-10-17 12:53 UTC.</p>
     <p>A published report shows the commit that built it, not the newest one. Compare the commit above with the code you are reading before you trust a number here.</p>
     <p>The bar, for every file: lines ≥ 95%, statements ≥ 95%, functions ≥ 95%, branches ≥ 85%.</p>
     <table>
       <tr><th>Package</th><th>Verdict</th><th>Why</th><th class="number">lines</th><th class="number">statements</th><th class="number">functions</th><th class="number">branches</th></tr>
       <tr><td><a href="./apps/gateway/index.html">apps/gateway</a></td><td class="pass">PASS</td><td>8 files at or above the bar</td><td class="number">99.35%</td><td class="number">99.36%</td><td class="number">100%</td><td class="number">95.37%</td></tr>
+      <tr><td><a href="./apps/web/index.html">apps/web</a></td><td class="pass">PASS</td><td>14 files at or above the bar</td><td class="number">98.82%</td><td class="number">98.82%</td><td class="number">100%</td><td class="number">95.97%</td></tr>
       <tr><td><a href="./packages/adapters/index.html">packages/adapters</a></td><td class="pass">PASS</td><td>7 files at or above the bar</td><td class="number">99.04%</td><td class="number">99.05%</td><td class="number">100%</td><td class="number">95.19%</td></tr>
       <tr><td><a href="./packages/catalog/index.html">packages/catalog</a></td><td class="pass">PASS</td><td>36 files at or above the bar</td><td class="number">99.58%</td><td class="number">99.58%</td><td class="number">100%</td><td class="number">97.97%</td></tr>
       <tr><td><a href="./packages/client-core/index.html">packages/client-core</a></td><td class="pass">PASS</td><td>5 files at or above the bar</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td></tr>
       <tr><td><a href="./packages/client-react/index.html">packages/client-react</a></td><td class="pass">PASS</td><td>5 files at or above the bar</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td></tr>
-      <tr><td><a href="./packages/core/index.html">packages/core</a></td><td class="pass">PASS</td><td>15 files at or above the bar</td><td class="number">99.1%</td><td class="number">99.1%</td><td class="number">100%</td><td class="number">96.15%</td></tr>
+      <tr><td><a href="./packages/core/index.html">packages/core</a></td><td class="pass">PASS</td><td>15 files at or above the bar</td><td class="number">99.16%</td><td class="number">99.16%</td><td class="number">100%</td><td class="number">96.27%</td></tr>
       <tr><td><a href="./packages/domain/index.html">packages/domain</a></td><td class="pass">PASS</td><td>2 files at or above the bar</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td></tr>
       <tr><td>packages/e2e</td><td class="skip">SKIP</td><td>its tests are Playwright's (playwright.config.ts, and no test script): they drive the built application in a browser, in another process, so there is nothing here for this tool to run or to measure</td><td class="number">–</td><td class="number">–</td><td class="number">–</td><td class="number">–</td></tr>
       <tr><td>packages/integration</td><td class="skip">SKIP</td><td>no file to measure: none matches `include`, or every one is excluded</td><td class="number">–</td><td class="number">–</td><td class="number">–</td><td class="number">–</td></tr>
       <tr><td><a href="./packages/react-bindings/index.html">packages/react-bindings</a></td><td class="pass">PASS</td><td>5 files at or above the bar</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td></tr>
-      <tr><td><a href="./packages/runtime/index.html">packages/runtime</a></td><td class="pass">PASS</td><td>9 files at or above the bar</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td><td class="number">93.42%</td></tr>
+      <tr><td><a href="./packages/runtime/index.html">packages/runtime</a></td><td class="pass">PASS</td><td>11 files at or above the bar</td><td class="number">99.49%</td><td class="number">99.49%</td><td class="number">98.79%</td><td class="number">93.04%</td></tr>
       <tr><td><a href="./packages/server/index.html">packages/server</a></td><td class="pass">PASS</td><td>1 file at or above the bar</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td><td class="number">–</td></tr>
       <tr><td><a href="./packages/shared/index.html">packages/shared</a></td><td class="pass">PASS</td><td>1 file at or above the bar</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td></tr>
       <tr><td><a href="./packages/spec/index.html">packages/spec</a></td><td class="pass">PASS</td><td>10 files at or above the bar</td><td class="number">99.71%</td><td class="number">99.71%</td><td class="number">100%</td><td class="number">98.02%</td></tr>
@@ -47,10 +48,11 @@
       <li><code>**/__testUtils__/**</code> — test code</li>
       <li><code>**/testing/**</code> — test harnesses that other packages' tests import</li>
       <li><code>packages/client-react/src/main.tsx</code> — the browser's entry point: it only calls startApp(), which is tested; importing it in a test would start the app</li>
+      <li><code>apps/web/src/main.tsx</code> — the browser's entry point: it only reads the build's variables and calls startApp(), each of which is tested; importing it in a test would start the app</li>
       <li><code>apps/gateway/src/main.ts</code> — the gateway's entry point: it only reads the environment and calls createGatewayServer(), which is tested; importing it in a test would start a server</li>
       <li><code>apps/gateway/src/anthropicModel.ts</code> — the one call to the real model: no test in the gate calls a model (ADR-0011), and what it sends is anthropicSchemaOf(), which is tested</li>
       <li><code>packages/server/src/index.ts</code> — the server's entry point: it only reads the port and calls startServer(), which is tested; importing it in a test would start a server</li>
     </ul>
-    <p><a href="https://github.com/bettersoftware-io/origamic/actions/runs/39021512378">The run that built this report</a></p>
+    <p><a href="https://github.com/bettersoftware-io/origamic/actions/runs/39034211293">The run that built this report</a></p>
   </body>
 </html>
