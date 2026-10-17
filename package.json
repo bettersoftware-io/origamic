@@ -11,7 +11,8 @@
     }
   },
   "scripts": {
-    "dev": "pnpm --filter @origamic/client-react dev",
+    "dev": "pnpm --filter @origamic/web dev",
+    "dev:stack": "node tools/dev/stack.mts",
     "dev:server": "pnpm --filter @origamic/server dev",
     "dev:fs": "VITE_SERVER_URL=ws://localhost:4000/ws turbo run dev",
     "build": "turbo run build",

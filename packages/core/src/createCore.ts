@@ -29,7 +29,7 @@ export interface CoreDeps {
 }
 
 /** An app as loaded from the library, with whether it still works on the current ontology (ADR-0005). */
-interface LoadedApp {
+export interface LoadedApp {
   app: App;
   compatibility: Compatibility;
 }

@@ -21,8 +21,8 @@ Work that has started and is not finished.
 - **The first slice.** Planned in
   [plans/2026-10-16-first-slice.md](architecture/plans/2026-10-16-first-slice.md):
   twelve pull requests in Origamic and two in the plugin, in the order its
-  graph gives. Built: part 1a, the `e2e` add-on, whose five specs still test
-  the price list (removed in part 10, modes replaced in part 9); part 1b, a
+  graph gives. Built: part 1a, the `e2e` add-on (its price list specs are gone,
+  and its modes are Origamic's since part 9); part 1b, a
   local Supabase that `pnpm gate:full` and CI start, with the first migration.
   Part 2, the spec's additions, is built and waits for the author's review
   before it merges. Part 3, `core`'s five ports with their contracts and
@@ -45,23 +45,33 @@ Work that has started and is not finished.
   it takes props as the runtime resolves them and draws its component only
   with what the schemas accept. A form whose submit wrote through an action,
   with nothing refused, is drawn afresh, which empties a create form. Some
-  things wait on other parts: `Break` (in `core`'s
-  `apps/compatibility.ts`), `BuilderTarget` (in `builder/builder.ts`) and
-  `LoadedApp` (in `createCore.ts`) are exported by the part that first names
-  them, likely part 9; so are the runtime's `ShellViewModelProvider`,
-  `useShellViewModel` and the type `ShellViewModel`
-  (`packages/runtime/src/viewModel/`), which only its tests use today. Part
-  9's library is how a saved app that no panel shows is reopened: the builder
-  refuses a new app whose id the library has, and says to open it from the
-  library and revise it there, which is also what is left when an accept saved
-  the app and then failed to add its panel. Part 7, the Supabase adapters of
+  things wait on other parts: `BuilderTarget` (in `core`'s
+  `builder/builder.ts`) and the runtime's type `ShellViewModel` are exported
+  by the part that first names them; part 9 named neither. The library is how
+  a saved app that no panel shows is reopened: the builder refuses a new app
+  whose id the library has, and says to open it from the library and revise
+  it there, which is also what is left when an accept saved the app and then
+  failed to add its panel. Part 7, the Supabase adapters of
   the session, the ontology, the objects and the library, each passing its
   port's contract against the local Supabase, with `createSupabaseAdapters`
   and a second migration, is built on part 3 and waits likewise.
   Part 8, the gateway (`apps/gateway`) and the browser's client of it
   (`createHttpLlmGateway` in `packages/adapters`, which the plan put in part
   7), is built on parts 2, 3 and 5 and waits likewise; the real model has not
-  been asked yet (see "Waiting on a person").
+  been asked yet (see "Waiting on a person"). Part 9, the web app
+  (`apps/web`: the composition root, the shell on dockview, `pnpm dev` on the
+  simulators and `pnpm dev:stack` on a local Supabase and the gateway), is
+  built on parts 2 to 8 and waits likewise. It exported `Break` and
+  `LoadedApp` from `core`, and the runtime's `ShellViewModelProvider` and
+  `useShellViewModel`; it gave the shell's view model the shell's intents
+  (`useIntents`), the app a panel pins (`usePinnedApp`), why the workspace
+  could not be opened (`useWorkspaceProblem`, the workspace being opened at
+  each sign-in), a user who is `undefined` until the session answers, and a
+  library read for each signed-in owner. The end-to-end tests run it in two
+  modes, `sim` and `stack` (on the host, for Docker); the price list's specs
+  and page objects are gone, its packages and `pnpm dev:fs` stay until part
+  10. The loop with the real model has not been walked (see "Waiting on a
+  person").
 
 ## Designed, not built
 
@@ -74,7 +84,7 @@ A plan or a design is on the main branch, and nothing of it is built.
   2026-10-16, `core`'s ports, simulators and rules (part 3 of the slice),
   its app session, builder and workspace (part 4), the catalog (part 5), the
   runtime (part 6), the Supabase adapters (part 7), the gateway and its
-  client (part 8), and the dependency rule, held by
+  client (part 8), the web app (part 9), and the dependency rule, held by
   `architecture.config.mts`.
 
 ## Planned, and held by something
@@ -129,6 +139,23 @@ between options. Each entry says who, and gives the command or the question.
     -d '{"format":1,"intent":"a simple tracker for the books I am reading, with title, author, status (want / reading / done) and a rating","ontology":{"format":1,"version":0,"objectTypes":[]}}'
   ```
 
+- **Walk the first slice's loop with the real model (the slice's part 9,
+  step 5).** The author, with an Anthropic API key, on a clean database; no
+  test in the gate calls a model (ADR-0011). `pnpm dev` and both end-to-end
+  modes walk the loop with the scripted model. From the project's folder:
+
+  ```bash
+  pnpm --filter @origamic/adapters supabase db reset --local
+  ANTHROPIC_API_KEY=… pnpm dev:stack
+  # open http://localhost:5173, sign up, and walk FIRST-SLICE.md's seven steps:
+  # ask for the book tracker, accept, add two books, reload, then ask for
+  # "add a 'date finished' field" and accept
+  ```
+
+  Write in part 9's pull request what happened at each of the seven steps.
+  `db reset` empties the one local Supabase every checkout shares: run it
+  when no other checkout is in the middle of its tests.
+
 - **Two Scorecard alerts to dismiss, or to accept as open.** "Code review"
   (alert 4) and "Branch protection" (alert 1) ask for a second person to
   approve every pull request. That is against merging a green change at
@@ -153,22 +180,30 @@ verified, a case that is not covered.
   reference dangling, since a literal names nothing; it only loses part of
   the literal. Every record of a spec refuses the key instead.
 
-- **The dependency rule is held only where a package exists.** `apps/web`
-  gets its line in `architecture.config.mts` when it is made, in the first
-  slice. Until the price list is removed, the roles of
+- **The dependency rule is held only where a package exists.** Until the
+  price list is removed, the roles of
   `core` and `runtime` also let them import its `domain` and `shared`. A
   `fetch` written by hand outside `adapters` is not caught, nor are rules 1,
   4 and 5 of [ARCHITECTURE.md](architecture/ARCHITECTURE.md), which are
   questions for a review. Nor is "the gateway imports the catalog's
   manifest only": `mayImport` names a whole package, so once `apps/gateway`
   names `packages/catalog`, an import of its React side passes the gate.
-- **Nothing checks that the app's React Compiler reaches the catalog.**
-  `packages/catalog` declares `reactCompiler: true`, so its lint bans
-  `useMemo`, `useCallback` and `memo`; but the build that compiles it is
-  `apps/web`'s, and the kit does not read a `vite.config.ts` for a package
-  of role `explicit`. Part 9, which makes `apps/web`, should make sure its
-  compiler includes the catalog's source, or the catalog runs uncompiled
-  with nothing failing.
+- **Dragging or resizing a panel is not saved** (the plan's decision 11).
+  The workspace saves a version when a panel is added or closed and when a
+  pin moves; where a person dragged a panel, and the sizes of a split, last
+  until the page is loaded again. Nor does the shell give dockview a saved
+  split's sizes or a tab group's active tab (`apps/web/src/ui/dockviewSteps.ts`):
+  v1 saves neither, so every part takes an equal share.
+- **A panel checks its app's compatibility when it opens it, not again.**
+  The app a panel pins is read with its compatibility once for each pinned
+  version; a change set accepted for another app does not make an open panel
+  check again until its pin moves or the page is loaded again.
+- **The web app is one script of 1.1 MB** (300 kB compressed), and its build
+  says so. Nothing splits it yet.
+- **AGENTS.md's end-to-end section is the add-on's.** Part 9 pointed it at
+  Origamic's modes and specs (the `agent-docs` gate requires a named file to
+  exist); the add-on's next update rewrites the section from its template,
+  and its references then need the same care again.
 - **A form drawn afresh after a submit loses the keyboard's focus.** The
   runtime remounts an element whose event wrote through an action and was
   not refused, which is how a create Form starts empty again; the focus

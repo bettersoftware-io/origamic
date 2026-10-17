@@ -85,6 +85,23 @@ const config: ArchitectureConfig = {
       mayImport: ["packages/catalog"],
       npm: ["@anthropic-ai/sdk"],
     },
+    // The composition root and the shell (ARCHITECTURE.md's table): runtime,
+    // core and spec by its role, and adapters, which it alone names. It is
+    // the build that compiles the catalog, so the React Compiler that the
+    // catalog's `reactCompiler` relies on runs here; src/app/compiler.test.ts
+    // holds the build to it. Dockview is named nowhere else (ADR-0003).
+    "apps/web": {
+      role: "client",
+      mayImport: ["packages/adapters"],
+      npm: ["react", "react-dom", "dockview"],
+      entry: ["main.tsx", "index.css", "*.d.ts"],
+      noNodeBuiltins: true,
+      reactCompiler: true,
+      compilerTracked: [
+        { file: "src/ui/Workspace.tsx", fn: "Dock" },
+        { file: "src/ui/Proposal.tsx", fn: "Proposal" },
+      ],
+    },
     "packages/shared": { role: "shared", noNodeBuiltins: true },
     "packages/client-core": { role: "core", noNodeBuiltins: true },
     "packages/react-bindings": { role: "bindings", noNodeBuiltins: true },
@@ -124,8 +141,16 @@ const config: ArchitectureConfig = {
       "packages/client-react",
       "packages/catalog",
       "packages/runtime",
+      "apps/web",
     ],
-    "react-dom": ["packages/react-bindings", "packages/client-react"],
+    "react-dom": [
+      "packages/react-bindings",
+      "packages/client-react",
+      "apps/web",
+    ],
+    // ADR-0003: the shell translates Origamic's layout to dockview and back,
+    // and replacing dockview changes that translation alone.
+    dockview: ["apps/web"],
     ws: ["packages/server"],
     // Origamic: rule 3 of ARCHITECTURE.md for the libraries, and the schema
     // language only where the table allows it.

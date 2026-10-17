@@ -6,3 +6,6 @@ export { catalog } from "@origamic/catalog/manifest";
 export { AppView } from "./AppView.tsx";
 export { elementTestId } from "./elementTestId.ts";
 export { createShellViewModel } from "./viewModel/createShellViewModel.ts";
+export type { PinnedApp } from "./viewModel/pinnedApp.ts";
+export { ShellViewModelProvider } from "./viewModel/ShellViewModelProvider.tsx";
+export { useShellViewModel } from "./viewModel/useShellViewModel.ts";
