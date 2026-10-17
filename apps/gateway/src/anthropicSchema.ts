@@ -17,6 +17,10 @@ export type AnthropicSchema = Record<string, unknown>;
  * `enum` into the description, which would free the `component` and `do`
  * that tell the catalog's elements and handlers apart.
  *
+ * Total: an `additionalProperties` other than `false`, a list of `items`
+ * and any keyword it does not know go into the description too; only
+ * `$schema` is left out.
+ *
  * Pure: the schema it is given is not changed.
  */
 export function anthropicSchemaOf(schema: JsonSchema): AnthropicSchema {
@@ -26,7 +30,6 @@ export function anthropicSchemaOf(schema: JsonSchema): AnthropicSchema {
 /** Kept as they are. */
 const HELD = new Set([
   "required",
-  "additionalProperties",
   "enum",
   "const",
   "$ref",
@@ -62,11 +65,8 @@ function nodeOf(node: object): AnthropicSchema {
       anyOf = listOf(value);
     } else if (key === "allOf") {
       allOf = listOf(value);
-    } else if (
-      key === "items" ||
-      (key === "additionalProperties" && isNode(value))
-    ) {
-      sent[key] = isNode(value) ? nodeOf(value) : value;
+    } else if (key === "items" && isNode(value)) {
+      sent[key] = nodeOf(value);
     } else if (key === "type") {
       if (Array.isArray(value)) {
         types = value;
@@ -113,6 +113,12 @@ function isHeld(key: string, value: unknown): boolean {
 
   if (key === "minItems") {
     return value === 0 || value === 1;
+  }
+
+  // The API takes a closed object only: a schema for the other keys, or
+  // `true`, is said in the description.
+  if (key === "additionalProperties") {
+    return value === false;
   }
 
   return HELD.has(key);

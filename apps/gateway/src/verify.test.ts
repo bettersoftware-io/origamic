@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { createSupabaseVerifier } from "./verify.ts";
 
@@ -27,6 +27,54 @@ describe("the Supabase verifier, on answers a live Supabase does not give", () =
     answerWith(new Response("down", { status: 503 }));
 
     await expect(createVerifier()("a-token")).rejects.toThrow("503");
+  });
+
+  it("rejects a 429, which says nothing of the token", async () => {
+    answerWith(new Response("slow down", { status: 429 }));
+
+    await expect(createVerifier()("a-token")).rejects.toThrow("429");
+  });
+
+  it("gives up on a Supabase that does not answer within its timeout", async () => {
+    vi.useFakeTimers();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
+    vi.stubGlobal(
+      "fetch",
+      (_input: URL, init: RequestInit): Promise<Response> => {
+        return new Promise<Response>((_resolve, reject) => {
+          init.signal?.addEventListener("abort", () => {
+            reject(new Error("aborted"));
+          });
+        });
+      },
+    );
+    let settled = false;
+
+    const checked = createSupabaseVerifier({
+      url: "http://supabase.test",
+      anonKey: "anon",
+      timeoutMs: 5000,
+    })("a-token").finally(() => {
+      settled = true;
+    });
+
+    checked.catch(() => {});
+    await vi.advanceTimersByTimeAsync(4999);
+    expect(settled).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1);
+
+    await expect(checked).rejects.toThrow("did not answer within 5000 ms");
+  });
+
+  it("rejects when Supabase cannot be reached", async () => {
+    vi.stubGlobal("fetch", (): Promise<Response> => {
+      return Promise.reject(new TypeError("fetch failed"));
+    });
+
+    await expect(createVerifier()("a-token")).rejects.toThrow("fetch failed");
   });
 
   it("refuses an answer that names no user", async () => {

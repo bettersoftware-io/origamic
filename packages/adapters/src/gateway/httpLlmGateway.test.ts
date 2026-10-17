@@ -36,6 +36,42 @@ describe("the HTTP LLM gateway", () => {
     ]);
   });
 
+  it("keeps the path the gateway is served under", async () => {
+    const seen = answerWith(ndjson([PROPOSAL_LESS_FAILURE]));
+
+    await eventsOf(createGateway(undefined, "http://gateway.test/api"));
+    answerWith(ndjson([PROPOSAL_LESS_FAILURE]), seen);
+    await eventsOf(createGateway(undefined, "http://gateway.test/api/"));
+
+    expect(
+      seen.map(({ url }) => {
+        return url;
+      }),
+    ).toEqual([
+      "http://gateway.test/api/generate",
+      "http://gateway.test/api/generate",
+    ]);
+  });
+
+  it("a session that cannot be read says to sign in, and asks nothing", async () => {
+    const seen = answerWith(ndjson([PROPOSAL_LESS_FAILURE]));
+
+    const events = await eventsOf(
+      createGateway(() => {
+        return Promise.reject(new Error("the session store is locked"));
+      }),
+    );
+
+    expect(seen).toEqual([]);
+    expect(events).toEqual([
+      {
+        kind: "failed",
+        message: expect.stringContaining("sign in"),
+        problems: [],
+      },
+    ]);
+  });
+
   it("an expired token is a failed event that says to sign in again", async () => {
     answerWith(
       new Response(JSON.stringify(PROPOSAL_LESS_FAILURE), { status: 401 }),
@@ -204,8 +240,9 @@ function createGateway(
   accessToken: AccessToken = () => {
     return Promise.resolve("a-token");
   },
+  url = "http://gateway.test",
 ): ReturnType<typeof createHttpLlmGateway> {
-  return createHttpLlmGateway({ url: "http://gateway.test", accessToken });
+  return createHttpLlmGateway({ url, accessToken });
 }
 
 function createRequest(): GenerationRequest {
@@ -228,10 +265,8 @@ function eventsOf(
   return lastValueFrom(gateway.generate(createRequest()).pipe(toArray()));
 }
 
-/** Stands in for `fetch` with one answer, and records each request. */
-function answerWith(answer: Response): Seen[] {
-  const seen: Seen[] = [];
-
+/** Stands in for `fetch` with one answer, and records each request in `seen`. */
+function answerWith(answer: Response, seen: Seen[] = []): Seen[] {
   vi.stubGlobal("fetch", (input: URL, init: RequestInit): Promise<Response> => {
     const headers = new Headers(init.headers);
 

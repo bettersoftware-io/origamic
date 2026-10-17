@@ -28,6 +28,16 @@ import { resolveBindings } from "./resolveBindings.ts";
 /** How many times a reply with problems goes back to the model (ADR-0011). */
 const RETRIES = 1;
 
+/** How long a generation may take, every call to the model in it together, unless it is given its own deadline. */
+const DEFAULT_DEADLINE_MS = 5 * 60 * 1000;
+
+export interface GenerateOptions {
+  /** Aborted when the caller has gone: the model call in flight is aborted, and nothing more is said. */
+  signal?: AbortSignal;
+  /** How long the generation may take in all. Past it, the model call is aborted and the generation fails. */
+  deadlineMs?: number;
+}
+
 /**
  * One generation's events: its progress, then one proposal or one failure.
  *
@@ -38,11 +48,42 @@ const RETRIES = 1;
  * it revises; and `validateApp` checks the whole. Problems at any step go
  * back to the model once, quoted with their paths, and a second reply with
  * problems is a failure that carries them. A refusal, a reply cut short and
- * a model that cannot be reached are failures at once.
+ * a model that cannot be reached are failures at once, and so is a
+ * generation that passes its deadline.
  */
 export async function* generate(
   request: GenerationRequest,
   model: ModelClient,
+  options: GenerateOptions = {},
+): AsyncGenerator<GenerationEvent> {
+  const deadlineMs = options.deadlineMs ?? DEFAULT_DEADLINE_MS;
+  const stop = new AbortController();
+  const timer = setTimeout(() => {
+    stop.abort(PAST_DEADLINE);
+  }, deadlineMs);
+
+  function leave(): void {
+    stop.abort(CALLER_LEFT);
+  }
+
+  options.signal?.addEventListener("abort", leave);
+
+  try {
+    yield* attempts(request, model, stop.signal, deadlineMs);
+  } finally {
+    clearTimeout(timer);
+    options.signal?.removeEventListener("abort", leave);
+  }
+}
+
+const PAST_DEADLINE = "past the deadline";
+const CALLER_LEFT = "the caller left";
+
+async function* attempts(
+  request: GenerationRequest,
+  model: ModelClient,
+  signal: AbortSignal,
+  deadlineMs: number,
 ): AsyncGenerator<GenerationEvent> {
   const schema = generationSchema();
   const messages: ModelMessage[] = [
@@ -57,11 +98,22 @@ export async function* generate(
         : "Asking the model again, with what was wrong",
     );
 
-    const reply = await replyOf(model, {
-      system: SYSTEM_PROMPT,
-      messages: [...messages],
-      schema,
-    });
+    const reply = await replyOf(
+      model,
+      { system: SYSTEM_PROMPT, messages: [...messages], schema },
+      signal,
+    );
+
+    if (reply.kind === "stopped") {
+      if (signal.reason === PAST_DEADLINE) {
+        yield failed(
+          `The model took longer than ${Math.round(deadlineMs / 1000)} seconds to answer. Ask again, perhaps for less at once.`,
+          [],
+        );
+      }
+
+      return;
+    }
 
     if (reply.kind !== "json") {
       yield failed(whyNoReply(reply), []);
@@ -174,16 +226,43 @@ interface Unreachable {
   kind: "unreachable";
 }
 
-/** The model's reply, or that it could not be reached: a failure to say, not to throw. */
+/** The generation was stopped while the model was asked: its deadline passed, or its caller left. */
+interface Stopped {
+  kind: "stopped";
+}
+
+/** The model's reply; that it could not be reached, a failure to say, not to throw; or that the generation was stopped first. */
 async function replyOf(
   model: ModelClient,
   request: ModelRequest,
-): Promise<ModelReply | Unreachable> {
+  signal: AbortSignal,
+): Promise<ModelReply | Unreachable | Stopped> {
+  let reply: ModelReply | Unreachable | Stopped;
+
   try {
-    return await model.complete(request);
+    reply = await Promise.race([
+      model.complete(request, signal),
+      whenAborted(signal),
+    ]);
   } catch {
-    return { kind: "unreachable" };
+    reply = { kind: "unreachable" };
   }
+
+  // Once stopped, what the aborted call says (an abort error, most likely)
+  // is not the model's answer.
+  return signal.aborted ? { kind: "stopped" } : reply;
+}
+
+function whenAborted(signal: AbortSignal): Promise<Stopped> {
+  return new Promise<Stopped>((resolve) => {
+    signal.addEventListener(
+      "abort",
+      () => {
+        resolve({ kind: "stopped" });
+      },
+      { once: true },
+    );
+  });
 }
 
 function whyNoReply(reply: NoUsableReply): string {
@@ -194,6 +273,10 @@ function whyNoReply(reply: NoUsableReply): string {
         : `The model declined to answer (${reply.category}).`;
     case "cut":
       return `The model's reply was cut short (${reply.reason}).`;
+    case "unavailable":
+      return `The model could not be reached (${reply.reason}). Try again in a moment.`;
+    case "rejected":
+      return `The model's provider refused the request (${reply.reason}): the gateway is misconfigured, or the request is one it does not take.`;
     case "unreachable":
       return "The model could not be reached. Try again in a moment.";
   }

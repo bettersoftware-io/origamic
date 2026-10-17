@@ -4,7 +4,7 @@ import { describe, expect, it, onTestFinished } from "vitest";
 
 import { GenerationEvent } from "@origamic/spec";
 
-import type { ModelReply } from "./model.ts";
+import type { ModelClient, ModelReply, ModelRequest } from "./model.ts";
 import {
   createGatewayServer,
   createGenerationServer,
@@ -166,6 +166,22 @@ describe("a generation that goes wrong", () => {
     expect(kinds).toEqual(["progress", "failed"]);
   });
 
+  it("aborts the model call when the caller leaves", async () => {
+    const leaving = createLeavingModel();
+    const { url } = await startGateway({ model: leaving.model });
+    const caller = new AbortController();
+
+    const response = await post(url, createFirstRequest(), {
+      signal: caller.signal,
+    });
+
+    await leaving.asked;
+    caller.abort();
+    await response.body?.cancel().catch(() => {});
+
+    await expect(leaving.aborted).resolves.toBe("aborted");
+  });
+
   it("keeps answering after a request is cut off in the middle of its body", async () => {
     const { url } = await startGateway();
 
@@ -185,6 +201,7 @@ interface Running {
 
 interface Overrides {
   verify?: VerifyCaller;
+  model?: ModelClient;
   replies?: readonly ModelReply[];
   /** A generation of its own, in place of the gateway's with a scripted model. */
   generate?: () => AsyncIterable<GenerationEvent>;
@@ -197,9 +214,13 @@ async function startGateway(overrides: Overrides = {}): Promise<Running> {
     overrides.generate === undefined
       ? createGatewayServer({
           verify,
-          model: createScriptedModel(
-            overrides.replies ?? [{ kind: "json", value: createFirstReply() }],
-          ),
+          model:
+            overrides.model ??
+            createScriptedModel(
+              overrides.replies ?? [
+                { kind: "json", value: createFirstReply() },
+              ],
+            ),
           allowedOrigin: ALLOWED_ORIGIN,
         })
       : createGenerationServer({
@@ -236,13 +257,14 @@ function acceptOneToken(token: string): ReturnType<VerifyCaller> {
 interface PostOptions {
   token?: string | null;
   origin?: string;
+  signal?: AbortSignal;
 }
 
 /** A POST to `/generate` (or to `url` when it names a path), with the good token unless told otherwise. */
 function post(
   url: string,
   body: unknown,
-  { token = GOOD_TOKEN, origin }: PostOptions = {},
+  { token = GOOD_TOKEN, origin, signal }: PostOptions = {},
 ): Promise<Response> {
   const headers = new Headers({ "content-type": "application/json" });
 
@@ -260,6 +282,7 @@ function post(
     method: "POST",
     headers,
     body: JSON.stringify(body),
+    signal,
   });
 }
 
@@ -304,3 +327,47 @@ function cutOffMidBody(url: string): Promise<void> {
     socket.resume();
   });
 }
+
+/** A model that answers nothing, and says when it was asked and when its call was aborted. */
+interface LeavingModel {
+  model: ModelClient;
+  asked: Promise<void>;
+  aborted: Promise<"aborted">;
+}
+
+function createLeavingModel(): LeavingModel {
+  let settleAsked: () => void = nothing;
+  let settleAborted: () => void = nothing;
+  const asked = new Promise<void>((resolve) => {
+    settleAsked = resolve;
+  });
+
+  const aborted = new Promise<"aborted">((resolve) => {
+    settleAborted = (): void => {
+      resolve("aborted");
+    };
+  });
+
+  return {
+    asked,
+    aborted,
+    model: {
+      complete: (
+        _request: ModelRequest,
+        signal: AbortSignal,
+      ): Promise<ModelReply> => {
+        settleAsked();
+        signal.addEventListener("abort", settleAborted);
+
+        if (signal.aborted) {
+          settleAborted();
+        }
+
+        return new Promise<ModelReply>(() => {});
+      },
+    },
+  };
+}
+
+/** Stands in until a promise hands over its real `resolve`. */
+function nothing(): void {}

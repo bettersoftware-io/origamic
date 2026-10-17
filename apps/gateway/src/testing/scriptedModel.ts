@@ -4,6 +4,8 @@ import type { ModelClient, ModelReply, ModelRequest } from "../model.ts";
 export interface ScriptedModel extends ModelClient {
   /** Every request so far, in order. */
   readonly requests: readonly ModelRequest[];
+  /** The signal each request was given, in order. */
+  readonly signals: readonly AbortSignal[];
 }
 
 /**
@@ -16,11 +18,17 @@ export function createScriptedModel(
 ): ScriptedModel {
   const waiting = [...replies];
   const requests: ModelRequest[] = [];
+  const signals: AbortSignal[] = [];
 
   return {
     requests,
-    complete: (request: ModelRequest): Promise<ModelReply> => {
+    signals,
+    complete: (
+      request: ModelRequest,
+      signal: AbortSignal,
+    ): Promise<ModelReply> => {
       requests.push(request);
+      signals.push(signal);
 
       const reply = waiting.shift();
 

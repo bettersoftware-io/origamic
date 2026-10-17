@@ -116,6 +116,40 @@ describe("the schema Anthropic's structured outputs are sent", () => {
     });
   });
 
+  it("tells the model an additionalProperties other than false and a list of items, rather than sending them", () => {
+    expect(
+      anthropicSchemaOf({
+        type: "object",
+        properties: {
+          open: {
+            type: "object",
+            properties: {},
+            additionalProperties: { type: "string" },
+          },
+          loose: { type: "object", properties: {}, additionalProperties: true },
+          tuple: { type: "array", items: [{ type: "string" }] },
+        },
+        additionalProperties: false,
+      }),
+    ).toEqual({
+      type: "object",
+      properties: {
+        open: {
+          type: "object",
+          properties: {},
+          description: '{additionalProperties: {"type":"string"}}',
+        },
+        loose: {
+          type: "object",
+          properties: {},
+          description: "{additionalProperties: true}",
+        },
+        tuple: { type: "array", description: '{items: [{"type":"string"}]}' },
+      },
+      additionalProperties: false,
+    });
+  });
+
   it("reads a property named like a keyword as a property, not as the keyword", () => {
     const schema: JsonSchema = {
       type: "object",
@@ -144,6 +178,43 @@ describe("the schema Anthropic's structured outputs are sent", () => {
     expect(JSON.stringify(sent)).not.toMatch(/"type":\[/);
     expect(JSON.stringify(schema)).toBe(before);
   });
+
+  it("moves exactly the catalog's limits into descriptions, so a keyword the catalog starts to write is seen here first", () => {
+    const schema = generationSchema();
+
+    const sent = anthropicSchemaOf(schema);
+
+    expect(new Set(keywordsIn(schema))).toEqual(
+      new Set([
+        "$schema",
+        "additionalProperties",
+        "anyOf",
+        "const",
+        "default",
+        "description",
+        "enum",
+        "exclusiveMinimum",
+        "format",
+        "items",
+        "maximum",
+        "minItems",
+        "minLength",
+        "minimum",
+        "pattern",
+        "properties",
+        "required",
+        "type",
+      ]),
+    );
+    expect(movedIn(sent)).toEqual([
+      "default",
+      "exclusiveMinimum",
+      "maximum",
+      "minLength",
+      "minimum",
+      "pattern",
+    ]);
+  });
 });
 
 const KEPT = new Set([
@@ -163,6 +234,38 @@ const KEPT = new Set([
   "format",
   "minItems",
 ]);
+
+/** The keywords written into descriptions, each once, in order. */
+function movedIn(sent: unknown): string[] {
+  const moved = new Set<string>();
+
+  for (const description of descriptionsIn(sent)) {
+    const told =
+      /\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}$/.exec(description)?.[1] ?? "";
+
+    for (const [, keyword] of told.matchAll(/(?:^|, )([A-Za-z$]+): /g)) {
+      moved.add(keyword ?? "");
+    }
+  }
+
+  return [...moved].sort();
+}
+
+function descriptionsIn(node: unknown): string[] {
+  if (Array.isArray(node)) {
+    return node.flatMap(descriptionsIn);
+  }
+
+  if (typeof node !== "object" || node === null) {
+    return [];
+  }
+
+  return Object.entries(node).flatMap(([key, value]) => {
+    return key === "description" && typeof value === "string"
+      ? [value]
+      : descriptionsIn(value);
+  });
+}
 
 /** Every keyword of every schema node, reading `properties` and `$defs` as maps of names. */
 function keywordsIn(node: unknown): string[] {

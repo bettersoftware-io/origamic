@@ -12,7 +12,7 @@
       "cache": false,
       "passThroughEnv": ["CI", "DOCKER_HOST", "DOCKER_CONTEXT"]
     },
-    // The gateway's configuration, read by src/main.ts. Its secrets
+    // The gateway's configuration, read by src/config.ts. Its secrets
     // (ANTHROPIC_API_KEY, SUPABASE_ANON_KEY) are read by name and never
     // listed where a cache key would hold them.
     "start": {
@@ -22,6 +22,7 @@
         "GATEWAY_MODEL",
         "GATEWAY_EFFORT",
         "GATEWAY_ALLOWED_ORIGIN",
+        "GATEWAY_DEADLINE_SECONDS",
         "PORT"
       ]
     }

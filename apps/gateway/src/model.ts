@@ -17,13 +17,22 @@ export interface ModelRequest {
   schema: JsonSchema;
 }
 
-/** What came back: the reply as JSON, read no further; a refusal, with its category when the provider names one; or a reply that stopped before it was whole. */
+/**
+ * What came back: the reply as JSON, read no further; a refusal, with its
+ * category when the provider names one; a reply that stopped before it was
+ * whole; a provider that could not answer now (unreachable, rate-limited,
+ * overloaded: worth asking again); or a provider that refused the request
+ * itself (a bad key, an unknown model, a schema it does not take: asking
+ * again changes nothing).
+ */
 export type ModelReply =
   | { kind: "json"; value: unknown }
   | { kind: "refused"; category: string | null }
-  | { kind: "cut"; reason: string };
+  | { kind: "cut"; reason: string }
+  | { kind: "unavailable"; reason: string }
+  | { kind: "rejected"; reason: string };
 
 export interface ModelClient {
-  /** One reply to `request`. It rejects only when the model cannot be reached. */
-  complete(request: ModelRequest): Promise<ModelReply>;
+  /** One reply to `request`. `signal` aborts it when the caller has gone or the generation's deadline has passed. */
+  complete(request: ModelRequest, signal: AbortSignal): Promise<ModelReply>;
 }

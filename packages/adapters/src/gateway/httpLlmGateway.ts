@@ -15,7 +15,7 @@ export interface HttpLlmGatewayConfig {
 
 /**
  * The LlmGatewayPort over HTTP: the browser's client of `apps/gateway`. It
- * posts the request to `/generate` with the caller's token and reads the
+ * posts the request to `generate` under its address with the caller's token and reads the
  * answer one JSON event a line, each parsed with spec's `GenerationEvent`.
  * Every way it can go wrong (no token, an expired one, a gateway that cannot
  * be reached, a line it cannot read) ends the stream with a `failed` event,
@@ -24,7 +24,12 @@ export interface HttpLlmGatewayConfig {
 export function createHttpLlmGateway(
   config: HttpLlmGatewayConfig,
 ): LlmGatewayPort {
-  const endpoint = new URL("/generate", config.url);
+  // Resolved against the address as a folder, so a gateway served under a
+  // path (`https://example.com/api`) keeps it.
+  const endpoint = new URL(
+    "generate",
+    config.url.endsWith("/") ? config.url : `${config.url}/`,
+  );
 
   return {
     generate: (request: GenerationRequest): Observable<GenerationEvent> => {
@@ -51,6 +56,8 @@ export function createHttpLlmGateway(
 
 const SIGN_IN = "Sign in to ask for an app.";
 const SIGN_IN_AGAIN = "Your session has expired: sign in again.";
+const SESSION_UNREADABLE = "Your session could not be read: sign in again.";
+const UNREADABLE = Symbol("the session could not be read");
 const UNREACHABLE =
   "The gateway could not be reached. Check the connection and try again.";
 
@@ -65,7 +72,13 @@ async function deliver(
   { endpoint, config, request, signal }: Call,
   subscriber: Subscriber<GenerationEvent>,
 ): Promise<void> {
-  const token = await config.accessToken();
+  const token = await tokenOf(config);
+
+  if (token === UNREADABLE) {
+    end(subscriber, failed(SESSION_UNREADABLE));
+
+    return;
+  }
 
   if (token === null) {
     end(subscriber, failed(SIGN_IN));
@@ -125,6 +138,17 @@ async function deliver(
   }
 
   end(subscriber, failed("The gateway's answer ended before a proposal."));
+}
+
+/** The caller's token, null when nobody is signed in, or that the session could not be read. */
+async function tokenOf(
+  config: HttpLlmGatewayConfig,
+): Promise<string | null | typeof UNREADABLE> {
+  try {
+    return await config.accessToken();
+  } catch {
+    return UNREADABLE;
+  }
 }
 
 /** The gateway words each refusal as a `failed` event; one it did not word is said by its status. */

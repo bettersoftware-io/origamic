@@ -25,11 +25,14 @@ export interface GatewayDeps {
   model: ModelClient;
   /** The one origin a browser may call the gateway from: the web app's. */
   allowedOrigin: string;
+  /** How long one generation may take in all; `generate`'s default when left out. */
+  deadlineMs?: number;
 }
 
-/** The events of one generation, as the server streams them. */
+/** The events of one generation, as the server streams them. `signal` is aborted when the caller has gone. */
 type Generation = (
   request: GenerationRequest,
+  signal: AbortSignal,
 ) => AsyncIterable<GenerationEvent>;
 
 export interface GenerationServerDeps {
@@ -48,8 +51,14 @@ export function createGatewayServer(deps: GatewayDeps): Server {
   return createGenerationServer({
     verify: deps.verify,
     allowedOrigin: deps.allowedOrigin,
-    generate: (request: GenerationRequest): AsyncIterable<GenerationEvent> => {
-      return generate(request, deps.model);
+    generate: (
+      request: GenerationRequest,
+      signal: AbortSignal,
+    ): AsyncIterable<GenerationEvent> => {
+      return generate(request, deps.model, {
+        signal,
+        deadlineMs: deps.deadlineMs,
+      });
     },
   });
 }
@@ -185,7 +194,15 @@ async function serveGeneration(
     return;
   }
 
-  await stream(deps.generate(parsed.data), response);
+  // The caller may leave while the model is still asked: abort that call,
+  // rather than pay for a reply nobody reads.
+  const left = new AbortController();
+
+  response.on("close", () => {
+    left.abort();
+  });
+
+  await stream(deps.generate(parsed.data, left.signal), response);
 }
 
 /**

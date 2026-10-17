@@ -53,7 +53,16 @@ declines (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`).
 The model and the effort are the gateway's configuration
 (`GATEWAY_MODEL`, `GATEWAY_EFFORT`), not code. The reply's stop reason is
 read before its content: a refusal or a reply cut short is a `failed`
-event that says which, and is not retried.
+event that says which, and is not retried. After a fallback, only the text
+after the last `fallback` block is the reply. A generation has a deadline
+(`GATEWAY_DEADLINE_SECONDS`, five minutes when unset), and its model call
+is aborted when the deadline passes or the caller leaves. An error the API
+answers with is logged by the gateway (status, type, request id) and told
+to the builder as one of two things: a request the API refuses (a 4xx: a
+bad key, an unknown model, a schema it does not take) means the gateway is
+misconfigured; a connection that fails, a 429 or a 5xx means try again.
+The gateway asks the API for its model when it starts, so a wrong key or
+model stops it there.
 
 Decision 3: the model names the types and actions an app binds, without
 versions. The gateway applies the change set to get the ontology the app

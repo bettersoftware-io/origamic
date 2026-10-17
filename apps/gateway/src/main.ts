@@ -1,62 +1,28 @@
 import type { AddressInfo } from "node:net";
 
-import { createAnthropicModel, type Effort } from "./anthropicModel.ts";
+import { checkAnthropicModel, createAnthropicModel } from "./anthropicModel.ts";
+import { configOf } from "./config.ts";
 import { createGatewayServer } from "./server.ts";
 import { createSupabaseVerifier } from "./verify.ts";
 
-// The gateway's composition root: read the environment, pick the model and
-// the verifier, start. The key to the model lives here and nowhere else
-// (ARCHITECTURE.md, "Security posture").
-//
-//   ANTHROPIC_API_KEY        the key the model is called with (required)
-//   SUPABASE_URL             where Supabase answers (required)
-//   SUPABASE_ANON_KEY        the key a token check is signed with (required)
-//   GATEWAY_ALLOWED_ORIGIN   the web app's origin (default http://localhost:5173)
-//   GATEWAY_MODEL            the model (default claude-opus-5-5)
-//   GATEWAY_EFFORT           low, medium, high, xhigh or max (default high)
-//   PORT                     where the gateway listens (default 8787)
+// The gateway's composition root: read and check the environment, confirm
+// the model with the API, pick the model and the verifier, start. The key to
+// the model lives here and nowhere else (ARCHITECTURE.md, "Security
+// posture"). config.ts lists the variables.
 
-const EFFORTS: readonly Effort[] = ["low", "medium", "high", "xhigh", "max"];
+const config = configOf(process.env);
+
+await checkAnthropicModel(config.anthropic);
 
 const server = createGatewayServer({
-  verify: createSupabaseVerifier({
-    url: required("SUPABASE_URL"),
-    anonKey: required("SUPABASE_ANON_KEY"),
-  }),
-  model: createAnthropicModel({
-    apiKey: required("ANTHROPIC_API_KEY"),
-    model: process.env.GATEWAY_MODEL ?? "claude-opus-5-5",
-    effort: effortOf(process.env.GATEWAY_EFFORT ?? "high"),
-  }),
-  allowedOrigin: process.env.GATEWAY_ALLOWED_ORIGIN ?? "http://localhost:5173",
+  verify: createSupabaseVerifier(config.supabase),
+  model: createAnthropicModel(config.anthropic),
+  allowedOrigin: config.allowedOrigin,
+  deadlineMs: config.deadlineMs,
 });
 
-server.listen(Number(process.env.PORT ?? 8787), () => {
+server.listen(config.port, () => {
   const { port } = server.address() as AddressInfo;
 
   console.info(`gateway listening on http://localhost:${port}`);
 });
-
-function required(name: string): string {
-  const value = process.env[name];
-
-  if (value === undefined || value === "") {
-    throw new Error(`${name} is not set; the gateway cannot start without it`);
-  }
-
-  return value;
-}
-
-function effortOf(value: string): Effort {
-  const effort = EFFORTS.find((known) => {
-    return known === value;
-  });
-
-  if (effort === undefined) {
-    throw new Error(
-      `GATEWAY_EFFORT is "${value}"; it is one of ${EFFORTS.join(", ")}`,
-    );
-  }
-
-  return effort;
-}

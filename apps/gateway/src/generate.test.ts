@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 
 import type { GenerationEvent, GenerationRequest } from "@origamic/spec";
 
 import { generate } from "./generate.ts";
-import type { ModelClient, ModelReply } from "./model.ts";
+import type { ModelClient, ModelReply, ModelRequest } from "./model.ts";
 import {
   createDateFinishedReply,
   createFirstReply,
@@ -200,6 +200,106 @@ describe("a model that cannot be asked", () => {
   });
 });
 
+describe("a generation that takes too long, or whose caller leaves", () => {
+  it("a generation past its deadline is a failed event that says it took too long", async () => {
+    useFakeTimers();
+    const model = createSilentModel();
+    const events: GenerationEvent[] = [];
+
+    const done = collect(
+      generate(createFirstRequest(), model, { deadlineMs: 60_000 }),
+      events,
+    );
+
+    await vi.advanceTimersByTimeAsync(59_999);
+    expect(kindsOf(events)).toEqual(["progress"]);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await done;
+
+    expect(events.at(-1)).toEqual({
+      kind: "failed",
+      message: expect.stringContaining("took longer than 60 seconds"),
+      problems: [],
+    });
+    expect(model.signals[0]?.aborted).toBe(true);
+  });
+
+  it("a generation with no deadline of its own may take five minutes", async () => {
+    useFakeTimers();
+    const events: GenerationEvent[] = [];
+
+    const done = collect(
+      generate(createFirstRequest(), createSilentModel()),
+      events,
+    );
+
+    await vi.advanceTimersByTimeAsync(299_999);
+    expect(kindsOf(events)).toEqual(["progress"]);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await done;
+
+    expect(events.at(-1)?.kind).toBe("failed");
+  });
+
+  it("the model call is aborted when the caller leaves, and nothing more is said", async () => {
+    const model = createSilentModel();
+    const leaving = new AbortController();
+    const events: GenerationEvent[] = [];
+
+    const done = collect(
+      generate(createFirstRequest(), model, { signal: leaving.signal }),
+      events,
+    );
+
+    await model.asked;
+    leaving.abort();
+    await done;
+
+    expect(model.signals[0]?.aborted).toBe(true);
+    expect(kindsOf(events)).toEqual(["progress"]);
+  });
+});
+
+describe("a provider that does not answer", () => {
+  it("one that cannot answer now says to try again", async () => {
+    const events = await eventsOf(
+      createFirstRequest(),
+      createScriptedModel([
+        { kind: "unavailable", reason: "529 overloaded_error" },
+      ]),
+    );
+
+    expect(events.at(-1)).toEqual({
+      kind: "failed",
+      message: expect.stringMatching(
+        /could not be reached \(529 overloaded_error\)\. Try again/,
+      ),
+      problems: [],
+    });
+  });
+
+  it("one that refuses the request says the gateway is misconfigured, and does not say to try again", async () => {
+    const events = await eventsOf(
+      createFirstRequest(),
+      createScriptedModel([
+        { kind: "rejected", reason: "404 not_found_error" },
+      ]),
+    );
+    const last = events.at(-1);
+
+    expect(last).toEqual({
+      kind: "failed",
+      message: expect.stringMatching(
+        /refused the request \(404 not_found_error\).*misconfigured/,
+      ),
+      problems: [],
+    });
+    expect(JSON.stringify(last)).not.toContain("Try again");
+  });
+});
+
 /** Where the table's select handler reads a field the event does not carry. */
 const BAD_PATH = "ui.elements.table.on.select.0.to";
 
@@ -210,6 +310,64 @@ interface ProposalKind {
 }
 
 type Proposal = Extract<GenerationEvent, ProposalKind>["proposal"];
+
+/** A model that answers nothing until it is aborted, and keeps the signal of each call. */
+interface SilentModel extends ModelClient {
+  readonly signals: readonly AbortSignal[];
+  /** Settles when the model is first asked. */
+  readonly asked: Promise<void>;
+}
+
+function createSilentModel(): SilentModel {
+  const signals: AbortSignal[] = [];
+  let settleAsked: () => void = nothing;
+  const asked = new Promise<void>((resolve) => {
+    settleAsked = resolve;
+  });
+
+  return {
+    signals,
+    asked,
+    complete: (
+      _request: ModelRequest,
+      signal: AbortSignal,
+    ): Promise<ModelReply> => {
+      signals.push(signal);
+      settleAsked();
+
+      return new Promise<ModelReply>((resolve) => {
+        signal.addEventListener("abort", () => {
+          resolve({ kind: "unavailable", reason: "aborted" });
+        });
+      });
+    },
+  };
+}
+
+/** Stands in until the promise hands over its real `resolve`. */
+function nothing(): void {}
+
+function useFakeTimers(): void {
+  vi.useFakeTimers();
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
+}
+
+async function collect(
+  events: AsyncIterable<GenerationEvent>,
+  into: GenerationEvent[],
+): Promise<void> {
+  for await (const event of events) {
+    into.push(event);
+  }
+}
+
+function kindsOf(events: readonly GenerationEvent[]): string[] {
+  return events.map((event) => {
+    return event.kind;
+  });
+}
 
 function json(value: WrittenReply): ModelReply {
   return { kind: "json", value };

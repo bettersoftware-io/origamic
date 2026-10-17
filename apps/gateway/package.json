@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./*": "./src/*"
+    "./server.ts": "./src/server.ts",
+    "./testing/bookTracker.ts": "./src/testing/bookTracker.ts",
+    "./testing/scriptedModel.ts": "./src/testing/scriptedModel.ts"
   },
   "imports": {
     "#/*": "./src/*"
