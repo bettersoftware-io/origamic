@@ -21,7 +21,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { join } from "node:path";
 
-import { APP_PORT, APP_URL, GATEWAY_URL, openDevSupabase, planDevStack } from "./devStack.mts";
+import { APP_PORT, APP_URL, GATEWAY_URL, openDevSupabase, runDevStack } from "./devStack.mts";
 
 const ROOT = join(import.meta.dirname, "..", "..");
 
@@ -76,23 +76,29 @@ process.on("exit", () => {
 
 console.log("[dev:stack] starting the dev Supabase (the first start pulls its images, which takes minutes)");
 
-const supabase = await openDevSupabase();
-const plan = planDevStack(supabase, process.env);
-
-if (plan.gateway === undefined) {
-  console.log("[dev:stack] ANTHROPIC_API_KEY is not set: the gateway is not started, and the model is the dev script's");
-} else {
-  start("node", ["src/main.ts"], join(ROOT, "apps", "gateway"), plan.gateway);
-}
-
-start(join("node_modules", ".bin", "vite"), ["--port", APP_PORT, "--strictPort"], join(ROOT, "apps", "web"), plan.app);
-
-console.log(
-  [
-    "[dev:stack] running:",
-    `  Supabase   ${supabase.url}`,
-    `  gateway    ${plan.gateway === undefined ? "not started (no ANTHROPIC_API_KEY)" : GATEWAY_URL}`,
-    `  web app    ${APP_URL}`,
-    "  Ctrl-C stops the gateway and the app; the dev Supabase keeps running.",
-  ].join("\n"),
+const started = await runDevStack(
+  {
+    open: () => openDevSupabase(),
+    stopped: () => stopping,
+    startGateway: (environment) => {
+      start("node", ["src/main.ts"], join(ROOT, "apps", "gateway"), environment);
+    },
+    startApp: (environment) => {
+      start(join("node_modules", ".bin", "vite"), ["--port", APP_PORT, "--strictPort"], join(ROOT, "apps", "web"), environment);
+    },
+    say: console.log,
+  },
+  process.env,
 );
+
+if (started !== undefined) {
+  console.log(
+    [
+      "[dev:stack] running:",
+      `  Supabase   ${started.supabase.url}`,
+      `  gateway    ${started.plan.gateway === undefined ? "not started (no ANTHROPIC_API_KEY)" : GATEWAY_URL}`,
+      `  web app    ${APP_URL}`,
+      "  Ctrl-C stops the gateway and the app; the dev Supabase keeps running.",
+    ].join("\n"),
+  );
+}

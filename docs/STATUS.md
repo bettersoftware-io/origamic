@@ -32,8 +32,7 @@ Work that has started and is not finished.
   `createHttpLlmGateway`); the real model has not been asked yet (see
   "Waiting on a person"). Part 9, the web app (`apps/web`: the composition
   root, the shell on dockview, `pnpm dev` on the simulators and `pnpm
-  dev:stack` on the dev Supabase and the gateway), is built on them and waits
-  for review and merge. It exported `Break` and `LoadedApp` from `core`, and
+  dev:stack` on the dev Supabase and the gateway), is on main too. It exported `Break` and `LoadedApp` from `core`, and
   the runtime's `ShellViewModelProvider` and `useShellViewModel`; it gave
   `core` an owner (`handOver()`, `owner()`), the workspace presenter
   `close()` and an epoch each change carries, and the builder `close()`; and
@@ -45,8 +44,10 @@ Work that has started and is not finished.
   and `pnpm dev:fs` stay until part 10, which removes the price list.
   `BuilderTarget` (in `core`'s `builder/builder.ts`) and the runtime's type
   `ShellViewModel` are not exported: nothing imports them yet, and knip
-  refuses an export nobody imports. The walk of the loop with the real model
-  waits on the author (see "Waiting on a person").
+  refuses an export nobody imports. Left: part 10, which removes the price
+  list and rewrites `AGENTS.md`'s tables for Origamic's packages, and the
+  walk of the loop with the real model, which waits on the author (see
+  "Waiting on a person").
 
 ## Designed, not built
 
@@ -58,9 +59,9 @@ A plan or a design is on the main branch, and nothing of it is built.
   Built: the schemas in `packages/spec`, reviewed by the author on
   2026-10-16, `core`'s ports, simulators and rules (part 3 of the slice),
   its app session, builder and workspace (part 4), the catalog (part 5), the
-  runtime (part 6), the Supabase adapters (part 7), the gateway (part 8), and
-  the dependency rule, held by `architecture.config.mts` over every package.
-  The web app (part 9) is built and waits to merge.
+  runtime (part 6), the Supabase adapters (part 7), the gateway (part 8), the
+  web app (part 9), and the dependency rule, held by `architecture.config.mts`
+  over every package.
 
 ## Planned, and held by something
 
@@ -78,7 +79,6 @@ The next step is known, and nobody has written a plan for it.
   window of the known limit "A store call in flight when the owner
   changes". The full fix is the server's check (ADR-0009): a write names
   its owner and the server refuses it for any other.
-
 - **Nothing holds "a required property is added with a `default`".**
   `ontology.ts` states it, and neither `ChangeSet` nor `applyChangeSet`
   checks it, so a change set can add a required property that every stored
@@ -109,8 +109,9 @@ between options. Each entry says who, and gives the command or the question.
 - **Ask the real model once, by hand (the slice's part 8, step 6).** The
   author, with an Anthropic API key; no test in the gate calls a model
   (ADR-0011). Expected: progress lines, then one `proposal` whose app binds
-  `Book@1`, `createBook@1` and `updateBook@1`. Write the outcome in part 8's
-  pull request. With the dev Supabase running (`pnpm supabase:dev`), from the
+  `Book@1`, `createBook@1` and `updateBook@1`. Write the outcome into this
+  page (remove this entry, or say what failed), or into the pull request of
+  the next part. With the dev Supabase running (`pnpm supabase:dev`), from the
   project's folder:
 
   ```bash
@@ -136,7 +137,8 @@ between options. Each entry says who, and gives the command or the question.
   # "add a 'date finished' field" and accept
   ```
 
-  Write in part 9's pull request what happened at each of the seven steps.
+  Write what happened at each of the seven steps into this page (remove this
+  entry, or say what failed), or into the pull request of the next part.
   `pnpm dev:stack` starts the dev stack (`origamic`, 54321) and never resets
   it; the `db reset` above is the author's choice, and touches the dev
   stack only, not the tests' (`origamic-test`).
@@ -165,9 +167,10 @@ verified, a case that is not covered.
   reference dangling, since a literal names nothing; it only loses part of
   the literal. Every record of a spec refuses the key instead.
 
-- **The dependency rule is held only where a package exists.** Until the
-  price list is removed, the roles of
-  `core` and `runtime` also let them import its `domain` and `shared`. A
+- **The dependency rule is held by role, for whole packages and their
+  imports only.** A role can grant more than ARCHITECTURE.md's table: until
+  the price list is removed, the roles of `core` and `runtime` also let them
+  import its `domain` and `shared`. A
   `fetch` written by hand outside `adapters` is not caught, nor are rules 1,
   4 and 5 of [ARCHITECTURE.md](architecture/ARCHITECTURE.md), which are
   questions for a review. Nor is "the gateway imports the catalog's

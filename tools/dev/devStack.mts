@@ -56,3 +56,48 @@ export function planDevStack(supabase: LocalSupabase, environment: NodeJS.Proces
     app,
   };
 }
+
+/** What running the dev stack starts and asks, as seams. */
+export interface DevStackRun {
+  /** Starts, or finds, the dev Supabase. */
+  open: () => Promise<LocalSupabase>;
+  /** Whether the run was told to stop (Ctrl-C, a kill) while it waited. */
+  stopped: () => boolean;
+  startGateway: (environment: NodeJS.ProcessEnv) => void;
+  startApp: (environment: NodeJS.ProcessEnv) => void;
+  say: (line: string) => void;
+}
+
+/**
+ * Opens the dev Supabase, then starts the gateway when there is a key and the
+ * web app. A stop that came while the Supabase was starting is kept: nothing
+ * is started after it. Gives back the Supabase and the plan it started on,
+ * or `undefined` when it started nothing.
+ */
+export async function runDevStack(run: DevStackRun, environment: NodeJS.ProcessEnv): Promise<StartedDevStack | undefined> {
+  const supabase = await run.open();
+
+  if (run.stopped()) {
+    run.say("[dev:stack] stopped while the dev Supabase started: nothing else was started");
+
+    return undefined;
+  }
+
+  const plan = planDevStack(supabase, environment);
+
+  if (plan.gateway === undefined) {
+    run.say("[dev:stack] ANTHROPIC_API_KEY is not set: the gateway is not started, and the model is the dev script's");
+  } else {
+    run.startGateway(plan.gateway);
+  }
+
+  run.startApp(plan.app);
+
+  return { supabase, plan };
+}
+
+/** What a run of the dev stack started on, and what it started. */
+export interface StartedDevStack {
+  supabase: LocalSupabase;
+  plan: DevStackPlan;
+}
