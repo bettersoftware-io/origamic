@@ -299,14 +299,16 @@ verified, a case that is not covered.
   "want"` leaves out a book written before `status` existed. Nothing
   affects the book tracker; it matters once a change set adds a property
   with a default that a view filters on.
-- **The workspace presenter keeps what it opened across a sign-out.**
-  `core.workspace` (one workspace per owner, id `main`) and the builder
-  hold their state until `open()` or `target()` is called again; nothing
-  clears them when the user changes. One user in v1, so the shell calls
-  `open()` after a sign-in. It also saves each change from the copy it
-  holds, not from the library's latest, so a version saved elsewhere since
-  (another tab) is overwritten by the next panel added or closed or pin
-  moved here.
+- **An accept under way at a sign-out still finishes its stores.** At each
+  change of owner the shell closes the workspace (a panel change queued
+  before is dropped), and the builder drops a generation or a proposal; but
+  the builder ignores a new target while it accepts, so an accept already
+  applying its change set and saving its app goes on with whatever session
+  the stores have by then, and only its panel is refused. Its stores would
+  need the owner to check against, which `core` does not pass them.
+- **The workspace presenter saves each change from the copy it holds,**
+  not from the library's latest, so a version saved elsewhere since (another
+  tab) is overwritten by the next panel added or closed or pin moved here.
 - **In v1 the client enforces the schemas and the actions.** The browser
   writes to Supabase itself, and row-level security checks whose rows it
   writes, not what it writes. A client that bypasses `core` can put anything

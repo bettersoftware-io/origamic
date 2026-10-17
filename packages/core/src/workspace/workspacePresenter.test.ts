@@ -235,6 +235,60 @@ describe("the workspace presenter", () => {
 
     expect(await current(core)).toMatchObject({ version: 2 });
   });
+
+  it("close() forgets the workspace, and refuses a change until open()", async () => {
+    const { core, deps } = createCoreHarness();
+
+    await core.workspace.addPanel(createPinnedApp(1));
+    core.workspace.close();
+
+    expect(await current(core)).toBeNull();
+    await expect(
+      core.workspace.addPanel(createPinnedApp(1, "films")),
+    ).rejects.toThrow("no workspace is open");
+    expect(await deps.library.loadWorkspace("main")).toMatchObject({
+      version: 2,
+    });
+
+    await core.workspace.open();
+
+    expect(await current(core)).toMatchObject({
+      version: 2,
+      panels: { books: { app: "books", appVersion: 1 } },
+    });
+  });
+
+  it("a change queued before close() is dropped, and saves nothing", async () => {
+    const { core, deps } = createCoreHarness();
+
+    await core.workspace.open();
+
+    const queued = core.workspace.addPanel(createPinnedApp(1));
+
+    core.workspace.close();
+
+    await expect(queued).rejects.toThrow(
+      "the workspace was closed before this change was saved",
+    );
+    expect(await current(core)).toBeNull();
+    expect(await deps.library.loadWorkspace("main")).toMatchObject({
+      version: 1,
+      panels: {},
+    });
+  });
+
+  it("an open() under way when close() comes shows nothing", async () => {
+    const { core } = createCoreHarness();
+
+    const opening = core.workspace.open();
+
+    core.workspace.close();
+
+    await expect(opening).rejects.toThrow(
+      "the workspace was closed before this change was saved",
+    );
+    expect(await current(core)).toBeNull();
+  });
 });
 
 type Core = CoreHarness["core"];

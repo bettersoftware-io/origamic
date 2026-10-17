@@ -64,32 +64,63 @@ export function createShellViewModel(core: Core): ShellViewModel {
   const owner = new BehaviorSubject<string | null>(null);
   let signedIn: string | null = null;
 
-  /** Opens the workspace of whoever signed in: one workspace per owner, which the core opens on asking (the core's known limit). */
-  function openWorkspaceOf(next: User | null | undefined): void {
+  /**
+   * Hands the shell to whoever is signed in now. When that changes (a
+   * sign-out, another sign-in) the owner before is forgotten first: the
+   * workspace is closed, so none of their panels shows and no change of
+   * theirs is saved after, and the builder drops what it was asked or
+   * proposed. Then the new owner's workspace is opened, when there is one.
+   * The library follows the owner too.
+   */
+  function handOver(next: User | null | undefined): void {
     const id = next?.id ?? null;
 
-    if (id !== null && id !== signedIn) {
-      workspaceProblem.next(null);
-      // Nothing waits: the workspace arrives through its stream, and a
-      // failure is shown through `useWorkspaceProblem`.
-      void core.workspace.open().catch((error: unknown) => {
-        workspaceProblem.next(
-          `Your workspace could not be opened: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      });
+    if (id === signedIn) {
+      return;
     }
 
     signedIn = id;
+    core.workspace.close();
+    core.builder.target({ kind: "new" });
+    workspaceProblem.next(null);
     owner.next(id);
+
+    if (id !== null) {
+      openWorkspaceFor(id);
+    }
+  }
+
+  function openWorkspaceFor(id: string): void {
+    // Nothing waits: the workspace arrives through its stream, and a
+    // failure is shown through `useWorkspaceProblem`, unless the owner has
+    // changed since.
+    void core.workspace.open().catch((error: unknown) => {
+      if (signedIn === id) {
+        workspaceProblem.next(
+          `Your workspace could not be opened: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    });
   }
 
   const user = follow<User | null | undefined>(
     core.session.user(),
     "who is signed in",
-    { before: { value: undefined }, onValue: openWorkspaceOf },
+    { before: { value: undefined }, onValue: handOver },
   );
   const builder = follow(core.builder.state(), "the builder's state");
-  const workspace = follow(core.workspace.workspace(), "the workspace");
+  // The workspace is the signed-in owner's, and none while nobody is: what
+  // the core held for the owner before never reaches the next one's shell.
+  const workspace = follow(
+    owner.pipe(
+      distinctUntilChanged(),
+      switchMap((id) => {
+        return id === null ? of(null) : core.workspace.workspace();
+      }),
+    ),
+    "the workspace",
+  );
+
   // The library is read for each owner afresh: a store answers only a
   // signed-in user, and only with their own apps.
   const library = follow(

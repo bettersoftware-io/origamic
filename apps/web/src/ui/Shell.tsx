@@ -30,7 +30,13 @@ export function Shell(): ReactElement {
     );
   }
 
-  return user === null ? <SignIn /> : <SignedIn email={user.email} />;
+  // Keyed by the user: what the shell holds for one (the active panel) is
+  // never another's.
+  return user === null ? (
+    <SignIn />
+  ) : (
+    <SignedIn key={user.id} email={user.email} />
+  );
 }
 
 interface SignedInProps {

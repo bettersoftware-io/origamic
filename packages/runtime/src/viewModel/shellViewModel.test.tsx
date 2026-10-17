@@ -3,6 +3,11 @@ import { describe, expect, it, onTestFinished, vi } from "vitest";
 
 import type { BuilderState } from "@origamic/core";
 import { createCoreHarness } from "@origamic/core/testing/coreHarness.ts";
+import { type GenerationEvent, Proposal } from "@origamic/spec";
+import {
+  createBookApp,
+  createBookChange,
+} from "@origamic/spec/testing/bookTracker.ts";
 
 import { createShellViewModel } from "./createShellViewModel.ts";
 import { mountShell, mountWithoutProvider } from "./shellViewModel.page.tsx";
@@ -48,14 +53,82 @@ describe("the shell's view model", () => {
     });
   });
 
-  it("gives the shell the workspace once it is opened", async () => {
+  it("shows no workspace while nobody is signed in, even one the core has open", async () => {
     const page = mountShell();
-
-    expect(page.workspace()).toBeNull();
 
     await page.openWorkspace();
 
-    expect(page.workspace()).toMatchObject({ id: "main", version: 1 });
+    expect(page.workspace()).toBeNull();
+  });
+
+  it("forgets the owner's workspace at sign-out, and saves no change after it", async () => {
+    const page = mountShell({ workspacePerOwner: true });
+
+    await page.signUp("a@example.com");
+    await page.settle();
+    await page.saveBookApp();
+    await page.addBookPanel();
+
+    expect(page.workspace()?.panels).toEqual({
+      books: { app: "books", appVersion: 1 },
+    });
+
+    await page.signOut();
+
+    expect(page.workspace()).toBeNull();
+    await expect(page.addBookPanel()).rejects.toThrow("no workspace is open");
+  });
+
+  it("shows the next owner only their own workspace", async () => {
+    const page = mountShell({ workspacePerOwner: true });
+
+    await page.signUp("a@example.com");
+    await page.settle();
+    await page.saveBookApp();
+    await page.addBookPanel();
+    await page.signOut();
+    await page.signUp("b@example.com");
+    await page.settle();
+
+    expect(page.workspace()).toMatchObject({ version: 1, panels: {} });
+  });
+
+  it("does not save a change the owner before had queued at the sign-out", async () => {
+    const page = mountShell({ workspacePerOwner: true });
+
+    await page.signUp("a@example.com");
+    await page.settle();
+    await page.saveBookApp();
+
+    const outcome = await page.addBookPanelWhileSigningOut();
+
+    expect(outcome).toMatchObject({
+      status: "rejected",
+      reason: new Error(
+        "the workspace was closed before this change was saved",
+      ),
+    });
+
+    await page.signIn("a@example.com");
+    await page.settle();
+
+    expect(page.workspace()).toMatchObject({ version: 1, panels: {} });
+  });
+
+  it("drops the builder's proposal at sign-out", async () => {
+    const page = mountShell({ replies: [createBookReply()] });
+
+    await page.signUp("a@example.com");
+    await page.askForBookTracker();
+
+    expect(page.builderState()?.kind).toBe("proposed");
+
+    await page.signOut();
+
+    expect(page.builderState()).toEqual({
+      kind: "idle",
+      target: { kind: "new" },
+    });
   });
 
   it("opens the workspace of whoever signs in", async () => {
@@ -269,6 +342,20 @@ describe("the shell's view model", () => {
     );
   });
 });
+
+/** The model's reply to "a tracker for the books I'm reading". */
+function createBookReply(): GenerationEvent[] {
+  return [
+    {
+      kind: "proposal",
+      proposal: Proposal.parse({
+        explanation: "A tracker for your books.",
+        changeSet: createBookChange(),
+        app: createBookApp(),
+      }),
+    },
+  ];
+}
 
 /** A builder whose state has not answered yet, which no builder of the core does. */
 function createSilentBuilder(): Observable<BuilderState> {
