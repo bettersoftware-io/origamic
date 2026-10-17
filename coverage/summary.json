@@ -1,8 +1,8 @@
 {
-  "commit": "5967210791828f5f30155f766208fc81cba7d01c",
+  "commit": "2c30816a7b9595341de713310b51d05c638e37b1",
   "uncommittedChanges": false,
   "ref": "main",
-  "builtAt": "2026-10-17T08:23:33.056Z",
+  "builtAt": "2026-10-17T08:29:30.604Z",
   "thresholds": {
     "lines": 95,
     "statements": 95,
@@ -62,10 +62,10 @@
     },
     {
       "directory": "packages/core",
-      "verdict": "SKIP",
-      "reason": "1 file, none with code to cover (types and re-exports only)",
-      "measuredFiles": 0,
-      "emptyFiles": 1,
+      "verdict": "PASS",
+      "reason": "9 files at or above the bar",
+      "measuredFiles": 9,
+      "emptyFiles": 6,
       "underTheBar": [],
       "unexplainedIgnores": [],
       "failedTests": []
@@ -145,7 +145,7 @@
       "verdict": "PASS",
       "reason": "10 files at or above the bar",
       "measuredFiles": 10,
-      "emptyFiles": 1,
+      "emptyFiles": 2,
       "underTheBar": [],
       "unexplainedIgnores": [],
       "failedTests": []
