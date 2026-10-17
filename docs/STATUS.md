@@ -54,6 +54,22 @@ It waits on a release, a decision or other work. Each entry says on what.
 
 The next step is known, and nobody has written a plan for it.
 
+- **The plugin's files still speak of the starter's price list.** The fix
+  is in `bettersoftware-io/skills`, then an update brings it here; these
+  files are the installer's, not the project's. What matters most:
+  `tools/arch/docs/review.md:22-32`, the seven questions `AGENTS.md` makes
+  every review answer, says a port is OK in "the domain package's ports
+  folder"; Origamic's ports are in `core` (ADR-0012), so a fresh review can
+  report that as a finding. The kit should say "the package that declares
+  `ports`". Then `packages/e2e/notStarted.setup.ts:8` and
+  `tools/e2e/lib/arguments.mts:26` give `src/sim/priceList.spec.ts` as the
+  example of one spec, and `packages/e2e/playwright.config.ts:52` gives that
+  deleted spec as the reason for the timeout. And `tools/installed.json`'s
+  e2e "starting" list names five deleted files
+  (`src/fullstack/serverPrices.spec.ts`, `src/pages/PriceList.page.ts`,
+  `src/pages/ServerFeed.page.ts`, `src/sim/priceList.spec.ts`,
+  `src/sim/selection.spec.ts`, under `packages/e2e`): whether an update
+  seeds them again is the add-on's to say.
 - **Keep a store call to the owner it began for.** In the client, each
   adapter call reads the access token once and sends it with every request
   of the call, so a call that began as A ends as A; or `apply` and `save`
@@ -80,6 +96,13 @@ The next step is known, and nobody has written a plan for it.
 
 A step or a decision an agent cannot take: a setting, an account, a choice
 between options. Each entry says who, and gives the command or the question.
+
+- **Whether to fix the agent-workflow hook's shell parser.** The author
+  decides: `AGENTS.md` says the hook changes only when the author asks. The
+  parser does not see a `$(…)` inside `${…}`, and ends a `$'…'` at an
+  escaped quote, so an outward step chained to another can pass the hook
+  unsplit. The host's own permission prompt still asks. The fix belongs in
+  the plugin's agent-workflow add-on, in `bettersoftware-io/skills`.
 
 - **Ask the real model once, by hand (the slice's part 8, step 6).** The
   author, with an Anthropic API key; no test in the gate calls a model

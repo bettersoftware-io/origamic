@@ -80,8 +80,9 @@ a table, and says why.
   do.
 - **It draws a UI spec, or turns the core's streams into hooks**:
   `packages/runtime`.
-- **It reads configuration or picks an adapter**: the composition root,
-  `apps/web/src/app`. Nowhere else.
+- **It reads configuration or picks an adapter**: the composition root of its
+  app, `apps/web/src/app` for the browser and `apps/gateway/src/main.ts` for
+  the gateway. Nowhere else.
 - **It is the shell on screen** (signing in, the builder, the library, the
   workspace): a component in `apps/web/src/ui`, reading from the view model.
   No RxJS, storage, `fetch`, environment or timers there.
@@ -102,7 +103,9 @@ Four rules about imports:
 - `react` is imported only in `catalog`, `runtime` and `apps/web`;
   `react-dom` and `dockview` only in `apps/web`; `@supabase/supabase-js` only
   in `adapters`; `@anthropic-ai/sdk` only in `apps/gateway`; `zod` only in
-  `spec`, `core` and `catalog`.
+  `spec`, `core` and `catalog`; what shadcn's primitives are built from
+  (`radix-ui`, `cn`, `class-variance-authority`, `lucide-react`) only in
+  `catalog`.
 - What is written for tests (a `testing/` folder, a `*.page.tsx`, a test) is
   imported only by tests.
 
@@ -136,16 +139,16 @@ these. Copy its shape:
   library.
 - A test id is a constant, never a string literal. The shell's are in
   `apps/web/src/ui/testids.ts`, used by the component, its page object and
-  the end-to-end specs. An element of a UI spec has `spec.<element id>`,
+  the end-to-end page objects (`packages/e2e/src/pages`). An element of a UI spec has `spec.<element id>`,
   which the runtime derives (`packages/runtime/src/elementTestId.ts`), and a
   part of it adds `.<part>` (`packages/catalog/src/react/testIds.ts`).
 - A test that needs the whole core asks `createCoreHarness`, in
   `packages/core/src/testing/coreHarness.ts`: every port on its simulator,
   the model scripted. No other test, page object or `testing/` file calls
   `createCore`.
-- A port's contract imports the port, the spec, the fixtures beside it and
-  the test runner. Never a simulator or an adapter: each one's test passes
-  itself in.
+- A port's contract imports the port, the spec, the helpers and fixtures
+  beside it, and the test runner. Never a simulator or an adapter: each
+  one's test passes itself in.
 - A test that opens a real port is named `*.port.test.ts`, so it can be left
   out, and said to be left out, where a port cannot be opened. One that needs
   the local Supabase is named `*.supabase.test.ts` (see "Origamic" below).
