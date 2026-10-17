@@ -28,11 +28,17 @@ const config: ArchitectureConfig = {
     // The schemas: imports nothing but zod, and every package may import it.
     "packages/spec": { role: "leaf", npm: ["zod"], noNodeBuiltins: true },
     // spec only. The role also grants the price list's domain and shared,
-    // until the slice removes them.
+    // until the slice removes them. Origamic's ports are here, not in a
+    // domain (ADR-0012). The function that builds the core is `createCore`,
+    // not the kit's `createApp`: "app" is a word the glossary keeps for a
+    // saved spec (the slice's plan, decision 5).
     "packages/core": {
       role: "core",
       npm: ["rxjs", "zod"],
       noNodeBuiltins: true,
+      ports: "src/ports",
+      compose: "createCore",
+      appHarness: "src/testing/coreHarness.ts",
     },
     // spec only, and only the runtime imports it (the runtime names it). Its
     // React code is held to a client's rules, the compiler's included: it is
@@ -92,6 +98,7 @@ const config: ArchitectureConfig = {
   // every port it implements.
   adapters: [
     "packages/domain/src/simulators",
+    "packages/core/src/simulators",
     "packages/client-core/src/adapters",
     "packages/adapters/src",
   ],
@@ -100,8 +107,6 @@ const config: ArchitectureConfig = {
   // can be replaced by changing those alone.
   // Remove a line when its package gets a test script.
   packagesWithoutTests: {
-    "packages/core":
-      "it holds no code yet: its first code comes with the first slice, and its tests with it",
     "packages/runtime":
       "it holds no code yet: its first code comes with the first slice, and its tests with it",
   },
