@@ -22,6 +22,8 @@ export interface CoreHarnessOptions {
   accounts?: readonly Account[];
   /** The catalog apps are checked against; the book tracker's five components, with no check of their props, when left out. */
   catalog?: Catalog;
+  /** Ports to run on in place of a simulator, each one given: a store with a shelf for each owner, one that waits on the test. */
+  ports?: Partial<Omit<CoreDeps, "catalog">>;
 }
 
 /** The core, and the simulators it runs on, for a test to arrange and to look at. */
@@ -34,13 +36,17 @@ export interface CoreHarness {
 export function createCoreHarness(
   options: CoreHarnessOptions = {},
 ): CoreHarness {
-  const ontology = createOntologyStoreSimulator(options.ontology);
+  const ports = options.ports ?? {};
+  const ontology =
+    ports.ontology ?? createOntologyStoreSimulator(options.ontology);
+
   const deps: CoreDeps = {
     ontology,
-    objects: createObjectStoreSimulator(ontology, options.objects),
-    library: createSpecLibrarySimulator(),
-    llm: createLlmGatewaySimulator(options.replies ?? []),
-    session: createSessionSimulator(options.accounts),
+    objects:
+      ports.objects ?? createObjectStoreSimulator(ontology, options.objects),
+    library: ports.library ?? createSpecLibrarySimulator(),
+    llm: ports.llm ?? createLlmGatewaySimulator(options.replies ?? []),
+    session: ports.session ?? createSessionSimulator(options.accounts),
     catalog: options.catalog ?? createCatalog(),
   };
 

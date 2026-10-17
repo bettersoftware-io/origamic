@@ -1,7 +1,7 @@
 name: End-to-end
 
-# Builds the client, serves the build, and drives it in a real browser: alone
-# on its simulator, and against the real server. A failing spec fails the job.
+# Builds the web app, serves the build, and drives it in a real browser: on
+# its simulators, and on a local Supabase. A failing spec fails the job.
 # The HTML report, with the trace of each failure, is uploaded when it fails.
 #
 # Two jobs. Most modes run in the Playwright container. A mode that says

@@ -17,15 +17,16 @@ export interface ShellIntents {
    * Asks the model, for a new app when `panel` is `null` and otherwise for a
    * revision of the app the panel pins, at the version it pins. Rejects, and
    * asks nothing, when the workspace has no such panel or the library no
-   * longer has its app.
+   * longer has its app, and when another signed in while it read the
+   * library: what it read was the owner before's.
    */
   ask(intent: string, panel: string | null): Promise<void>;
   /** Accepts the proposal shown: the builder says how it went. */
   accept(): Promise<void>;
   /** Drops the proposal shown, or what is being generated. */
   reject(): void;
-  /** Opens the latest version of a library's app in a new panel. Rejects when the library has no such app. */
-  openApp(id: string): Promise<void>;
+  /** Opens a library's app in a new panel, at `version` or the latest. Rejects when the library has no such app, and opens nothing when another signed in while it read the library. */
+  openApp(id: string, version?: number): Promise<void>;
   closePanel(panel: string): Promise<void>;
 }
 
@@ -49,6 +50,7 @@ export function createShellIntents(core: Core): ShellIntents {
         return;
       }
 
+      const owner = core.owner();
       const workspace = await firstValueFrom(core.workspace.workspace());
       const pin = Object.hasOwn(workspace?.panels ?? {}, panel)
         ? workspace?.panels[panel]
@@ -59,6 +61,8 @@ export function createShellIntents(core: Core): ShellIntents {
       }
 
       const app = await core.library.loadApp(pin.app, pin.appVersion);
+
+      assertSameOwner(core, owner);
 
       if (app === null) {
         throw new Error(
@@ -75,17 +79,34 @@ export function createShellIntents(core: Core): ShellIntents {
     reject: (): void => {
       core.builder.reject();
     },
-    openApp: async (id: string): Promise<void> => {
-      const app = await core.library.loadApp(id);
+    openApp: async (id: string, version?: number): Promise<void> => {
+      const owner = core.owner();
+      const asOf = core.workspace.epoch();
+      const app = await core.library.loadApp(id, version);
+
+      assertSameOwner(core, owner);
 
       if (app === null) {
-        throw new Error(`The library has no app "${id}".`);
+        throw new Error(
+          version === undefined
+            ? `The library has no app "${id}".`
+            : `The library has no app "${id}" at version ${String(version)}.`,
+        );
       }
 
-      await core.workspace.addPanel(app);
+      await core.workspace.addPanel(app, asOf);
     },
     closePanel: (panel: string): Promise<void> => {
       return core.workspace.closePanel(panel);
     },
   };
+}
+
+/** Throws when another has signed in since `owner` was read: what was read since belongs to the owner before. */
+function assertSameOwner(core: Core, owner: number): void {
+  if (core.owner() !== owner) {
+    throw new Error(
+      "Who is signed in changed while this was under way: nothing was done.",
+    );
+  }
 }

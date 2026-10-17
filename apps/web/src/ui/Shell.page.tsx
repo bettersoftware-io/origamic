@@ -1,5 +1,6 @@
 import { waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 
 import { Shell } from "./Shell.tsx";
 import { TESTIDS } from "./testids.ts";
@@ -27,6 +28,14 @@ export interface ShellPage extends PanelsReader {
   target: () => string;
   /** Presses the button that turns the builder to a new app. */
   newAppInstead: () => Promise<void>;
+  /** Holds the next accept at its change set until `releaseAccept`. */
+  holdAccept: () => void;
+  /** Lets a held accept go on, and waits until it is over. */
+  releaseAccept: () => Promise<void>;
+  /** Presses Accept, and waits until the builder says it is saving. */
+  startAccept: () => Promise<void>;
+  /** Whether "Sign out" can be pressed. */
+  canSignOut: () => boolean;
   /** Presses the button that turns it back to the active panel. */
   reviseInstead: () => Promise<void>;
 }
@@ -37,6 +46,7 @@ export function mountShell(): ShellPage {
   const user = userEvent.setup();
   const { container } = harness.show(<Shell />);
   const view = within(container);
+  const held = createHold();
 
   function signingIn(): boolean {
     return view.queryByTestId(TESTIDS.signIn) !== null;
@@ -89,8 +99,58 @@ export function mountShell(): ShellPage {
     newAppInstead: async (): Promise<void> => {
       await user.click(view.getByTestId(TESTIDS.builderNewApp));
     },
+    holdAccept: (): void => {
+      const { ontology } = harness.deps;
+      const apply = ontology.apply.bind(ontology);
+
+      vi.spyOn(ontology, "apply").mockImplementation(async (change) => {
+        await held.promise;
+
+        return apply(change);
+      });
+    },
+    releaseAccept: async (): Promise<void> => {
+      held.release();
+      await waitFor(() => {
+        if (view.queryByText("Saving…") !== null) {
+          throw new Error("the accept is still under way");
+        }
+      });
+      await harness.settle();
+    },
+    startAccept: async (): Promise<void> => {
+      await user.click(view.getByTestId(TESTIDS.proposalAccept));
+      await view.findByText("Saving…");
+    },
+    canSignOut: (): boolean => {
+      const button = view.getByTestId(TESTIDS.signOut);
+
+      return !(button instanceof HTMLButtonElement && button.disabled);
+    },
     reviseInstead: async (): Promise<void> => {
       await user.click(view.getByTestId(TESTIDS.builderRevise));
+    },
+  };
+}
+
+/** A promise a test settles when it chooses. */
+interface Hold {
+  promise: Promise<void>;
+  release: () => void;
+}
+
+function createHold(): Hold {
+  const settles: (() => void)[] = [];
+  const promise = new Promise<void>((resolve) => {
+    settles.push(resolve);
+  });
+
+  return {
+    promise,
+    release: (): void => {
+      for (const settle of settles) {
+        settle();
+      }
     },
   };
 }

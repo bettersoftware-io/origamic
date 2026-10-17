@@ -976,7 +976,7 @@ Copy `packages/e2e/src/sim/bookTracker.spec.ts`.
   client first. It reads what it reports in one step, so the page cannot
   change between two reads.
 - The package imports nothing else of the application. Use `import type` for
-  a type of the wire protocol.
+  a type of the application's (a spec's, a port's): a type is not an edge.
 
 ### Waiting
 

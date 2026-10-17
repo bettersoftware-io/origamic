@@ -1,14 +1,15 @@
-import { type ReactElement, useState } from "react";
+import { type FormEvent, type ReactElement, useState } from "react";
 
 import type { LibraryEntry } from "@origamic/core";
 import { useShellViewModel } from "@origamic/runtime";
 
-import { messageOf } from "./forms.ts";
+import { messageOf, textOf } from "./forms.ts";
 import { libraryEntryTestId, TESTIDS } from "./testids.ts";
 
 /**
  * The owner's apps, each at its latest version, and a way to open one in a
- * panel: how a saved app that no panel shows comes back. It reads the view
+ * panel at any version it has: how a saved app that no panel shows comes
+ * back, and how an old version is seen again (ADR-0005). It reads the view
  * model and hands plain props to the list, which the React Compiler compiles.
  */
 export function Library(): ReactElement {
@@ -20,17 +21,17 @@ export function Library(): ReactElement {
 
 interface LibraryListProps {
   entries: readonly LibraryEntry[];
-  onOpen: (id: string) => Promise<void>;
+  onOpen: (id: string, version: number) => Promise<void>;
 }
 
 function LibraryList({ entries, onOpen }: LibraryListProps): ReactElement {
   const [problem, setProblem] = useState<string | null>(null);
 
-  function openApp(id: string): void {
+  function openApp(id: string, version: number): void {
     setProblem(null);
     // Nothing waits: the panel arrives through the workspace, and a failure
     // is shown here.
-    void onOpen(id).catch((error: unknown) => {
+    void onOpen(id, version).catch((error: unknown) => {
       setProblem(messageOf(error));
     });
   }
@@ -66,12 +67,18 @@ function LibraryList({ entries, onOpen }: LibraryListProps): ReactElement {
 
 interface EntryViewProps {
   entry: LibraryEntry;
-  onOpen: (id: string) => void;
+  onOpen: (id: string, version: number) => void;
 }
 
+/** An app: its name and latest version, and every version of it to open, the latest first. A version is never changed, so each one is there to open. */
 function EntryView({ entry, onOpen }: EntryViewProps): ReactElement {
-  function openEntry(): void {
-    onOpen(entry.id);
+  const versions = Array.from({ length: entry.latest }, (_, index) => {
+    return entry.latest - index;
+  });
+
+  function openEntry(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    onOpen(entry.id, Number(textOf(event.currentTarget, "version")));
   }
 
   return (
@@ -85,14 +92,30 @@ function EntryView({ entry, onOpen }: EntryViewProps): ReactElement {
           version {String(entry.latest)}
         </span>
       </span>
-      <button
-        data-testid={TESTIDS.libraryOpen}
-        className="button button-small"
-        type="button"
-        onClick={openEntry}
-      >
-        Open
-      </button>
+      <form className="flex items-center gap-1" onSubmit={openEntry}>
+        <select
+          data-testid={TESTIDS.libraryVersion}
+          aria-label={`The version of ${entry.name} to open`}
+          className="field py-1 text-xs"
+          name="version"
+          defaultValue={String(entry.latest)}
+        >
+          {versions.map((version) => {
+            return (
+              <option key={version} value={String(version)}>
+                v{version}
+              </option>
+            );
+          })}
+        </select>
+        <button
+          data-testid={TESTIDS.libraryOpen}
+          className="button button-small"
+          type="submit"
+        >
+          Open
+        </button>
+      </form>
     </li>
   );
 }

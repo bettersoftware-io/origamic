@@ -289,6 +289,28 @@ describe("the workspace presenter", () => {
     );
     expect(await current(core)).toBeNull();
   });
+
+  it("a change decided before a close is refused after it, even once the workspace is open again", async () => {
+    const { core } = createCoreHarness();
+
+    await core.workspace.open();
+
+    const decided = core.workspace.epoch();
+
+    core.workspace.close();
+    await core.workspace.open();
+
+    await expect(
+      core.workspace.addPanel(createPinnedApp(1), decided),
+    ).rejects.toThrow("the workspace was closed since this change was decided");
+    await expect(core.workspace.closePanel("books", decided)).rejects.toThrow(
+      "the workspace was closed since this change was decided",
+    );
+    await expect(
+      core.workspace.movePin("books", createPinnedApp(2), decided),
+    ).rejects.toThrow("the workspace was closed since this change was decided");
+    expect(await current(core)).toMatchObject({ version: 1, panels: {} });
+  });
 });
 
 type Core = CoreHarness["core"];

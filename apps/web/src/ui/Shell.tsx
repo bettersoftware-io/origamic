@@ -44,8 +44,10 @@ interface SignedInProps {
 }
 
 function SignedIn({ email }: SignedInProps): ReactElement {
-  const { useIntents } = useShellViewModel();
+  const { useIntents, useBuilder } = useShellViewModel();
   const { signOut } = useIntents();
+  // Signing out stops an accept under way; it waits for the accept instead.
+  const accepting = useBuilder().kind === "accepting";
   const [focus, setFocus] = useState<Focus>(NO_PANEL);
 
   /** The builder follows a panel that becomes active; dockview says so again on focus alone, which changes nothing. */
@@ -85,6 +87,7 @@ function SignedIn({ email }: SignedInProps): ReactElement {
             data-testid={TESTIDS.signOut}
             className="button button-small"
             type="button"
+            disabled={accepting}
             onClick={signOutNow}
           >
             Sign out

@@ -15,6 +15,17 @@ describe("the build", () => {
     },
   );
 
+  it(
+    "leaves the runtime uncompiled, as its own tests run it",
+    BUILDING,
+    async () => {
+      const code = await readCodeBuiltFrom(RUNTIME_APP_VIEW);
+
+      expect(code).toContain("function AppView");
+      expect(code).not.toContain(COMPILER_RUNTIME);
+    },
+  );
+
   it("compiles this package's own components with it", BUILDING, async () => {
     const code = await readCodeBuiltFrom(WORKSPACE);
 
@@ -31,6 +42,12 @@ const COMPILER_RUNTIME = '"react/compiler-runtime"';
 /** One of the catalog's implementations, read as the workspace links it: as source, from its own folder. */
 const CATALOG_TABLE: string = new URL(
   "../../../../packages/catalog/src/react/Table.tsx",
+  import.meta.url,
+).pathname;
+
+/** The runtime's view of an app: the compiler would compile it, were the runtime not left out. */
+const RUNTIME_APP_VIEW: string = new URL(
+  "../../../../packages/runtime/src/AppView.tsx",
   import.meta.url,
 ).pathname;
 

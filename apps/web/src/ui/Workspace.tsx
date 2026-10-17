@@ -19,6 +19,7 @@ import { AppView, type PinnedApp, useShellViewModel } from "@origamic/runtime";
 import type { App, Workspace as WorkspaceSpec } from "@origamic/spec";
 
 import { toDockviewSteps } from "./dockviewSteps.ts";
+import { messageOf } from "./forms.ts";
 import { panelTestId, TESTIDS } from "./testids.ts";
 
 /**
@@ -92,11 +93,25 @@ function Dock({
   /** Dockview, made once the element it fills is on the page. The effects below read it in the order they are written, after it is made. */
   const dock = useRef<DockviewApi | null>(null);
   const keeping = useRef(false);
+  /** What dockview's listeners read: the props as last drawn, so the listeners are made once, with dockview. */
+  const latest = useRef<DockProps>({
+    workspace,
+    library,
+    onClosePanel,
+    onActivePanel,
+  });
+
   const [contents, setContents] = useState<ReadonlyMap<string, HTMLElement>>(
     () => {
       return new Map();
     },
   );
+  const [closeProblem, setCloseProblem] = useState<string | null>(null);
+
+  useEffect(() => {
+    latest.current = { workspace, library, onClosePanel, onActivePanel };
+  });
+
   useEffect(() => {
     const element = host.current;
 
@@ -131,42 +146,43 @@ function Dock({
       },
     });
 
-    dock.current = created.api;
-
-    return (): void => {
-      created.dispose();
-      dock.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    const api = dock.current;
-
-    if (api === null) {
-      return undefined;
-    }
-
-    const activated = api.onDidActivePanelChange(({ panel }) => {
-      onActivePanel(panel?.id ?? null);
+    const activated = created.api.onDidActivePanelChange(({ panel }) => {
+      latest.current.onActivePanel(panel?.id ?? null);
     });
 
     // A panel closed from its tab: dockview has removed it, and the
     // workspace saves the version without it. A removal of the dock's own,
     // to keep in step, is not one, nor is a panel dragged elsewhere (dockview
-    // says nothing of it).
-    const removed = api.onDidRemovePanel((panel) => {
-      if (!keeping.current) {
-        // The workspace says how the close went: it no longer pins the
-        // panel, or, when the save failed, still does.
-        void onClosePanel(panel.id);
+    // says nothing of it). When the save fails, the workspace still pins
+    // the panel: the dock shows it again, and says why it stayed.
+    const removed = created.api.onDidRemovePanel((panel) => {
+      if (keeping.current) {
+        return;
       }
+
+      setCloseProblem(null);
+      // Nothing waits: the workspace without the panel arrives through the
+      // view model, and a failure is handled here.
+      void latest.current.onClosePanel(panel.id).catch((error: unknown) => {
+        setCloseProblem(`The panel was not closed: ${messageOf(error)}`);
+        keepInStep({
+          dock: created.api,
+          workspace: latest.current.workspace,
+          library: latest.current.library,
+          keeping,
+        });
+      });
     });
+
+    dock.current = created.api;
 
     return (): void => {
       activated.dispose();
       removed.dispose();
+      created.dispose();
+      dock.current = null;
     };
-  }, [onActivePanel, onClosePanel]);
+  }, []);
 
   useEffect(() => {
     const api = dock.current;
@@ -187,6 +203,15 @@ function Dock({
           library.
         </p>
       ) : null}
+      {closeProblem === null ? null : (
+        <p
+          data-testid={TESTIDS.workspaceProblem}
+          role="alert"
+          className="absolute bottom-0 left-0 z-10 p-2 text-sm text-destructive"
+        >
+          {closeProblem}
+        </p>
+      )}
       <div ref={host} className="dock" />
       {[...contents].map(([panel, element]) => {
         const pin = Object.hasOwn(workspace.panels, panel)

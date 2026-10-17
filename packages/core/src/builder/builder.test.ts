@@ -676,6 +676,104 @@ describe("the builder", () => {
     });
     expect(apply).toHaveBeenCalledOnce();
   });
+
+  it("close() during an accept stores nothing, and says the accept was stopped", async () => {
+    const { core, deps } = createCoreHarness({
+      replies: [createNewBookReply()],
+    });
+
+    await core.workspace.open();
+    core.builder.ask("a tracker for the books I'm reading");
+    await until(core, "proposed");
+
+    const accepting = core.builder.accept();
+
+    core.builder.close();
+    await accepting;
+
+    expect(await currentState(core)).toEqual({
+      kind: "failed",
+      target: { kind: "new" },
+      message:
+        "The accept was stopped: who is signed in changed before it was saved, and nothing more was saved.",
+      problems: [],
+    });
+    expect((await firstValueFrom(deps.ontology.current())).version).toBe(0);
+    expect(await deps.library.loadApp("books")).toBeNull();
+  });
+
+  it("a hand-over just as the accept ends leaves the builder saying the accept was stopped", async () => {
+    const { core } = createCoreHarness({ replies: [createNewBookReply()] });
+    const addPanel = core.workspace.addPanel.bind(core.workspace);
+
+    vi.spyOn(core.workspace, "addPanel").mockImplementation(
+      async (app, asOf) => {
+        await addPanel(app, asOf);
+        core.handOver();
+      },
+    );
+    await core.workspace.open();
+    core.builder.ask("a tracker for the books I'm reading");
+    await until(core, "proposed");
+    await core.builder.accept();
+
+    expect(await currentState(core)).toMatchObject({
+      kind: "failed",
+      target: { kind: "new" },
+      message: expect.stringContaining("The accept was stopped"),
+    });
+  });
+
+  it("close() after the change set applied saves no app and adds no panel", async () => {
+    const { core, deps } = createCoreHarness({
+      replies: [createNewBookReply()],
+    });
+    const apply = deps.ontology.apply.bind(deps.ontology);
+
+    vi.spyOn(deps.ontology, "apply").mockImplementation(async (change) => {
+      const applied = await apply(change);
+
+      core.builder.close();
+
+      return applied;
+    });
+    await core.workspace.open();
+    core.builder.ask("a tracker for the books I'm reading");
+    await until(core, "proposed");
+    await core.builder.accept();
+
+    expect(await deps.library.loadApp("books")).toBeNull();
+    expect(await firstValueFrom(core.workspace.workspace())).toMatchObject({
+      panels: {},
+    });
+  });
+
+  it("an owner's hand-over after the app is saved keeps its panel out of the next owner's workspace", async () => {
+    const { core, deps } = createCoreHarness({
+      replies: [createNewBookReply()],
+    });
+    const saveApp = deps.library.saveApp.bind(deps.library);
+
+    vi.spyOn(deps.library, "saveApp").mockImplementation(async (draft) => {
+      const app = await saveApp(draft);
+
+      core.handOver();
+      // The next owner's workspace opens before the accept takes its turn.
+      await core.workspace.open();
+
+      return app;
+    });
+    await core.workspace.open();
+    core.builder.ask("a tracker for the books I'm reading");
+    await until(core, "proposed");
+    await core.builder.accept();
+
+    expect(await firstValueFrom(core.workspace.workspace())).toMatchObject({
+      version: 1,
+      panels: {},
+    });
+    expect((await currentState(core)).kind).toBe("failed");
+  });
 });
 
 type Kind = BuilderState["kind"];

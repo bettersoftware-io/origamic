@@ -115,6 +115,29 @@ describe("the shell's view model", () => {
     expect(page.workspace()).toMatchObject({ version: 1, panels: {} });
   });
 
+  it("an accept under way when the owner changes writes nothing into the next owner's stores", async () => {
+    const page = mountShell({
+      workspacePerOwner: true,
+      replies: [createBookReply()],
+    });
+
+    await page.signUp("a@example.com");
+    await page.settle();
+    await page.askForBookTracker();
+
+    const next = await page.acceptWhileOwnerChanges("b@example.com");
+
+    expect(next).toEqual({
+      ontologyVersion: 0,
+      apps: [],
+      workspace: expect.objectContaining({ version: 1, panels: {} }),
+    });
+    expect(page.builderState()).toMatchObject({
+      kind: "failed",
+      message: expect.stringContaining("The accept was stopped"),
+    });
+  });
+
   it("drops the builder's proposal at sign-out", async () => {
     const page = mountShell({ replies: [createBookReply()] });
 

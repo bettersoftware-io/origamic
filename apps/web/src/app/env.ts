@@ -48,3 +48,8 @@ function variableOf(variables: Variables, name: string): string | undefined {
 
   return typeof value === "string" && value !== "" ? value : undefined;
 }
+
+/** The configuration this build was given: what `readWebEnv` reads from the build's own variables. */
+export function readBuildEnv(): WebEnv {
+  return readWebEnv(import.meta.env);
+}

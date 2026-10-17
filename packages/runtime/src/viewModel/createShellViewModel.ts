@@ -66,10 +66,11 @@ export function createShellViewModel(core: Core): ShellViewModel {
 
   /**
    * Hands the shell to whoever is signed in now. When that changes (a
-   * sign-out, another sign-in) the owner before is forgotten first: the
-   * workspace is closed, so none of their panels shows and no change of
-   * theirs is saved after, and the builder drops what it was asked or
-   * proposed. Then the new owner's workspace is opened, when there is one.
+   * sign-out, another sign-in) the core forgets the owner before first
+   * (`handOver`): the workspace is closed, so none of their panels shows
+   * and no change of theirs is saved after, and the builder drops what it
+   * was asked or proposed, an accept under way included. Then the new
+   * owner's workspace is opened, when there is one.
    * The library follows the owner too.
    */
   function handOver(next: User | null | undefined): void {
@@ -80,8 +81,7 @@ export function createShellViewModel(core: Core): ShellViewModel {
     }
 
     signedIn = id;
-    core.workspace.close();
-    core.builder.target({ kind: "new" });
+    core.handOver();
     workspaceProblem.next(null);
     owner.next(id);
 

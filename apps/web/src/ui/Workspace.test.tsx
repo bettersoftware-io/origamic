@@ -91,6 +91,25 @@ describe("the workspace", () => {
     expect(page.saved()).toMatchObject({ panels: {}, layout: null });
   });
 
+  it("shows a panel again, and says why, when its close could not be saved", async () => {
+    const page = mountWorkspace();
+
+    await page.signUp();
+    await page.openBookTracker();
+    await page.caption("books");
+    page.failSaving("the library cannot be reached");
+    await page.closeFromTab("Books I'm reading v1");
+
+    expect(page.closeProblem()).toBe(
+      "The panel was not closed: the library cannot be reached",
+    );
+    expect(page.panels()).toEqual(["books"]);
+    expect(page.tabTitles()).toEqual(["Books I'm reading v1"]);
+    expect(page.saved()?.panels).toEqual({
+      books: { app: "books", appVersion: 1 },
+    });
+  });
+
   it("takes away a panel the workspace closed elsewhere, and leaves the others", async () => {
     const page = mountWorkspace();
 

@@ -37,6 +37,23 @@ test.describe("the first slice's loop, on the simulators", () => {
         { title: "Dune", cells: ["Dune", "", "want", "", ""] },
         { title: "Emma", cells: ["Emma", "", "want", "", ""] },
       ]);
+
+    // The old version is still in the library: it opens beside the new one,
+    // with both books and no column for the date.
+    await shell.openFromLibrary("books", 1);
+    await expect
+      .poll(() => {
+        return shell.caption("books-2");
+      })
+      .toBe("Books I'm reading · version 1");
+    await expect
+      .poll(() => {
+        return specApp.books("books-2");
+      })
+      .toEqual([
+        { title: "Dune", cells: ["Dune", "", "want", ""] },
+        { title: "Emma", cells: ["Emma", "", "want", ""] },
+      ]);
   });
 });
 

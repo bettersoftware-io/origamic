@@ -41,6 +41,10 @@ export interface WorkspacePage extends PanelsReader {
   pinUnknownApp: (panel: string) => Promise<void>;
   /** Makes the library fail to open the workspace at the next sign-in. */
   failOpening: (message: string) => void;
+  /** Makes the library fail every save of the workspace from now on. */
+  failSaving: (message: string) => void;
+  /** Why the last close from a tab did not close the panel, or null. */
+  closeProblem: () => string | null;
   /** Makes the library fail to read any app at a pinned version. */
   failLoading: (message: string) => void;
   /** Closes a panel elsewhere than in its tab (another shell, the builder), as the workspace saves it. */
@@ -144,6 +148,14 @@ export function mountWorkspace(): WorkspacePage {
       vi.spyOn(harness.deps.library, "loadWorkspace").mockRejectedValue(
         new Error(message),
       );
+    },
+    failSaving: (message: string): void => {
+      vi.spyOn(harness.deps.library, "saveWorkspace").mockRejectedValue(
+        new Error(message),
+      );
+    },
+    closeProblem: (): string | null => {
+      return view.queryByTestId(TESTIDS.workspaceProblem)?.textContent ?? null;
     },
     failLoading: (message: string): void => {
       const { library } = harness.deps;

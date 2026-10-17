@@ -130,6 +130,54 @@ describe("the shell's intents", () => {
     });
   });
 
+  it("asks nothing when another signs in while the panel's app is read", async () => {
+    const harness = await createBookHarness();
+    const intents = createShellIntents(harness.core);
+    const generate = vi.spyOn(harness.deps.llm, "generate");
+
+    await intents.openApp("books");
+    handOverWhileLoading(harness);
+
+    await expect(intents.ask("add a field", "books")).rejects.toThrow(
+      "Who is signed in changed while this was under way: nothing was done.",
+    );
+    expect(generate).not.toHaveBeenCalled();
+    expect(await currentState(harness.core)).toEqual({
+      kind: "idle",
+      target: { kind: "new" },
+    });
+  });
+
+  it("opens nothing when another signs in while the app is read", async () => {
+    const harness = await createBookHarness();
+    const intents = createShellIntents(harness.core);
+
+    await harness.core.workspace.open();
+
+    const saveWorkspace = vi.spyOn(harness.deps.library, "saveWorkspace");
+
+    handOverWhileLoading(harness);
+
+    await expect(intents.openApp("books")).rejects.toThrow(
+      "Who is signed in changed while this was under way: nothing was done.",
+    );
+    expect(saveWorkspace).not.toHaveBeenCalled();
+  });
+
+  it("opens an app at the version asked for, and says when the library has none", async () => {
+    const harness = await createBookHarness();
+    const intents = createShellIntents(harness.core);
+
+    await intents.openApp("books", 1);
+
+    expect(await currentWorkspace(harness.core)).toMatchObject({
+      panels: { books: { app: "books", appVersion: 1 } },
+    });
+    await expect(intents.openApp("books", 4)).rejects.toThrow(
+      'The library has no app "books" at version 4.',
+    );
+  });
+
   it("refuses to open an app the library does not have", async () => {
     const { core } = createCoreHarness();
     const intents = createShellIntents(core);
@@ -164,6 +212,21 @@ function createNewBookReply(): GenerationEvent[] {
       }),
     },
   ];
+}
+
+/** Hands the core over to the next owner while the library reads an app, as a sign-in in another tab would. */
+function handOverWhileLoading({ core, deps }: CoreHarness): void {
+  const loadApp = deps.library.loadApp.bind(deps.library);
+
+  vi.spyOn(deps.library, "loadApp").mockImplementation(
+    async (id: string, version?: number) => {
+      const app = await loadApp(id, version);
+
+      core.handOver();
+
+      return app;
+    },
+  );
 }
 
 function currentState(core: Core): Promise<BuilderState> {

@@ -46,27 +46,36 @@ function start(command: string, args: string[], cwd: string, env: NodeJS.Process
 
 let stopping = false;
 
-function stopAll(exitCode: number): void {
-  stopping = true;
-
+/** Signals every group still running. Each runs detached, in a group of its own, so nothing else stops it: this is called on every way out. */
+function signalAll(signal: NodeJS.Signals): void {
   for (const child of children) {
     if (child.pid !== undefined && child.exitCode === null) {
       try {
-        process.kill(-child.pid, "SIGTERM");
+        process.kill(-child.pid, signal);
       } catch {
         // It ended on its own in the meantime.
       }
     }
   }
+}
 
+function stopAll(exitCode: number): void {
+  stopping = true;
+  signalAll("SIGTERM");
   process.exitCode = exitCode;
 }
 
-process.on("SIGINT", () => {
-  stopAll(0);
-});
-process.on("SIGTERM", () => {
-  stopAll(0);
+// Ctrl-C, a kill, and the terminal closing; and, whatever ends this
+// process (an error included), what it started does not outlive it.
+for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
+  process.on(signal, () => {
+    stopAll(0);
+  });
+}
+
+process.on("exit", () => {
+  stopping = true;
+  signalAll("SIGTERM");
 });
 
 console.log("[dev:stack] starting the local Supabase (the first start pulls its images, which takes minutes)");
@@ -86,8 +95,12 @@ if (key === "") {
   });
 }
 
+// The key to the model is the gateway's alone (ARCHITECTURE.md, "Security
+// posture"): the app's dev server is not given it.
+const { ANTHROPIC_API_KEY: _key, ...appEnvironment } = process.env;
+
 start(join("node_modules", ".bin", "vite"), ["--port", APP_PORT, "--strictPort"], join(ROOT, "apps", "web"), {
-  ...process.env,
+  ...appEnvironment,
   VITE_SUPABASE_URL: supabase.url,
   VITE_SUPABASE_ANON_KEY: supabase.anonKey,
   VITE_GATEWAY_URL: key === "" ? "" : GATEWAY_URL,

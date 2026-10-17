@@ -56,6 +56,22 @@ describe("the shell", () => {
     expect(page.target()).toBe("Revising Books I'm reading, version 1");
   });
 
+  it("does not let the builder sign out while an accept is being saved", async () => {
+    const page = mountShell();
+
+    await page.signUp();
+    await page.ask(BOOK_TRACKER);
+    page.holdAccept();
+    await page.startAccept();
+
+    expect(page.canSignOut()).toBe(false);
+
+    await page.releaseAccept();
+
+    expect(page.canSignOut()).toBe(true);
+    expect(await page.caption("books")).toBe("Books I'm reading · version 1");
+  });
+
   it("signs out back to the sign-in", async () => {
     const page = mountShell();
 

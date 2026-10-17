@@ -4,18 +4,24 @@ import {
   defer,
   filter,
   firstValueFrom,
+  from,
   merge,
   type Observable,
   Subject,
+  switchMap,
 } from "rxjs";
 
 import {
   type AppSession,
   type BuilderState,
   type Core,
+  type CoreDeps,
+  createOntologyStoreSimulator,
+  createSessionSimulator,
   createSpecLibrarySimulator,
-  createWorkspacePresenter,
   type LibraryEntry,
+  type OntologyStorePort,
+  type SessionPort,
   type SpecLibraryPort,
   type User,
 } from "@origamic/core";
@@ -23,6 +29,8 @@ import { createCoreHarness } from "@origamic/core/testing/coreHarness.ts";
 import {
   App,
   AppDraft,
+  type Applied,
+  type ChangeSet,
   type GenerationEvent,
   Ontology,
   type Workspace,
@@ -104,8 +112,14 @@ export interface ShellPage {
   failUser: (message: string) => Promise<void>;
   /** Lets what React and the view model put off until the current work is done run. */
   settle: () => Promise<void>;
-  /** Opens the saved book tracker in a panel of the workspace the shell shows, as the library's Open does. Resolves when it is saved, or rejects with why not. */
+  /** Opens the book tracker at version 1 in a panel of the workspace the core holds. Resolves when it is saved, or rejects with why not. */
   addBookPanel: () => Promise<void>;
+  /**
+   * Accepts the proposal shown while the owner signs out and `next` signs
+   * up: the accept is held at its first read of the ontology until the new
+   * owner's workspace is open. Resolves with what the new owner then has.
+   */
+  acceptWhileOwnerChanges: (next: string) => Promise<OwnersStores>;
   /** Starts adding the book tracker's panel, signs out before that change has its turn, and settles with how the change went. */
   addBookPanelWhileSigningOut: () => Promise<PromiseSettledResult<void>>;
   /** The builder's state as the shell saw it last. */
@@ -126,14 +140,14 @@ export function mountShell({
   replies = [],
   lateSession = false,
 }: ShellPageOptions = {}): ShellPage {
-  const { core } = createCoreHarness({
+  const session = createSessionSimulator();
+  const gate = createGate();
+  const { core, deps } = createCoreHarness({
     ontology: Ontology.parse(createBookOntology()),
     replies,
+    ports: workspacePerOwner ? createStoresPerOwner(session, gate) : {},
   });
-
-  const workspace = workspacePerOwner
-    ? createWorkspacePresenter(createLibraryPerOwner(core))
-    : core.workspace;
+  const { workspace } = core;
   const userFailures = new Subject<never>();
   const lateUsers = new Subject<User | null>();
   let userSubscriptions = 0;
@@ -255,15 +269,33 @@ export function mountShell({
       return libraryReads;
     },
     addBookPanel: async (): Promise<void> => {
-      const app = await core.library.loadApp("books");
+      await act(async () => {
+        await workspace.addPanel(first);
+      });
+    },
+    acceptWhileOwnerChanges: async (next: string): Promise<OwnersStores> => {
+      gate.armed = true;
 
-      if (app === null) {
-        throw new Error("the book tracker is not saved");
-      }
+      let accepting: Promise<void> = Promise.resolve();
 
       await act(async () => {
-        await workspace.addPanel(app);
+        accepting = core.builder.accept();
+        await core.session.signOut();
+        await core.session.signUp(next, PASSWORD);
       });
+      await settle();
+      await act(async () => {
+        gate.open();
+        await accepting;
+      });
+      await settle();
+
+      return {
+        ontologyVersion: (await firstValueFrom(deps.ontology.current()))
+          .version,
+        apps: await firstValueFrom(core.library.apps()),
+        workspace: await core.library.loadWorkspace("main"),
+      };
     },
     addBookPanelWhileSigningOut: async (): Promise<
       PromiseSettledResult<void>
@@ -337,49 +369,111 @@ export function mountShell({
 
 const PASSWORD = "a long enough password";
 
+/** What an owner has in the stores: their ontology's version, their apps, and their workspace as saved. */
+interface OwnersStores {
+  ontologyVersion: number;
+  apps: readonly LibraryEntry[];
+  workspace: Workspace | null;
+}
+
+/** Holds the ontology's reads, once armed, until the test opens it. */
+interface Gate {
+  armed: boolean;
+  opened: Promise<void>;
+  open: () => void;
+}
+
+function createGate(): Gate {
+  const opening = new Subject<undefined>();
+  const opened = firstValueFrom(opening).then(() => {
+    return undefined;
+  });
+
+  return {
+    armed: false,
+    opened,
+    open: (): void => {
+      opening.next(undefined);
+    },
+  };
+}
+
 /**
- * The library, with a shelf of its own for each signed-in user, as Supabase
- * keeps each owner's rows apart: the simulators' library has one shelf for
- * everyone. Nobody signed in has a shelf of their own too, which no owner
- * sees.
+ * The session, and an ontology and a library with a shelf of their own for
+ * each signed-in user, as Supabase keeps each owner's rows apart: the
+ * simulators have one shelf for everyone. Like Supabase's, they answer
+ * whoever is signed in when they are called, not whoever was when the
+ * caller began. Nobody signed in has a shelf too, which no owner sees. Once
+ * the gate is armed, a read of the ontology waits for it.
  */
-function createLibraryPerOwner(core: Core): SpecLibraryPort {
-  const shelves = new Map<string, SpecLibraryPort>();
+function createStoresPerOwner(
+  session: SessionPort,
+  gate: Gate,
+): Partial<Omit<CoreDeps, "catalog">> {
+  const libraries = new Map<string, SpecLibraryPort>();
+  const ontologies = new Map<string, OntologyStorePort>();
   let owner = "";
 
-  core.session.user().subscribe((user) => {
+  session.user().subscribe((user) => {
     owner = user?.id ?? "";
   });
 
-  function shelf(): SpecLibraryPort {
-    const found = shelves.get(owner) ?? createSpecLibrarySimulator();
+  function library(): SpecLibraryPort {
+    const found = libraries.get(owner) ?? createSpecLibrarySimulator();
 
-    shelves.set(owner, found);
+    libraries.set(owner, found);
+
+    return found;
+  }
+
+  function ontology(): OntologyStorePort {
+    const found = ontologies.get(owner) ?? createOntologyStoreSimulator();
+
+    ontologies.set(owner, found);
 
     return found;
   }
 
   return {
-    apps: (): Observable<readonly LibraryEntry[]> => {
-      return shelf().apps();
+    session,
+    ontology: {
+      current: (): Observable<Ontology> => {
+        return defer(() => {
+          return gate.armed
+            ? from(gate.opened).pipe(
+                switchMap(() => {
+                  return ontology().current();
+                }),
+              )
+            : ontology().current();
+        });
+      },
+      apply: (change: ChangeSet): Promise<Applied> => {
+        return ontology().apply(change);
+      },
     },
-    workspaces: (): Observable<readonly LibraryEntry[]> => {
-      return shelf().workspaces();
-    },
-    loadApp: (id: string, version?: number): Promise<App | null> => {
-      return shelf().loadApp(id, version);
-    },
-    saveApp: (draft: AppDraft): Promise<App> => {
-      return shelf().saveApp(draft);
-    },
-    loadWorkspace: (
-      id: string,
-      version?: number,
-    ): Promise<Workspace | null> => {
-      return shelf().loadWorkspace(id, version);
-    },
-    saveWorkspace: (draft: WorkspaceDraft): Promise<Workspace> => {
-      return shelf().saveWorkspace(draft);
+    library: {
+      apps: (): Observable<readonly LibraryEntry[]> => {
+        return library().apps();
+      },
+      workspaces: (): Observable<readonly LibraryEntry[]> => {
+        return library().workspaces();
+      },
+      loadApp: (id: string, version?: number): Promise<App | null> => {
+        return library().loadApp(id, version);
+      },
+      saveApp: (draft: AppDraft): Promise<App> => {
+        return library().saveApp(draft);
+      },
+      loadWorkspace: (
+        id: string,
+        version?: number,
+      ): Promise<Workspace | null> => {
+        return library().loadWorkspace(id, version);
+      },
+      saveWorkspace: (draft: WorkspaceDraft): Promise<Workspace> => {
+        return library().saveWorkspace(draft);
+      },
     },
   };
 }

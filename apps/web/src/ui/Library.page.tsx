@@ -1,4 +1,4 @@
-import { waitFor, within } from "@testing-library/react";
+import { act, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
@@ -16,8 +16,10 @@ export interface LibraryPage {
   entries: () => string[];
   /** Signs a builder up and saves the book tracker, with no panel showing it. */
   saveBookTracker: () => Promise<void>;
-  /** Presses the app's "Open", and waits until the workspace pins it or the library says why not. */
-  open: (app: string) => Promise<void>;
+  /** Chooses the version (the latest when left out), presses the app's "Open", and waits until the workspace pins it or the library says why not. */
+  open: (app: string, version?: number) => Promise<void>;
+  /** Saves a second version of the book tracker. */
+  saveNextVersion: () => Promise<void>;
   /** The workspace as last saved. */
   workspace: () => Workspace | null;
   /** Why the last app could not be opened, or null. */
@@ -53,19 +55,24 @@ export function mountLibrary(): LibraryPage {
           return id.startsWith(prefix);
         })
         .map((entry) => {
-          return entry.textContent.replace("Open", "").trim();
+          return entry.firstElementChild?.textContent ?? "";
         });
     },
     saveBookTracker: async (): Promise<void> => {
       await harness.signUp();
       await harness.saveBookTracker();
     },
-    open: async (app: string): Promise<void> => {
-      await user.click(
-        within(view.getByTestId(libraryEntryTestId(app))).getByTestId(
-          TESTIDS.libraryOpen,
-        ),
-      );
+    open: async (app: string, version?: number): Promise<void> => {
+      const entry = within(view.getByTestId(libraryEntryTestId(app)));
+
+      if (version !== undefined) {
+        await user.selectOptions(
+          entry.getByTestId(TESTIDS.libraryVersion),
+          String(version),
+        );
+      }
+
+      await user.click(entry.getByTestId(TESTIDS.libraryOpen));
       await waitFor(() => {
         const pinned =
           workspace !== null && Object.hasOwn(workspace.panels, app);
@@ -73,6 +80,19 @@ export function mountLibrary(): LibraryPage {
         if (!pinned && problem() === null) {
           throw new Error(`"${app}" is neither pinned nor refused`);
         }
+      });
+    },
+    saveNextVersion: async (): Promise<void> => {
+      const app = await harness.core.library.loadApp("books");
+
+      if (app === null) {
+        throw new Error("the book tracker is not saved");
+      }
+
+      const { version: _version, ...draft } = app;
+
+      await act(async () => {
+        await harness.core.library.saveApp(draft);
       });
     },
     workspace: (): Workspace | null => {

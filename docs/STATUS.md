@@ -299,13 +299,16 @@ verified, a case that is not covered.
   "want"` leaves out a book written before `status` existed. Nothing
   affects the book tracker; it matters once a change set adds a property
   with a default that a view filters on.
-- **An accept under way at a sign-out still finishes its stores.** At each
-  change of owner the shell closes the workspace (a panel change queued
-  before is dropped), and the builder drops a generation or a proposal; but
-  the builder ignores a new target while it accepts, so an accept already
-  applying its change set and saving its app goes on with whatever session
-  the stores have by then, and only its panel is refused. Its stores would
-  need the owner to check against, which `core` does not pass them.
+- **A change of owner inside one store's call is not caught.** At each
+  change of owner the shell hands the core over (`core.handOver()`): the
+  workspace closes, the builder drops what it was asked or proposed, an
+  accept under way stops before its next store, and a workspace change
+  decided before is refused. Each check is made right before a store is
+  called; a store's own call that is already under way (an `apply`
+  reading then writing, a save in flight) finishes with whatever session
+  the client has by then. The shell does not let the builder sign out while
+  an accept is saved, which leaves a sign-in in another tab. The fix is the
+  checks moving to the server (ADR-0009), where a write names its owner.
 - **The workspace presenter saves each change from the copy it holds,**
   not from the library's latest, so a version saved elsewhere since (another
   tab) is overwritten by the next panel added or closed or pin moved here.

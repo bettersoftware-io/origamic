@@ -1,6 +1,10 @@
 import type { Page } from "@playwright/test";
 
-import { panelTestId, TESTIDS } from "@origamic/web/src/ui/testids.ts";
+import {
+  libraryEntryTestId,
+  panelTestId,
+  TESTIDS,
+} from "@origamic/web/src/ui/testids.ts";
 
 /** What a spec can do with, and ask of, Origamic's shell, in the words of a builder. */
 export interface ShellPage {
@@ -17,6 +21,8 @@ export interface ShellPage {
   accept: () => Promise<void>;
   /** The panel's caption, its app's name and the version it pins, or null while the panel is not shown. */
   caption: (panel: string) => Promise<string | null>;
+  /** Opens a version of an app from the library, in a new panel. */
+  openFromLibrary: (app: string, version: number) => Promise<void>;
   /** Loads the page again, as a builder does who closes the workspace and comes back. */
   reload: () => Promise<void>;
 }
@@ -70,6 +76,14 @@ export function createShellPage(page: Page): ShellPage {
         .getByTestId(TESTIDS.panelCaption);
 
       return (await caption.count()) === 0 ? null : caption.textContent();
+    },
+    openFromLibrary: async (app: string, version: number): Promise<void> => {
+      const entry = page.getByTestId(libraryEntryTestId(app));
+
+      await entry
+        .getByTestId(TESTIDS.libraryVersion)
+        .selectOption(String(version));
+      await entry.getByTestId(TESTIDS.libraryOpen).click();
     },
     reload: async (): Promise<void> => {
       await page.reload();

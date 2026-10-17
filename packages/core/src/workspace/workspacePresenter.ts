@@ -15,12 +15,22 @@ export interface WorkspacePresenter {
   workspace(): Observable<Workspace | null>;
   /** Loads the latest version of the owner's workspace, or saves a new empty one when there is none. */
   open(): Promise<void>;
-  /** Opens the app in a new panel, beside the others in a row. The panel's id is the app's, or the app's with a number when that is taken. */
-  addPanel(app: App): Promise<void>;
+  /**
+   * Opens the app in a new panel, beside the others in a row. The panel's id
+   * is the app's, or the app's with a number when that is taken.
+   *
+   * Each change takes, as `asOf`, the `epoch()` it was decided under, when
+   * it was decided before an await (an app loaded, a proposal accepted): a
+   * close since then refuses it, so a change decided for one owner never
+   * lands in the next one's workspace. Left out, it is the epoch now.
+   */
+  addPanel(app: App, asOf?: number): Promise<void>;
   /** Closes the panel, and closes up the layout around it. */
-  closePanel(panel: string): Promise<void>;
+  closePanel(panel: string, asOf?: number): Promise<void>;
   /** Pins the panel to another version of an app: what accepting a revision does (ADR-0005). */
-  movePin(panel: string, app: App): Promise<void>;
+  movePin(panel: string, app: App, asOf?: number): Promise<void>;
+  /** Counts the closes: what `asOf` takes. */
+  epoch(): number;
   /**
    * Forgets the workspace, as when its owner signs out or another signs in:
    * it is `null` from now on, a change queued or under way before is dropped
@@ -57,8 +67,10 @@ export function createWorkspacePresenter(
   }
 
   /** Runs one change after those before it; a change that fails does not stop the next. A change made before a close does nothing when its turn comes. */
-  function enqueue(change: (since: number) => Promise<void>): Promise<void> {
-    const since = closes;
+  function enqueue(
+    change: (since: number) => Promise<void>,
+    since: number = closes,
+  ): Promise<void> {
     const done = queue.then(() => {
       assertStillOpen(since);
 
@@ -86,7 +98,16 @@ export function createWorkspacePresenter(
   /** Saves the next version of the workspace, as `change` makes it from the latest. */
   function save(
     change: (workspace: Workspace) => WorkspaceDraft,
+    asOf: number = closes,
   ): Promise<void> {
+    if (asOf !== closes) {
+      return Promise.reject(
+        new Error(
+          "the workspace was closed since this change was decided: it belonged to whoever was signed in then",
+        ),
+      );
+    }
+
     if (closed) {
       return Promise.reject(
         new Error("no workspace is open: it was closed, and not opened since"),
@@ -117,7 +138,7 @@ export function createWorkspacePresenter(
         await load(since);
       });
     },
-    addPanel: (app: App): Promise<void> => {
+    addPanel: (app: App, asOf?: number): Promise<void> => {
       return save((workspace) => {
         const panel = freeId(workspace, app.id);
 
@@ -129,9 +150,9 @@ export function createWorkspacePresenter(
           },
           layout: besides(workspace.layout, { kind: "panel", panel }),
         };
-      });
+      }, asOf);
     },
-    closePanel: (panel: string): Promise<void> => {
+    closePanel: (panel: string, asOf?: number): Promise<void> => {
       return save((workspace) => {
         assertHas(workspace, panel);
 
@@ -145,9 +166,9 @@ export function createWorkspacePresenter(
           layout:
             workspace.layout === null ? null : without(workspace.layout, panel),
         };
-      });
+      }, asOf);
     },
-    movePin: (panel: string, app: App): Promise<void> => {
+    movePin: (panel: string, app: App, asOf?: number): Promise<void> => {
       return save((workspace) => {
         assertHas(workspace, panel);
 
@@ -158,7 +179,10 @@ export function createWorkspacePresenter(
             [panel]: { app: app.id, appVersion: app.version },
           },
         };
-      });
+      }, asOf);
+    },
+    epoch: (): number => {
+      return closes;
     },
     close: (): void => {
       closes += 1;

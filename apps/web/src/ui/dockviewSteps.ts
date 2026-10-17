@@ -7,11 +7,14 @@ type Layout = NonNullable<Workspace["layout"]>;
 export type DockviewStep = {
   panel: string;
   title: string;
-  position?: {
-    referencePanel: string;
-    direction: "right" | "below" | "within";
-  };
+  position?: DockviewPosition;
 };
+
+/** Where a panel goes: to the right of, below, or in the tab group of a panel added before it. */
+interface DockviewPosition {
+  referencePanel: string;
+  direction: "right" | "below" | "within";
+}
 
 /**
  * The panels of a layout as dockview adds them, in order: the translation of
@@ -31,7 +34,7 @@ export function toDockviewSteps(
 ): readonly DockviewStep[] {
   const steps: DockviewStep[] = [];
 
-  function add(panel: string, position?: DockviewStep["position"]): void {
+  function add(panel: string, position?: DockviewPosition): void {
     const title = Object.hasOwn(titles, panel) ? titles[panel] : undefined;
 
     steps.push({

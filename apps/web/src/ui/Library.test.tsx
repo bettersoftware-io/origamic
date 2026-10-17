@@ -31,6 +31,21 @@ describe("the library", () => {
     expect(page.problem()).toBeNull();
   });
 
+  it("opens an older version of an app, which the library keeps", async () => {
+    const page = mountLibrary();
+
+    await page.saveBookTracker();
+    await page.saveNextVersion();
+
+    expect(page.entries()).toEqual(["Books I'm reading version 2"]);
+
+    await page.open("books", 1);
+
+    expect(page.workspace()?.panels).toEqual({
+      books: { app: "books", appVersion: 1 },
+    });
+  });
+
   it("says why an app could not be opened", async () => {
     const page = mountLibrary();
 
@@ -38,7 +53,7 @@ describe("the library", () => {
     page.loseApps();
     await page.open("books");
 
-    expect(page.problem()).toBe('The library has no app "books".');
+    expect(page.problem()).toBe('The library has no app "books" at version 1.');
     expect(page.workspace()?.panels).toEqual({});
   });
 });

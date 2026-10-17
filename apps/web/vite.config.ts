@@ -9,11 +9,12 @@ import { defineConfig } from "vite";
 // so the compiler runs through the Babel plugin, with the preset the React
 // plugin exports for it.
 //
-// It compiles every TypeScript file the build reaches outside node_modules,
-// which takes in the catalog's and the runtime's source: the workspace links
-// them, and Vite reads them where they are, as source. The catalog's
+// It compiles every TypeScript file the build reaches outside node_modules
+// and the runtime, which takes in the catalog's source: the workspace links
+// it, and Vite reads it where it is, as source. The catalog's
 // implementations rely on it (its `reactCompiler: true`), and
-// src/app/compiler.test.ts holds this config to it. `pnpm check:compiler`
+// src/app/compiler.test.ts holds this config to it, and to leaving the
+// runtime as its own tests run it. `pnpm check:compiler`
 // holds the compiler to what this package's own components rely on.
 //
 // Tailwind 4 reads the classes the catalog's and the runtime's components
@@ -23,7 +24,13 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [
     react(),
-    babel({ presets: [reactCompilerPreset()] }),
+    babel({
+      presets: [reactCompilerPreset()],
+      // The runtime is the bindings: written and tested uncompiled (its
+      // lint bans manual memoization, as the bindings' does, and declares no
+      // compiler), and its hooks set state while rendering a new app.
+      exclude: [/[/\\]node_modules[/\\]/, /[/\\]packages[/\\]runtime[/\\]/],
+    }),
     tailwindcss(),
   ],
 });

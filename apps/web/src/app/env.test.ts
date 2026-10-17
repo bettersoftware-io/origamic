@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { readWebEnv } from "./env.ts";
+import { readBuildEnv, readWebEnv } from "./env.ts";
 
 describe("reading the build's configuration", () => {
   it("runs on the simulators when nothing is set, or set empty", () => {
@@ -42,6 +42,10 @@ describe("reading the build's configuration", () => {
     expect(() => {
       return readWebEnv({ VITE_SUPABASE_ANON_KEY: "anon" });
     }).toThrow("VITE_SUPABASE_ANON_KEY is set and VITE_SUPABASE_URL is not");
+  });
+
+  it("reads the build's own variables, which a test's build leaves unset", () => {
+    expect(readBuildEnv()).toEqual({});
   });
 
   it("refuses a gateway without Supabase, whose token it needs", () => {
