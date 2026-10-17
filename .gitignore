@@ -37,3 +37,7 @@ test-results/
 
 # Logs
 *.log
+
+# The test stack's Supabase project, written from packages/adapters/supabase/
+# on each test run (tools/supabase/testStack.mts)
+.supabase-test/

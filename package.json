@@ -14,6 +14,7 @@
     "dev": "pnpm --filter @origamic/client-react dev",
     "dev:server": "pnpm --filter @origamic/server dev",
     "dev:fs": "VITE_SERVER_URL=ws://localhost:4000/ws turbo run dev",
+    "supabase:dev": "node tools/supabase/dev.mts",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck && tsc --noEmit -p tsconfig.tooling.json",
     "test": "turbo run test",

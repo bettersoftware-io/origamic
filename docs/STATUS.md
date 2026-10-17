@@ -189,17 +189,24 @@ verified, a case that is not covered.
   the code. CI always has Docker. The fix is the coverage add-on's, in
   `bettersoftware-io/skills`: a package whose tests were left out is not
   judged.
-- **Every checkout on a machine shares one local Supabase.** Its project id
-  is `origamic`, on ports 54321 (the API) and 54322 (Postgres), which
-  Docker publishes on every interface with the CLI's default password. A
-  checkout whose `supabase/migrations/` lacks a migration another checkout
-  applied fails the global setup with `MigrationMissingLocalError`. Bring
-  that checkout up to main, or reset the database to its own migrations:
-  `pnpm --filter @origamic/adapters supabase db reset --local`. The other
-  checkout applies its own again on its next run. Nor is a migration edited in
-  place applied again to a running stack: `migration up` skips a version the
-  database has recorded, so the stack keeps the old tables. Run the same
-  `db reset --local` after editing one.
+- **Every checkout on a machine shares one test stack, one run at a time.**
+  The adapters' tests run against the local Supabase `origamic-test` (the API
+  on 54421, Postgres on 54422), apart from the dev stack `origamic` that
+  `pnpm supabase:dev` starts (ADR-0004). A run holds
+  `/tmp/origamic-<uid>/origamic-test-supabase.lock` until its tests end, so
+  a second checkout's run waits, up to ten minutes for one holder, and then
+  fails; a vitest left in watch mode holds it until it is stopped. Anything
+  else that starts the test stack (part 9's e2e `stack` mode) must open it
+  as `tools/supabase/testDatabase.mts` does, lock and port check included. A
+  lock left by a process that is gone is taken over; but if its pid has been
+  given to another live process meanwhile, the next run waits the ten
+  minutes and fails naming the file: delete it. Both stacks' ports are
+  published on every interface with the CLI's default password. A migration
+  edited in place is not applied again to a running stack: `migration up`
+  skips a version the database has recorded. Reset the test stack after
+  editing one, with `pnpm --filter @origamic/adapters supabase db reset
+  --local --workdir .supabase-test`; the dev stack's `db reset --local`
+  drops its data.
 - **The Supabase object store reads a view in pages, each a query of its
   own.** The API cuts every answer at `max_rows` (1000, in
   `packages/adapters/supabase/config.toml`), so a view of more objects is
