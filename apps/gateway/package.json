@@ -1,0 +1,26 @@
+{
+  "name": "@origamic/gateway",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./server.ts": "./src/server.ts",
+    "./testing/bookTracker.ts": "./src/testing/bookTracker.ts",
+    "./testing/scriptedModel.ts": "./src/testing/scriptedModel.ts"
+  },
+  "imports": {
+    "#/*": "./src/*"
+  },
+  "scripts": {
+    "start": "node src/main.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.135.0",
+    "@origamic/catalog": "workspace:*",
+    "@origamic/spec": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "5.0.3"
+  }
+}
