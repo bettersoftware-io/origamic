@@ -60,9 +60,12 @@ is aborted when the deadline passes or the caller leaves. An error the API
 answers with is logged by the gateway (status, type, request id) and told
 to the builder as one of two things: a request the API refuses (a 4xx: a
 bad key, an unknown model, a schema it does not take) means the gateway is
-misconfigured; a connection that fails, a 429 or a 5xx means try again.
-The gateway asks the API for its model when it starts, so a wrong key or
-model stops it there.
+misconfigured; a connection that fails, a 408, 409, 429 or 5xx (the ones
+the SDK itself retries) means try again. An error event in the middle of a
+stream has no status and is read by its type.
+The gateway asks the API for its model when it starts, so a refused key or
+model stops it there; an API that cannot answer then is a warning, and the
+gateway starts. A caller who left is logged as routine, not as an error.
 
 Decision 3: the model names the types and actions an app binds, without
 versions. The gateway applies the change set to get the ontology the app

@@ -9,11 +9,32 @@ export type AnthropicMessage = Pick<
   "stop_reason" | "stop_details" | "content"
 >;
 
-/** What went wrong, as a reply for the caller and a line for the gateway's log. */
+/** What went wrong, as a reply for the caller and a line for the gateway's log: `info` for what is routine (a caller who left), `error` for the rest. */
 export interface Failure {
-  reply: ModelReply;
+  reply: FailedReply;
   log: string;
+  level: "info" | "error";
 }
+
+/** A reply that says the provider gave none. */
+interface FailedReply {
+  kind: "unavailable" | "rejected";
+  reason: string;
+}
+
+/** What the gateway does after asking the API for its model at start. */
+export type ModelCheckVerdict =
+  | { kind: "start" }
+  | { kind: "warn"; message: string }
+  | { kind: "stop"; message: string };
+
+/** The error types an error event in the middle of a stream carries that are worth asking again. */
+const PASSING = new Set([
+  "rate_limit_error",
+  "timeout_error",
+  "overloaded_error",
+  "api_error",
+]);
 
 /**
  * The reply a finished message makes. The stop reason is read before the
@@ -56,41 +77,82 @@ export function replyOfMessage(message: AnthropicMessage): ModelReply {
 }
 
 /**
- * The reply an error makes, and what the gateway logs of it: the status, the
- * error's type, the request id and the API's message, never the key. A
- * request the API refuses (400, 401, 403, 404: a schema it does not take, a
- * bad key, an unknown model) is `rejected`; a connection that fails, a 429
- * and a 5xx are `unavailable`, worth asking again.
+ * The reply an error makes, and what the gateway logs of it: the error's
+ * type, the request id and the API's message, never the key. A request the
+ * API refuses (400, 401, 403, 404, 422: a schema it does not take, a bad key,
+ * an unknown model) is `rejected`; a connection that fails, a 408, a 409, a
+ * 429 and a 5xx, the ones the SDK itself asks again on, are `unavailable`.
+ * An error event in the middle of a stream has no status, and is read by its
+ * type.
  */
 export function failureOf(error: unknown): Failure {
   if (error instanceof Anthropic.APIUserAbortError) {
     return {
       reply: { kind: "unavailable", reason: "aborted" },
       log: "anthropic: the call was aborted (its caller left, or its deadline passed)",
+      level: "info",
     };
   }
 
   if (error instanceof Anthropic.APIConnectionError) {
-    return {
-      reply: { kind: "unavailable", reason: "no connection" },
-      log: `anthropic: no connection: ${error.message}`,
-    };
+    return failure(
+      "unavailable",
+      "no connection",
+      `no connection: ${error.message}`,
+    );
   }
 
-  if (error instanceof Anthropic.APIError && error.status !== undefined) {
+  if (error instanceof Anthropic.APIError) {
     const type = error.type ?? "error";
-    const reason = `${error.status} ${type}`;
-    const log = `anthropic: ${type}, request ${error.requestID ?? "unknown"}: ${error.message}`;
-    const retryable = error.status === 429 || error.status >= 500;
+    const log = `${type}, request ${error.requestID ?? "unknown"}: ${error.message}`;
 
-    return {
-      reply: { kind: retryable ? "unavailable" : "rejected", reason },
+    if (error.status === undefined) {
+      const passing = error.type === null || PASSING.has(error.type);
+
+      return failure(passing ? "unavailable" : "rejected", type, log);
+    }
+
+    const passing =
+      [408, 409, 429].includes(error.status) || error.status >= 500;
+
+    return failure(
+      passing ? "unavailable" : "rejected",
+      `${error.status} ${type}`,
       log,
+    );
+  }
+
+  return failure("unavailable", "an unexpected error", String(error));
+}
+
+/** Whether the gateway starts after asking for its model: not on a key or a model the API refuses; with a warning when the API could not answer. */
+export function verdictOfModelCheck(
+  model: string,
+  failed: Failure | undefined,
+): ModelCheckVerdict {
+  if (failed === undefined) {
+    return { kind: "start" };
+  }
+
+  const { reply } = failed;
+
+  if (reply.kind === "rejected") {
+    return {
+      kind: "stop",
+      message: `the model "${model}" was refused (${reply.reason}): check GATEWAY_MODEL and ANTHROPIC_API_KEY (${failed.log})`,
     };
   }
 
   return {
-    reply: { kind: "unavailable", reason: "an unexpected error" },
-    log: `anthropic: ${String(error)}`,
+    kind: "warn",
+    message: `the model "${model}" could not be confirmed (${reply.reason}); starting anyway`,
   };
+}
+
+function failure(
+  kind: "unavailable" | "rejected",
+  reason: string,
+  log: string,
+): Failure {
+  return { reply: { kind, reason }, log: `anthropic: ${log}`, level: "error" };
 }

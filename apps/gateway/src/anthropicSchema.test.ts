@@ -116,7 +116,7 @@ describe("the schema Anthropic's structured outputs are sent", () => {
     });
   });
 
-  it("tells the model an additionalProperties other than false and a list of items, rather than sending them", () => {
+  it("closes every object, telling the model an additionalProperties other than false, and tells it a list of items rather than sending it", () => {
     expect(
       anthropicSchemaOf({
         type: "object",
@@ -127,6 +127,7 @@ describe("the schema Anthropic's structured outputs are sent", () => {
             additionalProperties: { type: "string" },
           },
           loose: { type: "object", properties: {}, additionalProperties: true },
+          bare: { type: "object", properties: {} },
           tuple: { type: "array", items: [{ type: "string" }] },
         },
         additionalProperties: false,
@@ -137,13 +138,16 @@ describe("the schema Anthropic's structured outputs are sent", () => {
         open: {
           type: "object",
           properties: {},
+          additionalProperties: false,
           description: '{additionalProperties: {"type":"string"}}',
         },
         loose: {
           type: "object",
           properties: {},
+          additionalProperties: false,
           description: "{additionalProperties: true}",
         },
+        bare: { type: "object", properties: {}, additionalProperties: false },
         tuple: { type: "array", description: '{items: [{"type":"string"}]}' },
       },
       additionalProperties: false,

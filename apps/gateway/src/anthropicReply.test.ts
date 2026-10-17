@@ -5,6 +5,7 @@ import {
   type AnthropicMessage,
   failureOf,
   replyOfMessage,
+  verdictOfModelCheck,
 } from "./anthropicReply.ts";
 
 describe("reading Anthropic's message", () => {
@@ -91,6 +92,8 @@ describe("reading what went wrong", () => {
   );
 
   it.each([
+    [408, "timeout_error"],
+    [409, "api_error"],
     [429, "rate_limit_error"],
     [500, "api_error"],
     [529, "overloaded_error"],
@@ -111,12 +114,35 @@ describe("reading what went wrong", () => {
     });
   });
 
-  it("a call aborted by the gateway says so, in the reply and the log", () => {
+  it("a call aborted by the gateway says so, and is logged as routine, not as an error", () => {
     const failure = failureOf(new Anthropic.APIUserAbortError());
 
     expect(failure).toEqual({
       reply: { kind: "unavailable", reason: "aborted" },
       log: "anthropic: the call was aborted (its caller left, or its deadline passed)",
+      level: "info",
+    });
+    expect(failureOf(apiError(500, "api_error")).level).toBe("error");
+  });
+
+  it("an error event in the middle of the stream is read by its type and logged with its request id", () => {
+    const overloaded = failureOf(streamError("overloaded_error"));
+    const invalid = failureOf(streamError("invalid_request_error"));
+
+    expect(overloaded.reply).toEqual({
+      kind: "unavailable",
+      reason: "overloaded_error",
+    });
+    expect(overloaded.log).toMatch(
+      /^anthropic: overloaded_error, request req_2: /,
+    );
+    expect(invalid.reply).toEqual({
+      kind: "rejected",
+      reason: "invalid_request_error",
+    });
+    expect(failureOf(streamError(null)).reply).toEqual({
+      kind: "unavailable",
+      reason: "error",
     });
   });
 
@@ -136,6 +162,42 @@ describe("reading what went wrong", () => {
     expect(failureOf(new Error("socket hang up")).log).toBe(
       "anthropic: Error: socket hang up",
     );
+  });
+});
+
+describe("checking the model when the gateway starts", () => {
+  it("starts when the model is confirmed", () => {
+    expect(verdictOfModelCheck("claude-opus-5-5", undefined)).toEqual({
+      kind: "start",
+    });
+  });
+
+  it("stops on a key or a model the API refuses", () => {
+    expect(
+      verdictOfModelCheck(
+        "claude-opus-9",
+        failureOf(apiError(404, "not_found_error")),
+      ),
+    ).toEqual({
+      kind: "stop",
+      message: expect.stringContaining(
+        '"claude-opus-9" was refused (404 not_found_error)',
+      ),
+    });
+  });
+
+  it("starts with a warning when the API cannot answer now", () => {
+    expect(
+      verdictOfModelCheck(
+        "claude-opus-5-5",
+        failureOf(new Anthropic.APIConnectionTimeoutError()),
+      ),
+    ).toEqual({
+      kind: "warn",
+      message: expect.stringContaining(
+        "could not be confirmed (no connection)",
+      ),
+    });
   });
 });
 
@@ -167,5 +229,18 @@ function apiError(status: number, type: string): APIError {
     { type: "error", error: { type, message: `the ${type} happened` } },
     undefined,
     new Headers({ "request-id": "req_1" }),
+  );
+}
+
+/** An error event the API sends in the middle of a stream: an `APIError` with no status. */
+function streamError(
+  type: "overloaded_error" | "invalid_request_error" | null,
+): APIError {
+  return new Anthropic.APIError(
+    undefined,
+    { type: "error", error: { type, message: "mid-stream" } },
+    undefined,
+    new Headers({ "request-id": "req_2" }),
+    type,
   );
 }

@@ -19,7 +19,8 @@ export type AnthropicSchema = Record<string, unknown>;
  *
  * Total: an `additionalProperties` other than `false`, a list of `items`
  * and any keyword it does not know go into the description too; only
- * `$schema` is left out.
+ * `$schema` is left out. Every object is sent with `additionalProperties:
+ * false`, the only form the API takes.
  *
  * Pure: the schema it is given is not changed.
  */
@@ -90,6 +91,13 @@ function nodeOf(node: object): AnthropicSchema {
     sent.anyOf = typesAnyOf ?? anyOf;
   }
 
+  // The API takes a closed object only, as the SDK's own transform writes
+  // every object: an open one is closed here, and what it allowed is said
+  // in the description above.
+  if (sent.type === "object") {
+    sent.additionalProperties = false;
+  }
+
   if (allOf.length > 0) {
     sent.allOf = allOf;
   }
@@ -115,8 +123,7 @@ function isHeld(key: string, value: unknown): boolean {
     return value === 0 || value === 1;
   }
 
-  // The API takes a closed object only: a schema for the other keys, or
-  // `true`, is said in the description.
+  // A schema for the other keys, or `true`, is said in the description.
   if (key === "additionalProperties") {
     return value === false;
   }

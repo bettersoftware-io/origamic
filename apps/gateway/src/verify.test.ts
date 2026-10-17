@@ -69,6 +69,39 @@ describe("the Supabase verifier, on answers a live Supabase does not give", () =
     await expect(checked).rejects.toThrow("did not answer within 5000 ms");
   });
 
+  it("gives up on a body that stops arriving, the timeout still running while it is read", async () => {
+    vi.useFakeTimers();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
+    vi.stubGlobal(
+      "fetch",
+      (_input: URL, init: RequestInit): Promise<Response> => {
+        const body = new ReadableStream<Uint8Array>({
+          start(controller: ReadableStreamDefaultController<Uint8Array>): void {
+            controller.enqueue(new TextEncoder().encode('{"id":'));
+            init.signal?.addEventListener("abort", () => {
+              controller.error(new Error("aborted"));
+            });
+          },
+        });
+
+        return Promise.resolve(new Response(body));
+      },
+    );
+
+    const checked = createSupabaseVerifier({
+      url: "http://supabase.test",
+      anonKey: "anon",
+      timeoutMs: 5000,
+    })("a-token");
+
+    checked.catch(() => {});
+    await vi.advanceTimersByTimeAsync(5000);
+
+    await expect(checked).rejects.toThrow("did not answer within 5000 ms");
+  });
+
   it("rejects when Supabase cannot be reached", async () => {
     vi.stubGlobal("fetch", (): Promise<Response> => {
       return Promise.reject(new TypeError("fetch failed"));
