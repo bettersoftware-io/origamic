@@ -1,8 +1,8 @@
 {
-  "commit": "2c30816a7b9595341de713310b51d05c638e37b1",
+  "commit": "6160e6a62adaea940b0c240db6ab6c3cbe517955",
   "uncommittedChanges": false,
   "ref": "main",
-  "builtAt": "2026-10-17T08:29:30.604Z",
+  "builtAt": "2026-10-17T08:37:53.077Z",
   "thresholds": {
     "lines": 95,
     "statements": 95,
@@ -22,9 +22,9 @@
   "packages": [
     {
       "directory": "packages/adapters",
-      "verdict": "SKIP",
-      "reason": "1 file, none with code to cover (types and re-exports only)",
-      "measuredFiles": 0,
+      "verdict": "PASS",
+      "reason": "6 files at or above the bar",
+      "measuredFiles": 6,
       "emptyFiles": 1,
       "underTheBar": [],
       "unexplainedIgnores": [],
