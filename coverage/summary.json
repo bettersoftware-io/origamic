@@ -1,8 +1,8 @@
 {
-  "commit": "92b5b7138b354b3637039804df40bfe42cb2e0aa",
+  "commit": "5967210791828f5f30155f766208fc81cba7d01c",
   "uncommittedChanges": false,
   "ref": "main",
-  "builtAt": "2026-10-17T00:44:44.095Z",
+  "builtAt": "2026-10-17T08:23:33.056Z",
   "thresholds": {
     "lines": 95,
     "statements": 95,
@@ -143,8 +143,8 @@
     {
       "directory": "packages/spec",
       "verdict": "PASS",
-      "reason": "8 files at or above the bar",
-      "measuredFiles": 8,
+      "reason": "10 files at or above the bar",
+      "measuredFiles": 10,
       "emptyFiles": 1,
       "underTheBar": [],
       "unexplainedIgnores": [],
