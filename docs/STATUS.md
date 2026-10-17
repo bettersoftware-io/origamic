@@ -32,7 +32,12 @@ Work that has started and is not finished.
   since knip refuses an export nobody imports: `PropKind` and
   `CatalogComponent`, private to `references.ts`, are exported by part 5;
   `Break` (in `apps/compatibility.ts`) and `SavedApp` (in `createCore.ts`)
-  by the part that first names them, likely part 4.
+  by the part that first names them, likely part 4. Part 7, the Supabase
+  adapters of the session, the ontology, the objects and the library, each
+  passing its port's contract against the local Supabase, with
+  `createSupabaseAdapters` and a second migration, is built on part 3 and
+  waits likewise. The client of the LLM gateway, which the plan put in part
+  7, comes with the gateway in part 8.
 
 ## Designed, not built
 
@@ -43,18 +48,13 @@ A plan or a design is on the main branch, and nothing of it is built.
   by [the first reading](architecture/reviews/2026-10-14-first-reading.md).
   Built: the schemas in `packages/spec`, reviewed by the author on
   2026-10-16, `core`'s ports, simulators and rules (part 3 of the slice),
-  and the dependency rule, held by `architecture.config.mts` over three
-  packages that are still empty of code (`catalog`, `runtime`,
-  `adapters`). `adapters` holds the first migration and its test.
+  and the dependency rule, held by `architecture.config.mts` over two
+  packages that are still empty of code (`catalog`, `runtime`).
 
 ## Planned, and held by something
 
 It waits on a release, a decision or other work. Each entry says on what.
 
-- **`@supabase/supabase-js` at 2.118.0, as the slice's plan says.** It is
-  at 2.117.3: 2.118.0 was published on 2026-10-15 at 12:57 UTC, and
-  `minimumReleaseAge` refuses it until a day later. Move to it in any part
-  after that (part 7 is the first that uses the client outside a test).
 
 ## Next, with no plan yet
 
@@ -125,14 +125,14 @@ verified, a case that is not covered.
   keeps them, and they go when the package gets a dependency. A new package
   with no dependency needs the same: run `pnpm install --frozen-lockfile`
   before pushing, since `gate:full` stays green without it.
-- **Where Docker is not running, `packages/adapters` is measured without its
-  tests.** Its `*.supabase.test.ts` files are left out there (with a `SKIP`
-  line), and the coverage gate knows only port tests as a reason not to judge
-  a package. Today the package has no code to cover, so nothing fails; once
-  part 7 puts adapters in it, a run without Docker fails the coverage bar for
-  a reason that is not in the code. CI always has Docker. The fix is the
-  coverage add-on's, in `bettersoftware-io/skills`: a package whose tests
-  were left out is not judged.
+- **Where Docker is not running, `pnpm gate:full` fails on
+  `packages/adapters`'s coverage.** Its `*.supabase.test.ts` files are left
+  out there (with a `SKIP` line), and the coverage gate knows only port tests
+  as a reason not to judge a package, so it measures the adapters without
+  the tests that reach them and fails the bar for a reason that is not in
+  the code. CI always has Docker. The fix is the coverage add-on's, in
+  `bettersoftware-io/skills`: a package whose tests were left out is not
+  judged.
 - **Every checkout on a machine shares one local Supabase.** Its project id
   is `origamic`, on ports 54321 (the API) and 54322 (Postgres), which
   Docker publishes on every interface with the CLI's default password. A
@@ -144,6 +144,37 @@ verified, a case that is not covered.
   place applied again to a running stack: `migration up` skips a version the
   database has recorded, so the stack keeps the old tables. Run the same
   `db reset --local` after editing one.
+- **The Supabase object store reads a view in pages, each a query of its
+  own.** The API cuts every answer at `max_rows` (1000, in
+  `packages/adapters/supabase/config.toml`), so a view of more objects is
+  read 1000 at a time. A write between two pages can move an object across
+  the boundary, so it is read twice or not at all in that one emission; the
+  next action re-reads. Raising `max_rows` past the page size changes
+  nothing; lowering it below 1000 needs the page size lowered with it.
+- **The Supabase object store's text order and `contains` can differ from
+  the simulator's outside ASCII.** Postgres's `COLLATE "C"` orders by UTF-8
+  bytes, which is code point order: a supplementary character (U+10000 and
+  above) sorts after U+E000 to U+FFFF there, and before them in the
+  simulator's UTF-16 code units. `contains` is ILIKE, which lowercases by the
+  database's ctype (en_US.UTF-8), where the simulator uses JavaScript's
+  `toLowerCase`; the two can differ on other scripts' case folding.
+- **Two updates of one object at once: the last wins.** The Supabase object
+  store's update writes every value `planWrite` planned from the object
+  as it was read, so of two updates of one object at once the last wins
+  whole. One builder does not meet it; it moves with the checks to the
+  server (ADR-0009).
+- **A link keeps the cardinality its type had when it was written.** The
+  unique indexes that hold a link to its cardinality read it from the link's
+  own row, since the database does not read the ontology. A change set that
+  changed a link type's cardinality would leave the links written before it
+  held to the old one; no change set operation does so today.
+- **`packages/adapters` is typechecked with Node's types over all of
+  `src`.** Its code runs in the browser, and only its tests need Node (they
+  read the stack's keys from `process.env`). The typed lint reads each file
+  with the `tsconfig.json` nearest to it, so a second tsconfig for the tests
+  would leave them read by none. `noNodeBuiltins` holds the imports; a Node
+  global (`process`, `Buffer`) in the adapters' own code is caught by no
+  check, only by review.
 - **A port is `<Name>Port`, in `<name>Port.ts`.** The kit's contract gate
   finds a port, and an adapter that implements it, only by that name.
 - **The compatibility check reads only what `core` can read.** It finds a
