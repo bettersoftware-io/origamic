@@ -9,7 +9,7 @@ describe("the build", () => {
     "compiles the catalog's components with the React Compiler, which they rely on",
     BUILDING,
     async () => {
-      const code = await readCodeBuiltFrom(CATALOG_TABLE);
+      const code = await codeBuiltFrom("catalog");
 
       expect(code).toContain(COMPILER_RUNTIME);
     },
@@ -19,7 +19,7 @@ describe("the build", () => {
     "leaves the runtime uncompiled, as its own tests run it",
     BUILDING,
     async () => {
-      const code = await readCodeBuiltFrom(RUNTIME_APP_VIEW);
+      const code = await codeBuiltFrom("runtime");
 
       expect(code).toContain("function AppView");
       expect(code).not.toContain(COMPILER_RUNTIME);
@@ -27,7 +27,7 @@ describe("the build", () => {
   );
 
   it("compiles this package's own components with it", BUILDING, async () => {
-    const code = await readCodeBuiltFrom(WORKSPACE);
+    const code = await codeBuiltFrom("workspace");
 
     expect(code).toContain(COMPILER_RUNTIME);
   });
@@ -54,11 +54,34 @@ const RUNTIME_APP_VIEW: string = new URL(
 const WORKSPACE: string = new URL("../ui/Workspace.tsx", import.meta.url)
   .pathname;
 
+/** The three files, each an entry of the one build. */
+const ENTRIES: Readonly<Record<string, string>> = {
+  catalog: CATALOG_TABLE,
+  runtime: RUNTIME_APP_VIEW,
+  workspace: WORKSPACE,
+};
+
+let built: Promise<Map<string, string>> | undefined;
+
+/** The code Vite wrote for one entry; the build runs once, for all three. */
+async function codeBuiltFrom(entry: string): Promise<string> {
+  built ??= runBuild();
+
+  const code = (await built).get(entry);
+
+  if (code === undefined) {
+    throw new Error(`the build has no entry "${entry}"`);
+  }
+
+  return code;
+}
+
 /**
- * The one file built with this package's own Vite config, everything it
- * imports left out, and the code as Vite wrote it.
+ * The files built together with this package's own Vite config, everything
+ * they import left out, and the code of each as Vite wrote it.
  */
-async function readCodeBuiltFrom(file: string): Promise<string> {
+async function runBuild(): Promise<Map<string, string>> {
+  const files = new Set(Object.values(ENTRIES));
   const output = await build({
     configFile: new URL("../../vite.config.ts", import.meta.url).pathname,
     root: new URL("../..", import.meta.url).pathname,
@@ -66,20 +89,20 @@ async function readCodeBuiltFrom(file: string): Promise<string> {
     build: {
       write: false,
       minify: false,
-      lib: { entry: file, formats: ["es"] },
+      lib: { entry: ENTRIES, formats: ["es"] },
       rolldownOptions: {
         external: (id: string): boolean => {
-          return id !== file;
+          return !files.has(id);
         },
       },
     },
   });
 
-  return chunksOf(output)
-    .map((chunk) => {
-      return chunk.code;
-    })
-    .join("\n");
+  return new Map(
+    chunksOf(output).map((chunk): [string, string] => {
+      return [chunk.name, chunk.code];
+    }),
+  );
 }
 
 function chunksOf(
