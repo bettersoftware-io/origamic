@@ -76,6 +76,15 @@ const config: ArchitectureConfig = {
       npm: ["@supabase/supabase-js", "rxjs"],
       noNodeBuiltins: true,
     },
+    // The one place that calls the model (ADR-0011): spec, and the catalog's
+    // manifest entry for what the model is held to. `mayImport` names the
+    // whole catalog, so an import of its React side would pass the gate;
+    // that half of the rule is a question for a review (ARCHITECTURE.md).
+    "apps/gateway": {
+      role: "server",
+      mayImport: ["packages/catalog"],
+      npm: ["@anthropic-ai/sdk"],
+    },
     "packages/shared": { role: "shared", noNodeBuiltins: true },
     "packages/client-core": { role: "core", noNodeBuiltins: true },
     "packages/react-bindings": { role: "bindings", noNodeBuiltins: true },
@@ -121,6 +130,7 @@ const config: ArchitectureConfig = {
     // Origamic: rule 3 of ARCHITECTURE.md for the libraries, and the schema
     // language only where the table allows it.
     "@supabase/supabase-js": ["packages/adapters"],
+    "@anthropic-ai/sdk": ["apps/gateway"],
     zod: ["packages/spec", "packages/core", "packages/catalog"],
     // What the catalog's shadcn primitives are built from (ADR-0010): only
     // its implementation layer may name them, so replacing shadcn changes

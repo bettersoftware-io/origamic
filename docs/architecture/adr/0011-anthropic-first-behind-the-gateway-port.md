@@ -43,6 +43,50 @@ added recursive `$ref` in November 2025, only on a property that is not
 required, and unrolled to a limited depth; that is from Google's announcement
 and its developer forum, not its main documentation, which was not read.
 
+### How the gateway asks (decided in the first slice)
+
+Decision 10 of [the first slice's plan](../plans/2026-10-16-first-slice.md):
+the gateway asks `claude-opus-5-5` at effort `high`, with adaptive thinking
+and structured outputs, streamed (`client.beta.messages.stream`, then
+`finalMessage()`), with Anthropic's server-side fallback when the model
+declines (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`).
+The model and the effort are the gateway's configuration
+(`GATEWAY_MODEL`, `GATEWAY_EFFORT`), not code. The reply's stop reason is
+read before its content: a refusal or a reply cut short is a `failed`
+event that says which, and is not retried. After a fallback, only the text
+after the last `fallback` block is the reply. A generation has a deadline
+(`GATEWAY_DEADLINE_SECONDS`, five minutes when unset), and its model call
+is aborted when the deadline passes or the caller leaves. An error the API
+answers with is logged by the gateway (status, type, request id) and told
+to the builder as one of two things: a request the API refuses (a 4xx: a
+bad key, an unknown model, a schema it does not take) means the gateway is
+misconfigured; a connection that fails, a 408, 409, 429 or 5xx (the ones
+the SDK itself retries) means try again. An error event in the middle of a
+stream has no status and is read by its type.
+The gateway asks the API for its model when it starts, so a refused key or
+model stops it there; an API that cannot answer then is a warning, and the
+gateway starts. A caller who left is logged as routine, not as an error.
+
+Decision 3: the model names the types and actions an app binds, without
+versions. The gateway applies the change set to get the ontology the app
+will run on, and binds each name at its version there. The stored app
+carries versions as before; only the model's half of the wire has none.
+
+The schema the API is sent is the catalog's (`generationSchema()`) with
+what the API does not hold left out (`apps/gateway/src/anthropicSchema.ts`):
+a length, a bound, a pattern, a default, a `minItems` above 1 and a format
+it does not know go into the node's description instead, where the model
+still reads them, and a type written as a list becomes an `anyOf`.
+`readGenerated` checks every one of them on the reply. The SDK's own
+`transformJSONSchema` is not used: it also moves `const` and `enum` into the
+description, which would free the `component` and `do` that tell elements
+and handlers apart.
+
+A reply with problems goes back once as a user message that quotes the reply
+and each problem with its path, not as an assistant turn: a replayed
+assistant turn without the thinking blocks of the reply it stands for may be
+refused by a model that checks them.
+
 ## Consequences
 - The UI spec is flat (ADR-0002), and the schema the model is held to is
   built from the catalog's contracts, one closed object per component

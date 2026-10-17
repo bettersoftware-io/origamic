@@ -36,6 +36,12 @@
       // reads them as run at the root, where Playwright is not a dependency.
       "ignoreBinaries": ["playwright"]
     },
+    // The apps: a composition root each, run by its `start` script. The same
+    // rules as a package: every export needs an importer.
+    "apps/*": {
+      "entry": ["src/main.ts"],
+      "includeEntryExports": true
+    },
     "packages/*": {
       // A package's `exports` map (`./*` to `./src/*`) makes every file under
       // src/ an entry, and knip does not judge the exports of an entry unless

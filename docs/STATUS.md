@@ -12,7 +12,7 @@ One bullet for each entry: its name in bold, what is left, and a link to its
 plan when it has one. `AGENTS.md` says when an entry is added, moved and
 removed.
 
-**Last updated: 2026-10-16**
+**Last updated: 2026-10-17**
 
 ## In progress
 
@@ -57,9 +57,11 @@ Work that has started and is not finished.
   the app and then failed to add its panel. Part 7, the Supabase adapters of
   the session, the ontology, the objects and the library, each passing its
   port's contract against the local Supabase, with `createSupabaseAdapters`
-  and a second migration, is built on part 3 and waits likewise. The client of
-  the LLM gateway, which the plan put in part 7, comes with the gateway in
-  part 8.
+  and a second migration, is built on part 3 and waits likewise.
+  Part 8, the gateway (`apps/gateway`) and the browser's client of it
+  (`createHttpLlmGateway` in `packages/adapters`, which the plan put in part
+  7), is built on parts 2, 3 and 5 and waits likewise; the real model has not
+  been asked yet (see "Waiting on a person").
 
 ## Designed, not built
 
@@ -71,8 +73,9 @@ A plan or a design is on the main branch, and nothing of it is built.
   Built: the schemas in `packages/spec`, reviewed by the author on
   2026-10-16, `core`'s ports, simulators and rules (part 3 of the slice),
   its app session, builder and workspace (part 4), the catalog (part 5), the
-  runtime (part 6), the Supabase adapters (part 7), and the dependency rule,
-  held by `architecture.config.mts`.
+  runtime (part 6), the Supabase adapters (part 7), the gateway and its
+  client (part 8), and the dependency rule, held by
+  `architecture.config.mts`.
 
 ## Planned, and held by something
 
@@ -110,6 +113,22 @@ between options. Each entry says who, and gives the command or the question.
   file, so the installer did not change it. The text is in
   `tools/arch/templates/AGENTS.md.txt`, under "Adding a check".
 
+- **Ask the real model once, by hand (the slice's part 8, step 6).** The
+  author, with an Anthropic API key; no test in the gate calls a model
+  (ADR-0011). Expected: progress lines, then one `proposal` whose app binds
+  `Book@1`, `createBook@1` and `updateBook@1`. Write the outcome in part 8's
+  pull request. With the local Supabase running, from the project's folder:
+
+  ```bash
+  eval "$(pnpm --silent --filter @origamic/adapters supabase status -o env | grep -E '^(API_URL|ANON_KEY)=')"
+  ANTHROPIC_API_KEY=… SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" node apps/gateway/src/main.ts
+  # in a second shell, with API_URL and ANON_KEY read the same way:
+  TOKEN=$(curl -s "$API_URL/auth/v1/signup" -H "apikey: $ANON_KEY" -H 'content-type: application/json' \
+    -d '{"email":"builder@origamic.test","password":"a-long-password-1"}' | node -p 'JSON.parse(require("fs").readFileSync(0)).access_token')
+  curl -N http://localhost:8787/generate -H "authorization: Bearer $TOKEN" -H 'content-type: application/json' \
+    -d '{"format":1,"intent":"a simple tracker for the books I am reading, with title, author, status (want / reading / done) and a rating","ontology":{"format":1,"version":0,"objectTypes":[]}}'
+  ```
+
 - **Two Scorecard alerts to dismiss, or to accept as open.** "Code review"
   (alert 4) and "Branch protection" (alert 1) ask for a second person to
   approve every pull request. That is against merging a green change at
@@ -135,24 +154,14 @@ verified, a case that is not covered.
   the literal. Every record of a spec refuses the key instead.
 
 - **The dependency rule is held only where a package exists.** `apps/web`
-  and `apps/gateway` get their lines in `architecture.config.mts` when they
-  are made, in the first slice. Until the price list is removed, the roles of
+  gets its line in `architecture.config.mts` when it is made, in the first
+  slice. Until the price list is removed, the roles of
   `core` and `runtime` also let them import its `domain` and `shared`. A
   `fetch` written by hand outside `adapters` is not caught, nor are rules 1,
   4 and 5 of [ARCHITECTURE.md](architecture/ARCHITECTURE.md), which are
   questions for a review. Nor is "the gateway imports the catalog's
   manifest only": `mayImport` names a whole package, so once `apps/gateway`
   names `packages/catalog`, an import of its React side passes the gate.
-- **Part 8: strip the limits from the schema before it is sent.**
-  `generationSchema()` passes the walk ADR-0011 asks for (every object
-  closed, no recursion, `anyOf` and never `oneOf`), and still carries
-  keywords Anthropic's structured outputs do not hold the model to. Before
-  the gateway sends it, remove `minLength`, `minItems`, `minimum`,
-  `maximum` and `exclusiveMinimum`, and check whether the API accepts
-  `pattern`, `format`, `default` and `type` written as a list (remove any it
-  refuses), or pass the schema through the SDK's own helper for this.
-  `readGenerated` keeps checking all of them on the reply, so nothing is
-  lost by stripping them.
 - **Nothing checks that the app's React Compiler reaches the catalog.**
   `packages/catalog` declares `reactCompiler: true`, so its lint bans
   `useMemo`, `useCallback` and `memo`; but the build that compiles it is
@@ -233,6 +242,15 @@ verified, a case that is not covered.
   would leave them read by none. `noNodeBuiltins` holds the imports; a Node
   global (`process`, `Buffer`) in the adapters' own code is caught by no
   check, only by review.
+- **The gateway limits no caller's rate or spend.** Any token Supabase
+  accepts may ask the model as often as it likes; with one user in v1
+  that is the author. A limit per caller comes before a second user, with
+  the move to Fly.io.
+- **What the API holds of the schema was read, not tried.** The keywords
+  `anthropicSchemaOf` keeps are the documented ones and the SDK's own
+  helper's (ADR-0011); no request in the gate reaches Anthropic, so the
+  first run of step 6 above is the first that would show a refusal of the
+  schema.
 - **A port is `<Name>Port`, in `<name>Port.ts`.** The kit's contract gate
   finds a port, and an adapter that implements it, only by that name.
 - **The compatibility check reads only what `core` can read.** It finds a
