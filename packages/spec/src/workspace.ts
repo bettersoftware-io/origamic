@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { Format, Id, Version } from "./common.ts";
-import { type Path, report } from "./refine.ts";
+import { type Path, report, withoutProtoKey } from "./refine.ts";
 
 /** A panel hosts one app at one version. Accepting a revision of that app moves the pin (ADR-0005). */
 const Panel = z.strictObject({ app: Id, appVersion: Version });
@@ -58,7 +58,7 @@ const WorkspaceFields = z.strictObject({
   format: Format,
   id: Id,
   name: z.string().min(1),
-  panels: z.record(Id, Panel),
+  panels: withoutProtoKey(z.record(Id, Panel)),
   layout: Layout,
 });
 
@@ -112,7 +112,7 @@ function checkPlacement(
     }
 
     for (const panel of panels) {
-      if (!(panel in workspace.panels)) {
+      if (!Object.hasOwn(workspace.panels, panel)) {
         report(ctx, path, `the layout places "${panel}", which is not a panel`);
       } else if (placed.has(panel)) {
         report(ctx, path, `the layout places "${panel}" twice`);

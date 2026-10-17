@@ -24,8 +24,12 @@ Work that has started and is not finished.
   graph gives. Built: part 1a, the `e2e` add-on, whose five specs still test
   the price list (removed in part 10, modes replaced in part 9); part 1b, a
   local Supabase that `pnpm gate:full` and CI start, with the first migration.
-  Its part 2 changes the schemas, and waits for the author's review before it
-  merges.
+  Part 2, the spec's additions, is built and waits for the author's review
+  before it merges. Two of its exports wait for their first importer, since
+  knip refuses an export nobody imports: `Row` (`{ id, values }`, as part 2's
+  interfaces give it) goes into `packages/spec` with part 3, and `PropKind`
+  and `CatalogComponent`, now private to `references.ts`, are exported by
+  part 5.
 
 ## Designed, not built
 
@@ -52,6 +56,10 @@ It waits on a release, a decision or other work. Each entry says on what.
 
 The next step is known, and nobody has written a plan for it.
 
+- **Nothing holds "a required property is added with a `default`".**
+  `ontology.ts` states it, and neither `ChangeSet` nor `applyChangeSet`
+  checks it, so a change set can add a required property that every stored
+  object lacks.
 - **Merges on main have two kinds of subject.** "Merge PR #5: …" and GitHub's
   own "Merge pull request #6 from …". `AGENTS.md` names no subject. Pick one,
   or leave GitHub's.
@@ -78,6 +86,12 @@ between options. Each entry says who, and gives the command or the question.
 
 What is true of the project and will not be fixed soon: a thing that was not
 verified, a case that is not covered.
+
+- **A `__proto__` key inside a JSON literal is dropped without a word.** A
+  prop's value or a state key's `initial` is parsed by `z.json()`, which
+  leaves the key out, as `JSON.parse` input can carry it. It cannot leave a
+  reference dangling, since a literal names nothing; it only loses part of
+  the literal. Every record of a spec refuses the key instead.
 
 - **The dependency rule is held only where a package exists.** `apps/web`
   and `apps/gateway` get their lines in `architecture.config.mts` when they

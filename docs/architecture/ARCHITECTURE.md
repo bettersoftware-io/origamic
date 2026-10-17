@@ -46,7 +46,7 @@ Agents misuse these words unless pinned. Use them exactly.
 
 ```mermaid
 flowchart TB
-  spec["packages/spec<br/>Zod schemas and reference checks"]
+  spec["packages/spec<br/>Zod schemas, reference checks and applying a change set"]
   core["packages/core<br/>ports, ontology, actions, views, library, builder — RxJS at the boundaries"]
   catalog["packages/catalog<br/>contracts (Zod) and their React implementations"]
   runtime["packages/runtime<br/>spec interpreter: renders UI specs over the catalog, wires views, state and actions"]

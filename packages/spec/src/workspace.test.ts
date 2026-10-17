@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createWorkspace } from "./testing/bookTracker.ts";
-import { issuesOf } from "./testing/issues.ts";
+import { issuesOf, problemsIn } from "./testing/issues.ts";
 import { Workspace, WorkspaceDraft } from "./workspace.ts";
 
 describe("a workspace", () => {
@@ -38,6 +38,27 @@ describe("a workspace", () => {
       'the layout places "ghost", which is not a panel',
       'the panel "notes" is not placed in the layout',
       'the panel "draft" is not placed in the layout',
+    ]);
+  });
+
+  it("takes no name every object inherits for a panel", () => {
+    const workspace = createWorkspace();
+
+    workspace.layout = { kind: "panel", panel: "constructor" };
+
+    expect(problemsIn(WorkspaceDraft, workspace)).toEqual([
+      {
+        path: "layout",
+        message: 'the layout places "constructor", which is not a panel',
+      },
+      {
+        path: "panels.books",
+        message: 'the panel "books" is not placed in the layout',
+      },
+      {
+        path: "panels.notes",
+        message: 'the panel "notes" is not placed in the layout',
+      },
     ]);
   });
 

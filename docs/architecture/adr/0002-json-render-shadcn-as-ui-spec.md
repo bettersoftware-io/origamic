@@ -80,6 +80,23 @@ still imports `zod` and nothing else.
 json-render's "actions" are what a component does on an event; ours are
 writes to the ontology. The two words must not be mixed in this code.
 
-**Not decided yet:** how a component's props schema says that a prop accepts
-a `$view` or a `$state` reference. It is settled with the catalog, in the plan
-of the first slice.
+**Settled 2026-10-16, in [the first slice's plan](../plans/2026-10-16-first-slice.md):**
+how a component's props say that a prop accepts a `$view` or a `$state`
+reference. Each prop of a contract has one of three kinds:
+
+| Kind | What the spec may hold | What the component receives |
+|---|---|---|
+| `fixed` | a JSON value the prop's schema accepts | that value |
+| `state` | such a value, or `{"$state": "<key>"}` | the value, or the state key's current value |
+| `view` | only `{"$view": "<view id>"}` | the view's rows, `readonly Row[]` |
+
+The catalog's manifest gives each component's props by kind and the fields
+each event's payload carries, and `checkApp` judges the wiring from that
+data: a prop the component does not have, a `$view` on a prop that is not
+`view`, a `$state` on a `fixed` prop, a `view` prop that holds anything but a
+`$view`, and a `$event` field the event does not carry. An event whose fields
+come from the element's props (a `Form`'s `fields`) is the catalog's to check,
+as is each `fixed` or `state` value, against its prop's Zod schema
+(ADR-0010). `validateApp` runs the three in order: the schema, `checkApp`,
+then the catalog's check of each element. `core` runs it before it saves an
+app, the gateway before it returns one.
