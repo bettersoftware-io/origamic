@@ -16,10 +16,13 @@ import type { ArchitectureConfig } from "./tools/arch/gates/lib/config.mts";
 // integration  every role above; nothing may import it, and it holds only tests
 // e2e        no source of the application: only a client's test ids, and types
 const config: ArchitectureConfig = {
+  // The kit requires a `domain` by default. Origamic has none: its ports are
+  // in `core` (ADR-0012), which is the one role every project of the kit has.
+  requiredRoles: ["core"],
+
   packages: {
     // `noNodeBuiltins` is on for every package that ends up in the browser.
-    // The domain has it by default.
-    "packages/domain": { role: "domain", npm: ["rxjs"] },
+    //
     // Origamic's packages. The table in docs/architecture/ARCHITECTURE.md
     // ("Layers and the dependency rule") is the source; each line below holds
     // one row of it. A role that grants too much is narrowed by `explicit`,
@@ -27,9 +30,9 @@ const config: ArchitectureConfig = {
     //
     // The schemas: imports nothing but zod, and every package may import it.
     "packages/spec": { role: "leaf", npm: ["zod"], noNodeBuiltins: true },
-    // spec only. The role also grants the price list's domain and shared,
-    // until the slice removes them. Origamic's ports are here, not in a
-    // domain (ADR-0012). The function that builds the core is `createCore`,
+    // spec only: the role grants a domain and a shared package too, and
+    // Origamic has neither. Origamic's ports are here, not in a domain
+    // (ADR-0012). The function that builds the core is `createCore`,
     // not the kit's `createApp`: "app" is a word the glossary keeps for a
     // saved spec (the slice's plan, decision 5).
     "packages/core": {
@@ -60,15 +63,15 @@ const config: ArchitectureConfig = {
       ],
       noNodeBuiltins: true,
     },
-    // spec, core and catalog; never adapters. The bindings role is the
-    // starter's "where RxJS meets React", with its lint rules.
+    // spec, core and catalog; never adapters. The bindings role is the kit's
+    // "where RxJS meets React", with its lint rules.
     "packages/runtime": {
       role: "bindings",
       mayImport: ["packages/catalog"],
       npm: ["react", "rxjs"],
       noNodeBuiltins: true,
     },
-    // core and spec, and only the app imports it (the app will name it).
+    // core and spec, and only the app imports it (the app names it).
     // RxJS because the ports it implements return observables, as core's do.
     "packages/adapters": {
       role: "explicit",
@@ -90,6 +93,8 @@ const config: ArchitectureConfig = {
     // the build that compiles the catalog, so the React Compiler that the
     // catalog's `reactCompiler` relies on runs here; src/app/compiler.test.ts
     // holds the build to it. Dockview is named nowhere else (ADR-0003).
+    // `compilerTracked` lists the components that rely on the compiler:
+    // `pnpm check:compiler` fails when it stops memoizing one of them.
     "apps/web": {
       role: "client",
       mayImport: ["packages/adapters"],
@@ -102,56 +107,29 @@ const config: ArchitectureConfig = {
         { file: "src/ui/Proposal.tsx", fn: "Proposal" },
       ],
     },
-    "packages/shared": { role: "shared", noNodeBuiltins: true },
-    "packages/client-core": { role: "core", noNodeBuiltins: true },
-    "packages/react-bindings": { role: "bindings", noNodeBuiltins: true },
-    // `reactCompiler` says the client's build runs the React Compiler, which
-    // is why its source may not use useMemo, useCallback or memo.
-    // `compilerTracked` lists what relies on that: `pnpm check:compiler`
-    // fails when the compiler stops memoizing one of them.
-    "packages/client-react": {
-      role: "client",
-      entry: ["main.tsx", "index.css", "*.d.ts"],
-      noNodeBuiltins: true,
-      reactCompiler: true,
-      compilerTracked: [{ file: "src/ui/PriceList.tsx", fn: "PriceRowView" }],
-    },
-    "packages/server": { role: "server" },
+    // The tests that run a client adapter against a real server (the
+    // gateway); it may import every package, and nothing imports it.
     "packages/integration": { role: "integration" },
+    // The end-to-end specs: they drive the built web app in a browser and
+    // read only its test ids.
     "packages/e2e": { role: "e2e" },
   },
 
   // Folders whose modules implement ports. Each must run the contract test of
   // every port it implements.
-  adapters: [
-    "packages/domain/src/simulators",
-    "packages/core/src/simulators",
-    "packages/client-core/src/adapters",
-    "packages/adapters/src",
-  ],
+  adapters: ["packages/core/src/simulators", "packages/adapters/src"],
 
-  // A library named here may be imported only from the packages listed, so it
-  // can be replaced by changing those alone.
   // Remove a line when its package gets a test script.
   packagesWithoutTests: {},
 
+  // A library named here may be imported only from the packages listed, so it
+  // can be replaced by changing those alone.
   vendorOnlyIn: {
-    react: [
-      "packages/react-bindings",
-      "packages/client-react",
-      "packages/catalog",
-      "packages/runtime",
-      "apps/web",
-    ],
-    "react-dom": [
-      "packages/react-bindings",
-      "packages/client-react",
-      "apps/web",
-    ],
+    react: ["packages/catalog", "packages/runtime", "apps/web"],
+    "react-dom": ["apps/web"],
     // ADR-0003: the shell translates Origamic's layout to dockview and back,
     // and replacing dockview changes that translation alone.
     dockview: ["apps/web"],
-    ws: ["packages/server"],
     // Origamic: rule 3 of ARCHITECTURE.md for the libraries, and the schema
     // language only where the table allows it.
     "@supabase/supabase-js": ["packages/adapters"],

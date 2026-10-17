@@ -19,35 +19,17 @@ removed.
 Work that has started and is not finished.
 
 - **The first slice.** Planned in
-  [plans/2026-10-16-first-slice.md](architecture/plans/2026-10-16-first-slice.md):
-  twelve pull requests in Origamic and two in the plugin, in the order its
-  graph gives. On main: part 1a (the `e2e` add-on), part 1b (a local Supabase
-  that `pnpm gate:full` and CI start; the tests run on a stack of their own),
-  part 2 (the spec's additions), part 3 (`core`'s five ports with their
-  contracts and simulators, `planWrite`, `valueSchema`, `checkCompatibility`,
-  `createCore` and `createCoreHarness`), part 4 (`core`'s app session,
-  builder and workspace presenter, and `Core` at its full shape), part 5
-  (the catalog), part 6 (the runtime), part 7 (the Supabase adapters) and
-  part 8 (the gateway, `apps/gateway`, and the browser's client of it,
-  `createHttpLlmGateway`); the real model has not been asked yet (see
-  "Waiting on a person"). Part 9, the web app (`apps/web`: the composition
-  root, the shell on dockview, `pnpm dev` on the simulators and `pnpm
-  dev:stack` on the dev Supabase and the gateway), is on main too. It exported `Break` and `LoadedApp` from `core`, and
-  the runtime's `ShellViewModelProvider` and `useShellViewModel`; it gave
-  `core` an owner (`handOver()`, `owner()`), the workspace presenter
-  `close()` and an epoch each change carries, and the builder `close()`; and
-  it gave the shell's view model the intents, the app a panel pins, the
-  workspace's problem, a user who is `undefined` until the session answers,
-  and a library and workspace read for each signed-in owner. The end-to-end
-  tests run it in two modes, `sim` and `stack` (on the host, on the test
-  stack); the price list's specs and page objects are gone, and its packages
-  and `pnpm dev:fs` stay until part 10, which removes the price list.
-  `BuilderTarget` (in `core`'s `builder/builder.ts`) and the runtime's type
-  `ShellViewModel` are not exported: nothing imports them yet, and knip
-  refuses an export nobody imports. Left: part 10, which removes the price
-  list and rewrites `AGENTS.md`'s tables for Origamic's packages, and the
-  walk of the loop with the real model, which waits on the author (see
-  "Waiting on a person").
+  [plans/2026-10-16-first-slice.md](architecture/plans/2026-10-16-first-slice.md).
+  Parts 1 to 10 are on main: the `e2e` add-on and the local Supabase (part
+  1), the spec's additions (2), `core`'s ports, simulators and rules (3),
+  its app session, builder and workspace (4), the catalog (5), the runtime
+  (6), the Supabase adapters (7), the gateway and its client (8), the web
+  app (9), and the starter's price list removed, with `AGENTS.md`'s tables
+  rewritten for Origamic's packages (10). Left: part 11, which is what
+  FIRST-SLICE.md's "Done means" asks for. A fresh Claude Code session runs
+  `reviewing-architecture` over the diff from `fcbbd02` (main before the
+  slice's plan merged) to main, and the author walks the loop with the real
+  model on a clean database (see "Waiting on a person").
 
 ## Designed, not built
 
@@ -72,6 +54,22 @@ It waits on a release, a decision or other work. Each entry says on what.
 
 The next step is known, and nobody has written a plan for it.
 
+- **The plugin's files still speak of the starter's price list.** The fix
+  is in `bettersoftware-io/skills`, then an update brings it here; these
+  files are the installer's, not the project's. What matters most:
+  `tools/arch/docs/review.md:22-32`, the seven questions `AGENTS.md` makes
+  every review answer, says a port is OK in "the domain package's ports
+  folder"; Origamic's ports are in `core` (ADR-0012), so a fresh review can
+  report that as a finding. The kit should say "the package that declares
+  `ports`". Then `packages/e2e/notStarted.setup.ts:8` and
+  `tools/e2e/lib/arguments.mts:26` give `src/sim/priceList.spec.ts` as the
+  example of one spec, and `packages/e2e/playwright.config.ts:52` gives that
+  deleted spec as the reason for the timeout. And `tools/installed.json`'s
+  e2e "starting" list names five deleted files
+  (`src/fullstack/serverPrices.spec.ts`, `src/pages/PriceList.page.ts`,
+  `src/pages/ServerFeed.page.ts`, `src/sim/priceList.spec.ts`,
+  `src/sim/selection.spec.ts`, under `packages/e2e`): whether an update
+  seeds them again is the add-on's to say.
 - **Keep a store call to the owner it began for.** In the client, each
   adapter call reads the access token once and sends it with every request
   of the call, so a call that began as A ends as A; or `apply` and `save`
@@ -99,12 +97,12 @@ The next step is known, and nobody has written a plan for it.
 A step or a decision an agent cannot take: a setting, an account, a choice
 between options. Each entry says who, and gives the command or the question.
 
-- **Whether to take the kit's new "Adding a check" section into
-  `AGENTS.md`.** The author decides. The kit update of the first slice's
-  part 5 added it to the template (a new check, or a newer copy of the kit or
-  an add-on, comes through the installer); `AGENTS.md` is the project's
-  file, so the installer did not change it. The text is in
-  `tools/arch/templates/AGENTS.md.txt`, under "Adding a check".
+- **Whether to fix the agent-workflow hook's shell parser.** The author
+  decides: `AGENTS.md` says the hook changes only when the author asks. The
+  parser does not see a `$(…)` inside `${…}`, and ends a `$'…'` at an
+  escaped quote, so an outward step chained to another can pass the hook
+  unsplit. The host's own permission prompt still asks. The fix belongs in
+  the plugin's agent-workflow add-on, in `bettersoftware-io/skills`.
 
 - **Ask the real model once, by hand (the slice's part 8, step 6).** The
   author, with an Anthropic API key; no test in the gate calls a model
@@ -167,11 +165,8 @@ verified, a case that is not covered.
   reference dangling, since a literal names nothing; it only loses part of
   the literal. Every record of a spec refuses the key instead.
 
-- **The dependency rule is held by role, for whole packages and their
-  imports only.** A role can grant more than ARCHITECTURE.md's table: until
-  the price list is removed, the roles of `core` and `runtime` also let them
-  import its `domain` and `shared`. A
-  `fetch` written by hand outside `adapters` is not caught, nor are rules 1,
+- **The dependency rule is held for whole packages and their imports
+  only.** A `fetch` written by hand outside `adapters` is not caught, nor are rules 1,
   4 and 5 of [ARCHITECTURE.md](architecture/ARCHITECTURE.md), which are
   questions for a review. Nor is "the gateway imports the catalog's
   manifest only": `mayImport` names a whole package, so once `apps/gateway`
@@ -340,7 +335,7 @@ verified, a case that is not covered.
 - **A red `gate:full` when a session stops may be another session's
   doing.** Seen once, on 2026-10-13, while two sessions worked here: the
   coverage stage failed with "vitest wrote no coverage summary" for
-  `packages/react-bindings`, on a commit that was green in CI, and passed
+  `packages/react-bindings` (since removed), on a commit that was green in CI, and passed
   when run again with nothing changed. The likely cause, not proven: both
   sessions' stop hooks run the gate in this one checkout, and one empties
   the `coverage/` folder the other is reading. When that message is the

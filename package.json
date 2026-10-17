@@ -13,8 +13,6 @@
   "scripts": {
     "dev": "pnpm --filter @origamic/web dev",
     "dev:stack": "node tools/dev/stack.mts",
-    "dev:server": "pnpm --filter @origamic/server dev",
-    "dev:fs": "VITE_SERVER_URL=ws://localhost:4000/ws turbo run dev",
     "supabase:dev": "node tools/supabase/dev.mts",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck && tsc --noEmit -p tsconfig.tooling.json",

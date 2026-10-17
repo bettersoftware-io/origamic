@@ -97,17 +97,19 @@ And:
 5. Nothing outside `adapters` names a table, a column or a query string.
 
 `architecture.config.mts` holds the table and rule 2, and `pnpm gate:full`
-fails an import against them. Each package has a role of the starter's
+fails an import against them. Each package has a role of the architecture
 kit; where a role would grant more than the table, the package has the role
-`explicit`, whose edges are only the ones it writes down:
+`explicit`, whose edges are only the ones it writes down. A role that also
+names a `domain` or a `shared` package grants nothing by it: Origamic has
+neither (its ports are in `core`, ADR-0012).
 
 | Package | Role in `architecture.config.mts` |
 |---|---|
 | `packages/spec` | `leaf`: imports nothing, and every package may import it |
-| `packages/core` | `core`, which also grants the starter's price list until the slice removes it |
+| `packages/core` | `core`, which grants `spec` alone |
 | `packages/catalog` | `explicit`, naming `spec`; only `runtime` names it |
 | `packages/runtime` | `bindings`, naming `catalog` |
-| `packages/adapters` | `explicit`, naming `core` and `spec`; only the app will name it |
+| `packages/adapters` | `explicit`, naming `core` and `spec`; only the app names it |
 | `apps/gateway` | `server`, naming `catalog`; nothing imports it but the integration tests |
 | `apps/web` | `client`, naming `adapters`; it builds the catalog with the React Compiler |
 

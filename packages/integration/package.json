@@ -11,12 +11,8 @@
   },
   "devDependencies": {
     "@origamic/adapters": "workspace:*",
-    "@origamic/client-core": "workspace:*",
     "@origamic/core": "workspace:*",
-    "@origamic/domain": "workspace:*",
     "@origamic/gateway": "workspace:*",
-    "@origamic/server": "workspace:*",
-    "@origamic/shared": "workspace:*",
     "@origamic/spec": "workspace:*",
     "rxjs": "^7.8.2"
   }

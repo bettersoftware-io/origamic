@@ -31,9 +31,9 @@
         "@babel/core",
         "babel-plugin-react-compiler"
       ],
-      // The visual add-on's scripts here run Playwright in the package that
-      // installs it (`pnpm --dir packages/client-react exec playwright`). knip
-      // reads them as run at the root, where Playwright is not a dependency.
+      // `pnpm e2e:install` runs Playwright in the package that installs it
+      // (`pnpm --dir packages/e2e exec playwright`). knip reads it as run at
+      // the root, where Playwright is not a dependency.
       "ignoreBinaries": ["playwright"]
     },
     // The apps: a composition root each, run by its `start` script. The same
@@ -55,8 +55,10 @@
       // reported. With it, every export needs an importer: a file in the
       // package, a test, or another package.
       "includeEntryExports": true,
-      // A Playwright tier and the Vite host it serves keep their configs under
-      // tests/ (the visual add-on does), where knip does not look by default.
+      // A package's Playwright and Vite configs, at its root (packages/e2e's
+      // playwright.config.ts) or under tests/, where a Playwright tier and the
+      // Vite host it serves would keep theirs and knip does not look by
+      // default. No package has such a tier today.
       "playwright": { "config": ["playwright.config.ts", "tests/**/playwright.config.ts"] },
       "vite": { "config": ["vite.config.ts", "tests/**/vite.config.ts"] }
     }
