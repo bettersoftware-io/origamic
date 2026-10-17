@@ -4,30 +4,26 @@
 //
 //   ANTHROPIC_API_KEY=… pnpm dev:stack
 //
-// It starts the local Supabase (or finds it running) with every migration
-// applied, then the gateway with the key, then the web app's dev server
-// against both, and prints where each answers. Without ANTHROPIC_API_KEY the
+// It starts the dev Supabase (`origamic`, the API on 54321) or finds it
+// running, with this checkout's pending migrations applied and never a
+// reset (`startDevSupabase`); the tests' stack (`origamic-test`) is not
+// touched. Then the gateway, with the key, and the web app's dev server
+// against both; it prints where each answers. Without ANTHROPIC_API_KEY the
 // gateway is not started and the model is the dev script's (the app's
-// src/app/devScript.ts), which is what the end-to-end tests' `stack` mode
-// runs. Ctrl-C stops the gateway and the app; the local Supabase is left
-// running, as the tests leave it (`pnpm --filter @origamic/adapters supabase
-// stop` stops it).
+// src/app/devScript.ts). Ctrl-C stops the gateway and the app; the dev
+// Supabase is left running (`pnpm --filter @origamic/adapters supabase stop`
+// stops it).
 //
-// On a clean database: `pnpm --filter @origamic/adapters supabase db reset
-// --local` first. Every checkout on the machine shares the one local
-// Supabase (docs/STATUS.md, "Known limits").
+// Its data is the author's. For a clean database the author runs `pnpm
+// --filter @origamic/adapters supabase db reset --local` first, which empties
+// the dev stack only.
 
 import { type ChildProcess, spawn } from "node:child_process";
 import { join } from "node:path";
 
-import { startLocalSupabase } from "../supabase/localSupabase.mts";
+import { APP_PORT, APP_URL, GATEWAY_URL, openDevSupabase, planDevStack } from "./devStack.mts";
 
 const ROOT = join(import.meta.dirname, "..", "..");
-/** The web app's address: the gateway lets only this origin call it. */
-const APP_PORT = "5173";
-const APP_URL = `http://localhost:${APP_PORT}`;
-const GATEWAY_PORT = "8787";
-const GATEWAY_URL = `http://localhost:${GATEWAY_PORT}`;
 
 const children: ChildProcess[] = [];
 
@@ -78,40 +74,25 @@ process.on("exit", () => {
   signalAll("SIGTERM");
 });
 
-console.log("[dev:stack] starting the local Supabase (the first start pulls its images, which takes minutes)");
+console.log("[dev:stack] starting the dev Supabase (the first start pulls its images, which takes minutes)");
 
-const supabase = await startLocalSupabase();
-const key = process.env.ANTHROPIC_API_KEY ?? "";
+const supabase = await openDevSupabase();
+const plan = planDevStack(supabase, process.env);
 
-if (key === "") {
+if (plan.gateway === undefined) {
   console.log("[dev:stack] ANTHROPIC_API_KEY is not set: the gateway is not started, and the model is the dev script's");
 } else {
-  start("node", ["src/main.ts"], join(ROOT, "apps", "gateway"), {
-    ...process.env,
-    SUPABASE_URL: supabase.url,
-    SUPABASE_ANON_KEY: supabase.anonKey,
-    GATEWAY_ALLOWED_ORIGIN: APP_URL,
-    PORT: GATEWAY_PORT,
-  });
+  start("node", ["src/main.ts"], join(ROOT, "apps", "gateway"), plan.gateway);
 }
 
-// The key to the model is the gateway's alone (ARCHITECTURE.md, "Security
-// posture"): the app's dev server is not given it.
-const { ANTHROPIC_API_KEY: _key, ...appEnvironment } = process.env;
-
-start(join("node_modules", ".bin", "vite"), ["--port", APP_PORT, "--strictPort"], join(ROOT, "apps", "web"), {
-  ...appEnvironment,
-  VITE_SUPABASE_URL: supabase.url,
-  VITE_SUPABASE_ANON_KEY: supabase.anonKey,
-  VITE_GATEWAY_URL: key === "" ? "" : GATEWAY_URL,
-});
+start(join("node_modules", ".bin", "vite"), ["--port", APP_PORT, "--strictPort"], join(ROOT, "apps", "web"), plan.app);
 
 console.log(
   [
     "[dev:stack] running:",
     `  Supabase   ${supabase.url}`,
-    `  gateway    ${key === "" ? "not started (no ANTHROPIC_API_KEY)" : GATEWAY_URL}`,
+    `  gateway    ${plan.gateway === undefined ? "not started (no ANTHROPIC_API_KEY)" : GATEWAY_URL}`,
     `  web app    ${APP_URL}`,
-    "  Ctrl-C stops the gateway and the app; the local Supabase keeps running.",
+    "  Ctrl-C stops the gateway and the app; the dev Supabase keeps running.",
   ].join("\n"),
 );

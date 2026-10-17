@@ -1,5 +1,5 @@
 import { type E2eConfig, OUT_DIR } from "./e2e/lib/config.mts";
-import { startLocalSupabase } from "./supabase/localSupabase.mts";
+import { openE2eTestDatabase } from "./supabase/e2eDatabase.mts";
 
 // What `pnpm e2e` builds, starts and runs. This file is the project's: add a
 // mode, or change a command, here. The runner is in tools/e2e and belongs to
@@ -36,17 +36,13 @@ const config: E2eConfig = {
       env: { VITE_SUPABASE_URL: "", VITE_SUPABASE_ANON_KEY: "", VITE_GATEWAY_URL: "" },
     },
 
-    // The session, the ontology, the objects and the library on a local
-    // Supabase, which needs Docker: the Playwright container has none, so the
-    // mode runs on the host. Its address and key are read from the running
-    // stack, which is started (or found running) with every migration applied.
+    // The session, the ontology, the objects and the library on the local
+    // test Supabase (`origamic-test`), never the dev one: the mode holds the
+    // test database's lock for the run, as the adapters' tests do. It needs
+    // Docker, which the Playwright container has not, so it runs on the host.
     stack: {
       host: true,
-      env: async (): Promise<Record<string, string>> => {
-        const { url, anonKey } = await startLocalSupabase();
-
-        return { VITE_SUPABASE_URL: url, VITE_SUPABASE_ANON_KEY: anonKey, VITE_GATEWAY_URL: "" };
-      },
+      env: openE2eTestDatabase,
     },
   },
 };

@@ -216,6 +216,17 @@ outside its package. The gates follow an alias to the file it names, so a
 forbidden import is still found. The `format-lint` add-on fails a deeper
 relative import; without it this is a convention.
 
+## Adding a check
+
+Every check in this project was put here by an installer, and
+`tools/installed.json` records each file it wrote. So a new check, or a newer
+copy of the kit or of an add-on, comes through that installer too: the
+`extending-a-project` skill of the plugin this project was made with says how
+to run it, and run with no arguments it lists the add-ons. Look there before
+you write a workflow, a lint config or a test package for a check. A file the
+installer did not write is one it cannot update, and it will not overwrite a
+file you have edited.
+
 ## Reviewing a change
 
 A review in this project does two things first, whoever or whatever does it:
@@ -538,10 +549,13 @@ with `any`, and hand-writing a component when a catalog entry would do.
 Don't.
 
 The tests named `*.supabase.test.ts` run against a local Supabase in Docker,
-which the gate starts and leaves running (ADR-0004). Where Docker is not
-running they are left out, and the run prints `SKIP supabase — Docker is not
-running here; …`. Report that as not run, as for a port. In CI they always
-run.
+the test stack, which the gate starts and leaves running (ADR-0004). Where
+Docker is not running they are left out, and the run prints `SKIP supabase —
+Docker is not running here; …`. Report that as not run, as for a port. In CI
+they always run. The test stack's data is throwaway: a run resets it when its
+migrations do not match the checkout's, and says so, and runs from several
+checkouts take turns on it. The dev stack, apart from it, is the author's:
+`pnpm supabase:dev` starts it, and nothing resets it.
 
 <!-- add-on: agent-workflow -->
 ## Agent workflow
@@ -860,6 +874,10 @@ the work that left it.
 
 One bullet for each: the name in bold, what is left, and a link to its plan
 when it has one. Link only a file that is on main.
+Every edit sets the "Last updated" line to today. `pnpm check:status`, in
+`gate:fast`, fails a page that leaves one of the six sections out, adds one,
+or writes an entry without its bold name, and one changed since the last
+commit with an old date.
 
 - **Work is planned, or something is left over:** add its entry.
 - **Its pull request merges:** remove the entry, in that pull request. There
