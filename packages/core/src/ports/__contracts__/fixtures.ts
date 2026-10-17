@@ -53,7 +53,7 @@ export function createBookOntology(): Ontology {
   });
 }
 
-/** Slice step 7, against `createBookOntology`: `Book` gains `dateFinished`, and `updateBook` sets it. */
+/** Slice step 7, against `createBookOntology`: `Book` gains `dateFinished`, and `updateBook` sets it, keeping its rating from 1 to 5. */
 export function createDateFinishedChange(): ChangeSet {
   return ChangeSet.parse({
     format: 1,
@@ -71,6 +71,7 @@ export function createDateFinishedChange(): ChangeSet {
           kind: "update",
           type: "Book",
           fields: ["title", "author", "status", "rating", "dateFinished"],
+          rules: [{ kind: "range", property: "rating", min: 1, max: 5 }],
         },
       },
     ],

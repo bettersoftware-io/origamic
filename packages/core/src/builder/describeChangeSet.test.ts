@@ -28,7 +28,7 @@ describe("describeChangeSet", () => {
       ),
     ).toEqual([
       "Book: add dateFinished (date, optional)",
-      "updateBook: now also sets dateFinished; no longer requires rating from 1 to 5",
+      "updateBook: now also sets dateFinished",
     ]);
   });
 

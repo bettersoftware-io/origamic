@@ -215,6 +215,17 @@ outside its package. The gates follow an alias to the file it names, so a
 forbidden import is still found. The `format-lint` add-on fails a deeper
 relative import; without it this is a convention.
 
+## Adding a check
+
+Every check in this project was put here by an installer, and
+`tools/installed.json` records each file it wrote. So a new check, or a newer
+copy of the kit or of an add-on, comes through that installer too: the
+`extending-a-project` skill of the plugin this project was made with says how
+to run it, and run with no arguments it lists the add-ons. Look there before
+you write a workflow, a lint config or a test package for a check. A file the
+installer did not write is one it cannot update, and it will not overwrite a
+file you have edited.
+
 ## Reviewing a change
 
 A review in this project does two things first, whoever or whatever does it:
@@ -859,6 +870,10 @@ the work that left it.
 
 One bullet for each: the name in bold, what is left, and a link to its plan
 when it has one. Link only a file that is on main.
+Every edit sets the "Last updated" line to today. `pnpm check:status`, in
+`gate:fast`, fails a page that leaves one of the six sections out, adds one,
+or writes an entry without its bold name, and one changed since the last
+commit with an old date.
 
 - **Work is planned, or something is left over:** add its entry.
 - **Its pull request merges:** remove the entry, in that pull request. There
@@ -923,6 +938,7 @@ runs in two modes, and a mode's specs are in the folder of its name:
 ```bash
 pnpm e2e                              # build, serve, run every spec in both modes, stop everything
 pnpm e2e --mode sim                   # one mode: only what it needs is built and started
+pnpm e2e --where host                 # the modes that say host: true; --where container, the others
 pnpm e2e src/sim/selection.spec.ts    # one spec
 pnpm e2e -g "marks the row"           # the tests whose title matches
 pnpm e2e --mode sim --headed          # a visible browser; --ui opens Playwright's own runner
@@ -1002,6 +1018,10 @@ so does a mode with no spec.
   the `serverHost` option to tell that server's responses from any other.
 - To prove a mode uses the server, compare the screen with what came over the
   wire (`serverFeed`). The simulator makes prices that look the same.
+- A mode that needs Docker (a local database) says `host: true`: the
+  container's job cannot start it, and a job on the runner does. Read its
+  keys with an `env` function that asks the running stack (its status
+  command), never write them in the config.
 
 ### When a spec fails
 

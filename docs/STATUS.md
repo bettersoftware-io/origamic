@@ -12,7 +12,7 @@ One bullet for each entry: its name in bold, what is left, and a link to its
 plan when it has one. `AGENTS.md` says when an entry is added, moved and
 removed.
 
-**Last updated: 2026-10-16**
+**Last updated: 2026-10-17**
 
 ## In progress
 
@@ -24,37 +24,39 @@ Work that has started and is not finished.
   graph gives. Built: part 1a, the `e2e` add-on, whose five specs still test
   the price list (removed in part 10, modes replaced in part 9); part 1b, a
   local Supabase that `pnpm gate:full` and CI start, with the first migration.
-  Part 2, the spec's additions, is built and waits for the author's review
-  before it merges. Part 3, `core`'s five ports with their contracts and
-  simulators, `planWrite`, `valueSchema`, `checkCompatibility`, `createCore`
-  and `createCoreHarness`, is built on part 2 and waits likewise; it added
-  `Row` to `packages/spec`. Part 4, `core`'s app session, builder and
-  workspace presenter with `resolveView`, `describeChangeSet` and
-  `diffApps`, and `Core` at its full shape, is built on part 3 and waits
-  likewise; it let a workspace with no panel have no layout (`null`) and
-  added `createBookChange` to the book tracker's fixtures in
-  `packages/spec`. Part 5, the catalog, is built on part 2 and waits
-  likewise: the five contracts, the manifest and `checkElement`, what the
-  model is held to, and the React implementations on shadcn's primitives. It
-  exports spec's `PropKind` and `CatalogComponent`. Part 6, the runtime, is
-  built on parts 4 and 5 and waits likewise: `AppView`, which draws an app's
-  UI spec over the catalog and routes its events to the app session, and
-  `createShellViewModel`, the shell's hooks over the core. It changed the
-  catalog: a view's rows are spec's `Row`; `Envelope` and `PARTS` are
-  exported; and each implementation is behind its contract (`checked`), so
-  it takes props as the runtime resolves them and draws its component only
-  with what the schemas accept. A form whose submit wrote through an action,
-  with nothing refused, is drawn afresh, which empties a create form. Some
-  things wait on other parts: `Break` (in `core`'s
+  Part 2, the spec's additions, part 3 (`core`'s five ports with their
+  contracts and simulators, `planWrite`, `valueSchema`, `checkCompatibility`,
+  `createCore` and `createCoreHarness`, which added `Row` to `packages/spec`),
+  part 4 (`core`'s app session, builder and workspace presenter with
+  `resolveView`, `describeChangeSet` and `diffApps`, and `Core` at its full
+  shape; it let a workspace with no panel have no layout (`null`) and added
+  `createBookChange` to the book tracker's fixtures in `packages/spec`),
+  part 5 (the catalog: the five contracts, the manifest and `checkElement`,
+  what the model is held to, and the React implementations on shadcn's
+  primitives; it exports spec's `PropKind` and `CatalogComponent`) and part 7
+  (the Supabase adapters of the session, the ontology, the objects and the
+  library, each passing its port's contract against the local Supabase, with
+  `createSupabaseAdapters` and a second migration) are on main. The client of
+  the LLM gateway, which the plan put in part 7, comes with the gateway in
+  part 8. Part 6, the runtime, is built on parts 4 and 5 and waits for review
+  and merge: `AppView`, which draws an app's UI spec over the catalog and
+  routes its events to the app session, and `createShellViewModel`, the
+  shell's hooks over the core. It changed the catalog: a view's rows are
+  spec's `Row`; `Envelope` and `PARTS` are exported; and each implementation
+  is behind its contract (`checked`), so it takes props as the runtime
+  resolves them and draws its component only with what the schemas accept. A
+  form whose submit wrote through an action, with nothing refused, is drawn
+  afresh, which empties a create form. Some exports wait for their first
+  importer, since knip refuses an export nobody imports: `Break` (in `core`'s
   `apps/compatibility.ts`), `BuilderTarget` (in `builder/builder.ts`) and
-  `LoadedApp` (in `createCore.ts`) are exported by the part that first names
-  them, likely part 9; so are the runtime's `ShellViewModelProvider`,
+  `LoadedApp` (in `createCore.ts`) go by the part that first names them,
+  likely part 9; so do the runtime's `ShellViewModelProvider`,
   `useShellViewModel` and the type `ShellViewModel`
-  (`packages/runtime/src/viewModel/`), which only its tests use today. Part 9's library is how a saved app that no panel
-  shows is reopened: the builder refuses a new app whose id the library has,
-  and says to open it from the library and revise it there, which is also
-  what is left when an accept saved the app and then failed to add its
-  panel.
+  (`packages/runtime/src/viewModel/`), which only its tests use today. Part
+  9's library is how a saved app that no panel shows is reopened: the builder
+  refuses a new app whose id the library has, and says to open it from the
+  library and revise it there, which is also what is left when an accept
+  saved the app and then failed to add its panel.
 
 ## Designed, not built
 
@@ -66,18 +68,14 @@ A plan or a design is on the main branch, and nothing of it is built.
   Built: the schemas in `packages/spec`, reviewed by the author on
   2026-10-16, `core`'s ports, simulators and rules (part 3 of the slice),
   its app session, builder and workspace (part 4), the catalog (part 5), the
-  runtime (part 6), and the dependency rule, held by
-  `architecture.config.mts` over `adapters` too, which holds only the first
-  migration and its test.
+  Supabase adapters (part 7), and the dependency rule, held by
+  `architecture.config.mts` over every package. The runtime (part 6) is built
+  and waits to merge.
 
 ## Planned, and held by something
 
 It waits on a release, a decision or other work. Each entry says on what.
 
-- **`@supabase/supabase-js` at 2.118.0, as the slice's plan says.** It is
-  at 2.117.3: 2.118.0 was published on 2026-10-15 at 12:57 UTC, and
-  `minimumReleaseAge` refuses it until a day later. Move to it in any part
-  after that (part 7 is the first that uses the client outside a test).
 
 ## Next, with no plan yet
 
@@ -183,14 +181,14 @@ verified, a case that is not covered.
   that state today; a new one with no dependency needs `packages/<name>: {}`
   added to `pnpm-lock.yaml` by hand. Run `pnpm install --frozen-lockfile`
   before pushing, since `gate:full` stays green without it.
-- **Where Docker is not running, `packages/adapters` is measured without its
-  tests.** Its `*.supabase.test.ts` files are left out there (with a `SKIP`
-  line), and the coverage gate knows only port tests as a reason not to judge
-  a package. Today the package has no code to cover, so nothing fails; once
-  part 7 puts adapters in it, a run without Docker fails the coverage bar for
-  a reason that is not in the code. CI always has Docker. The fix is the
-  coverage add-on's, in `bettersoftware-io/skills`: a package whose tests
-  were left out is not judged.
+- **Where Docker is not running, `pnpm gate:full` fails on
+  `packages/adapters`'s coverage.** Its `*.supabase.test.ts` files are left
+  out there (with a `SKIP` line), and the coverage gate knows only port tests
+  as a reason not to judge a package, so it measures the adapters without
+  the tests that reach them and fails the bar for a reason that is not in
+  the code. CI always has Docker. The fix is the coverage add-on's, in
+  `bettersoftware-io/skills`: a package whose tests were left out is not
+  judged.
 - **Every checkout on a machine shares one local Supabase.** Its project id
   is `origamic`, on ports 54321 (the API) and 54322 (Postgres), which
   Docker publishes on every interface with the CLI's default password. A
@@ -202,6 +200,37 @@ verified, a case that is not covered.
   place applied again to a running stack: `migration up` skips a version the
   database has recorded, so the stack keeps the old tables. Run the same
   `db reset --local` after editing one.
+- **The Supabase object store reads a view in pages, each a query of its
+  own.** The API cuts every answer at `max_rows` (1000, in
+  `packages/adapters/supabase/config.toml`), so a view of more objects is
+  read 1000 at a time. A write between two pages can move an object across
+  the boundary, so it is read twice or not at all in that one emission; the
+  next action re-reads. Raising `max_rows` past the page size changes
+  nothing; lowering it below 1000 needs the page size lowered with it.
+- **The Supabase object store's text order and `contains` can differ from
+  the simulator's outside ASCII.** Postgres's `COLLATE "C"` orders by UTF-8
+  bytes, which is code point order: a supplementary character (U+10000 and
+  above) sorts after U+E000 to U+FFFF there, and before them in the
+  simulator's UTF-16 code units. `contains` is ILIKE, which lowercases by the
+  database's ctype (en_US.UTF-8), where the simulator uses JavaScript's
+  `toLowerCase`; the two can differ on other scripts' case folding.
+- **Two updates of one object at once: the last wins.** The Supabase object
+  store's update writes every value `planWrite` planned from the object
+  as it was read, so of two updates of one object at once the last wins
+  whole. One builder does not meet it; it moves with the checks to the
+  server (ADR-0009).
+- **A link keeps the cardinality its type had when it was written.** The
+  unique indexes that hold a link to its cardinality read it from the link's
+  own row, since the database does not read the ontology. A change set that
+  changed a link type's cardinality would leave the links written before it
+  held to the old one; no change set operation does so today.
+- **`packages/adapters` is typechecked with Node's types over all of
+  `src`.** Its code runs in the browser, and only its tests need Node (they
+  read the stack's keys from `process.env`). The typed lint reads each file
+  with the `tsconfig.json` nearest to it, so a second tsconfig for the tests
+  would leave them read by none. `noNodeBuiltins` holds the imports; a Node
+  global (`process`, `Buffer`) in the adapters' own code is caught by no
+  check, only by review.
 - **A port is `<Name>Port`, in `<name>Port.ts`.** The kit's contract gate
   finds a port, and an adapter that implements it, only by that name.
 - **The compatibility check reads only what `core` can read.** It finds a
@@ -231,11 +260,6 @@ verified, a case that is not covered.
 - **Two Scorecard alerts clear by themselves.** "Maintained" (alert 5) when
   the repository is 90 days old, which is 2027-01-10. "SAST" (alert 2) as
   more of the last commits have a CodeQL run: 4 of 6 on 2026-10-12.
-- **Renovate opens the security fixes, against the add-on's default.**
-  Dependabot's updater has Node 24 and this project asks for Node 26, so
-  neither its updates nor its security updates can run. `vulnerabilityAlerts`
-  is on in `.github/renovate.json5`, and the file says when to turn it off:
-  when a Dependabot security update opens a pull request here.
 - **The shipping rules were followed cold once, on a change that went
   right.** A red check, a conflict, two sessions merging at the same time and
   a failure on main after a merge have not been met. The rules for them are
