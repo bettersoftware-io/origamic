@@ -16,13 +16,13 @@
   </head>
   <body>
     <h1>Coverage report</h1>
-    <p class="build">Built from commit 2cb1361 (main) on 2026-10-17 09:00 UTC.</p>
+    <p class="build">Built from commit 996f1f5 (main) on 2026-10-17 09:04 UTC.</p>
     <p>A published report shows the commit that built it, not the newest one. Compare the commit above with the code you are reading before you trust a number here.</p>
     <p>The bar, for every file: lines ≥ 95%, statements ≥ 95%, functions ≥ 95%, branches ≥ 85%.</p>
     <table>
       <tr><th>Package</th><th>Verdict</th><th>Why</th><th class="number">lines</th><th class="number">statements</th><th class="number">functions</th><th class="number">branches</th></tr>
-      <tr><td><a href="./packages/adapters/index.html">packages/adapters</a></td><td class="pass">PASS</td><td>6 files at or above the bar</td><td class="number">99.29%</td><td class="number">99.3%</td><td class="number">100%</td><td class="number">96.1%</td></tr>
-      <tr><td>packages/catalog</td><td class="skip">SKIP</td><td>1 file, none with code to cover (types and re-exports only)</td><td class="number">–</td><td class="number">–</td><td class="number">–</td><td class="number">–</td></tr>
+      <tr><td><a href="./packages/adapters/index.html">packages/adapters</a></td><td class="pass">PASS</td><td>6 files at or above the bar</td><td class="number">99.29%</td><td class="number">99.3%</td><td class="number">100%</td><td class="number">97.4%</td></tr>
+      <tr><td><a href="./packages/catalog/index.html">packages/catalog</a></td><td class="pass">PASS</td><td>33 files at or above the bar</td><td class="number">99.55%</td><td class="number">99.55%</td><td class="number">100%</td><td class="number">97.82%</td></tr>
       <tr><td><a href="./packages/client-core/index.html">packages/client-core</a></td><td class="pass">PASS</td><td>5 files at or above the bar</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td></tr>
       <tr><td><a href="./packages/client-react/index.html">packages/client-react</a></td><td class="pass">PASS</td><td>5 files at or above the bar</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td><td class="number">100%</td></tr>
       <tr><td><a href="./packages/core/index.html">packages/core</a></td><td class="pass">PASS</td><td>15 files at or above the bar</td><td class="number">99.1%</td><td class="number">99.1%</td><td class="number">100%</td><td class="number">96.15%</td></tr>
@@ -48,6 +48,6 @@
       <li><code>packages/client-react/src/main.tsx</code> — the browser's entry point: it only calls startApp(), which is tested; importing it in a test would start the app</li>
       <li><code>packages/server/src/index.ts</code> — the server's entry point: it only reads the port and calls startServer(), which is tested; importing it in a test would start a server</li>
     </ul>
-    <p><a href="https://github.com/bettersoftware-io/origamic/actions/runs/39019379979">The run that built this report</a></p>
+    <p><a href="https://github.com/bettersoftware-io/origamic/actions/runs/39019610331">The run that built this report</a></p>
   </body>
 </html>
