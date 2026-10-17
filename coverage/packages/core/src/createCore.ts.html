@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>9/9</span>
+                <span class='fraction'>8/8</span>
             </div>
         
             
@@ -39,14 +39,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>5/5</span>
+                <span class='fraction'>3/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>9/9</span>
+                <span class='fraction'>8/8</span>
             </div>
         
             
@@ -133,7 +133,14 @@
 <a name='L68'></a><a href='#L68'>68</a>
 <a name='L69'></a><a href='#L69'>69</a>
 <a name='L70'></a><a href='#L70'>70</a>
-<a name='L71'></a><a href='#L71'>71</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -180,44 +187,55 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">61x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">61x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { firstValueFrom, type Observable } from "rxjs";
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { firstValueFrom } from "rxjs";
 &nbsp;
+import type { App, Catalog } from "@origamic/spec";
+&nbsp;
+import { type AppSession, openAppSession } from "./apps/appSession.ts";
 import {
-  type App,
-  type Catalog,
-  type Ontology,
-  type Problem,
-  validateApp,
-} from "@origamic/spec";
-&nbsp;
+  type Compatibility,
+  checkCompatibility,
+} from "./apps/compatibility.ts";
+import { type Builder, createBuilder } from "./builder/builder.ts";
 import type { LlmGatewayPort } from "./ports/llmGatewayPort.ts";
 import type { ObjectStorePort } from "./ports/objectStorePort.ts";
 import type { OntologyStorePort } from "./ports/ontologyStorePort.ts";
 import type { SessionPort } from "./ports/sessionPort.ts";
-import type { LibraryEntry, SpecLibraryPort } from "./ports/specLibraryPort.ts";
+import type { SpecLibraryPort } from "./ports/specLibraryPort.ts";
+import {
+  createWorkspacePresenter,
+  type WorkspacePresenter,
+} from "./workspace/workspacePresenter.ts";
 &nbsp;
 /** Everything the core is handed: one adapter or simulator for each port, and the catalog it checks apps against. */
 export interface CoreDeps {
@@ -229,47 +247,50 @@ export interface CoreDeps {
   catalog: Catalog;
 }
 &nbsp;
-/** What saving an app gives: the app at its new version, or every problem `validateApp` found, with nothing saved. */
-type SavedApp =
-  | { kind: "saved"; app: App }
-  | { kind: "invalid"; problems: readonly Problem[] };
+/** An app as loaded from the library, with whether it still works on the current ontology (ADR-0005). */
+interface LoadedApp {
+  app: App;
+  compatibility: Compatibility;
+}
 &nbsp;
-/** The application, without a screen. The app session and the builder join it in part 4 of the first slice. */
+/** The application, without a screen. */
 export interface Core {
   /** Who is signed in, and signing in and out. */
   readonly session: SessionPort;
-  /** The owner's ontology, as it moves. */
-  ontology(): Observable&lt;Ontology&gt;;
-  /** The latest of each app in the library. */
-  apps(): Observable&lt;readonly LibraryEntry[]&gt;;
-  /** The latest of each workspace in the library. */
-  workspaces(): Observable&lt;readonly LibraryEntry[]&gt;;
-  /** Saves an app once `validateApp` passes it against the current ontology and the catalog: the client validates every spec it saves (ADR-0009). */
-  saveApp(draft: unknown): Promise&lt;SavedApp&gt;;
+  /** The conversation with the model, and accepting what it proposes. */
+  readonly builder: Builder;
+  /** The owner's workspace: its panels and their pins. */
+  readonly workspace: WorkspacePresenter;
+  /** The owner's apps and workspaces, every version of each. */
+  readonly library: SpecLibraryPort;
+  /** Opens an app: its state, its views' rows, and its elements' events. Close it when it leaves the screen. */
+  openApp(app: App): AppSession;
+  /** The app at that version, with the compatibility check against the current ontology; `null` when the library has no such version. */
+  loadApp(id: string, version: number): Promise&lt;LoadedApp | null&gt;;
 }
 &nbsp;
 /** Builds the core over its ports. Only `createCoreHarness` calls it in a test; the composition root calls it in the app. */
 export function createCore(deps: CoreDeps): Core {
+  const workspace = createWorkspacePresenter(deps.library);
+&nbsp;
   return {
     session: deps.session,
-    ontology: (): Observable&lt;Ontology&gt; =&gt; {
-      return deps.ontology.current();
+    builder: createBuilder({ ...deps, workspace }),
+    workspace,
+    library: deps.library,
+    openApp: (app: App): AppSession =&gt; {
+      return openAppSession(app, deps);
     },
-    apps: (): Observable&lt;readonly LibraryEntry[]&gt; =&gt; {
-      return deps.library.apps();
-    },
-    workspaces: (): Observable&lt;readonly LibraryEntry[]&gt; =&gt; {
-      return deps.library.workspaces();
-    },
-    saveApp: async (draft: unknown): Promise&lt;SavedApp&gt; =&gt; {
-      const ontology = await firstValueFrom(deps.ontology.current());
-      const validated = validateApp(draft, ontology, deps.catalog);
+    loadApp: async (id: string, version: number): Promise&lt;LoadedApp | null&gt; =&gt; {
+      const app = await deps.library.loadApp(id, version);
 &nbsp;
-      if (validated.kind === "invalid") {
-        return validated;
+      if (app === null) {
+        return null;
       }
 &nbsp;
-      return { kind: "saved", app: await deps.library.saveApp(validated.app) };
+      const ontology = await firstValueFrom(deps.ontology.current());
+&nbsp;
+      return { app, compatibility: checkCompatibility(app, ontology) };
     },
   };
 }
@@ -280,7 +301,7 @@ export function createCore(deps: CoreDeps): Core {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-17T08:37:45.669Z
+                at 2026-10-17T08:46:11.767Z
             </div>
         <script src="../prettify.js"></script>
         <script>

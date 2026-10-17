@@ -1,8 +1,8 @@
 {
-  "commit": "6160e6a62adaea940b0c240db6ab6c3cbe517955",
+  "commit": "6b6ba1cfd171be7a791461c916156e0e531be344",
   "uncommittedChanges": false,
   "ref": "main",
-  "builtAt": "2026-10-17T08:37:53.077Z",
+  "builtAt": "2026-10-17T08:46:18.490Z",
   "thresholds": {
     "lines": 95,
     "statements": 95,
@@ -22,11 +22,35 @@
   "packages": [
     {
       "directory": "packages/adapters",
-      "verdict": "PASS",
-      "reason": "6 files at or above the bar",
+      "verdict": "FAIL",
+      "reason": "1 of 6 files under the bar",
       "measuredFiles": 6,
       "emptyFiles": 1,
-      "underTheBar": [],
+      "underTheBar": [
+        {
+          "file": "packages/adapters/src/supabase/supabaseOntologyStore.ts",
+          "shortfalls": [
+            {
+              "metric": "lines",
+              "pct": 94.11,
+              "needed": 95,
+              "uncovered": 1
+            },
+            {
+              "metric": "statements",
+              "pct": 94.11,
+              "needed": 95,
+              "uncovered": 1
+            },
+            {
+              "metric": "branches",
+              "pct": 83.33,
+              "needed": 85,
+              "uncovered": 1
+            }
+          ]
+        }
+      ],
       "unexplainedIgnores": [],
       "failedTests": []
     },
@@ -63,8 +87,8 @@
     {
       "directory": "packages/core",
       "verdict": "PASS",
-      "reason": "9 files at or above the bar",
-      "measuredFiles": 9,
+      "reason": "15 files at or above the bar",
+      "measuredFiles": 15,
       "emptyFiles": 6,
       "underTheBar": [],
       "unexplainedIgnores": [],
