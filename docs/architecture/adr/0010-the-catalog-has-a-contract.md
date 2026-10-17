@@ -69,6 +69,13 @@ How the two layers are laid out in `packages/catalog`:
 - **The implementation** is `src/react/`, read through the entry
   `@origamic/catalog`: `implementations`, one component per contract, each
   taking an `Envelope` of its props, children, `emit`, test id and problems.
+  Each is behind its contract (`checked`, built in part 6): it takes the
+  props as the runtime resolves them from a spec, and draws the component
+  only when each value is one its prop's schema accepts, and a box that names
+  what does not fit otherwise. That check is the one place a spec's values
+  become a component's typed props, so nothing casts past a schema; it also
+  catches what `validateApp` cannot see, a state key that holds a value the
+  prop does not take.
   Its React code is held to a client's lint rules (`reactRules: "client"`),
   since the app's build compiles it.
 - **Only a `Stack` shows children.** A contract says so (`showsChildren`);

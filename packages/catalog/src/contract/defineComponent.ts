@@ -1,6 +1,8 @@
 import type { z } from "zod";
 
-import type { AnyProp, PropContract, Row } from "./props.ts";
+import type { Row } from "@origamic/spec";
+
+import type { AnyProp, PropContract } from "./props.ts";
 
 /** An event whose payload's fields are the `name` of each entry of one of the element's props: a Form submits one field per entry of its `fields`. */
 export interface FieldsOf {

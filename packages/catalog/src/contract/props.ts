@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { Id, Json, type JsonValue, type PropKind } from "@origamic/spec";
+import { Id, Json, type PropKind } from "@origamic/spec";
 
 /**
  * One prop of a component's contract: what it accepts, by kind, and the
@@ -23,13 +23,7 @@ export interface PropContract<
 /** A prop of any kind, required or not: what a contract's props are made of. */
 export type AnyProp = PropContract<PropKind, z.ZodType, boolean>;
 
-/** One row of a view, as a `view` prop receives it. It is spec's `Row` once part 3 adds that to `packages/spec`. */
-export interface Row {
-  readonly id: string;
-  readonly values: Readonly<Record<string, JsonValue>>;
-}
-
-/** What a `view` prop receives: the rows of its view, in the view's order. */
+/** What a `view` prop receives: the rows of its view, in the view's order, each a `Row` of spec's. */
 const RowsSchema = z.array(
   z.strictObject({ id: Id, values: z.record(z.string(), Json) }),
 );
