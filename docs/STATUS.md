@@ -12,7 +12,7 @@ One bullet for each entry: its name in bold, what is left, and a link to its
 plan when it has one. `AGENTS.md` says when an entry is added, moved and
 removed.
 
-**Last updated: 2026-10-16**
+**Last updated: 2026-10-17**
 
 ## In progress
 
@@ -170,11 +170,6 @@ verified, a case that is not covered.
 - **Two Scorecard alerts clear by themselves.** "Maintained" (alert 5) when
   the repository is 90 days old, which is 2027-01-10. "SAST" (alert 2) as
   more of the last commits have a CodeQL run: 4 of 6 on 2026-10-12.
-- **Renovate opens the security fixes, against the add-on's default.**
-  Dependabot's updater has Node 24 and this project asks for Node 26, so
-  neither its updates nor its security updates can run. `vulnerabilityAlerts`
-  is on in `.github/renovate.json5`, and the file says when to turn it off:
-  when a Dependabot security update opens a pull request here.
 - **The shipping rules were followed cold once, on a change that went
   right.** A red check, a conflict, two sessions merging at the same time and
   a failure on main after a merge have not been met. The rules for them are

@@ -21,7 +21,7 @@
     "gates": "node tools/arch/gates/run.mts",
     "check:react-policies": "node tools/arch/check-react-policies.mts",
     "check:compiler": "node tools/arch/check-compiler.mts",
-    "gate:fast": "pnpm gates && pnpm check:react-policies && pnpm check:compiler && pnpm lint && pnpm typecheck && pnpm check:dockerfiles && pnpm biome:check && pnpm lint:types && pnpm lint:dead",
+    "gate:fast": "pnpm gates && pnpm check:react-policies && pnpm check:compiler && pnpm lint && pnpm typecheck && pnpm check:dockerfiles && pnpm biome:check && pnpm lint:types && pnpm lint:dead && pnpm check:status",
     "gate:full": "pnpm gate:fast && pnpm test && pnpm build && pnpm coverage",
     "gate:fast:quiet": "node tools/arch/gates/quiet.mts gate:fast",
     "gate:full:quiet": "node tools/arch/gates/quiet.mts gate:full",
@@ -42,7 +42,8 @@
     "repo:settings": "node tools/ci-security/check-settings.mts",
     "worktree:audit": "node tools/agent-workflow/audit-worktrees.mts",
     "e2e": "node tools/e2e/run.mts",
-    "e2e:install": "pnpm --dir packages/e2e exec playwright install chromium"
+    "e2e:install": "pnpm --dir packages/e2e exec playwright install chromium",
+    "check:status": "node tools/agent-workflow/check-status.mts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
