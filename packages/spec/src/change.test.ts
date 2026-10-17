@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { z } from "zod";
 
+import type { ActionType } from "./action.ts";
 import { AppDraft } from "./binding.ts";
 import { type Applied, applyChangeSet } from "./change.ts";
 import { ChangeSet, Ontology } from "./ontology.ts";
 import { checkApp } from "./references.ts";
 import {
+  createBookChange,
   createBookOntology,
   createCatalog,
   createDateFinishedApp,
@@ -21,6 +23,24 @@ describe("applying a change set", () => {
       Book: 2,
       createBook: 1,
       updateBook: 2,
+    });
+  });
+
+  it("the date-finished change keeps all of updateBook, and only adds dateFinished", () => {
+    const before = actionNamed(
+      Ontology.parse(createBookOntology()),
+      "updateBook",
+    );
+
+    const after = actionNamed(
+      ontologyAfter(createDateFinishedChange()),
+      "updateBook",
+    );
+
+    expect(after).toEqual({
+      ...before,
+      version: 2,
+      fields: [...fieldsOf(before), "dateFinished"],
     });
   });
 
@@ -258,6 +278,14 @@ describe("applying a change set", () => {
     expect(versionsOf(ontology)).toEqual({ Book: 1 });
   });
 
+  it("the book tracker's first change set yields its ontology", () => {
+    const empty: OntologyInput = { format: 1, version: 0, objectTypes: [] };
+
+    expect(ontologyAfter(createBookChange(), empty)).toEqual(
+      Ontology.parse(createBookOntology()),
+    );
+  });
+
   it("leaves the ontology it was given as it was", () => {
     const ontology = Ontology.parse(createBookOntology());
 
@@ -311,6 +339,22 @@ function versionsOf(ontology: Ontology): Record<string, number> {
 
 function nameOf(item: Named): string {
   return item.name;
+}
+
+function actionNamed(ontology: Ontology, name: string): ActionType {
+  const action = ontology.actionTypes.find((candidate) => {
+    return candidate.name === name;
+  });
+
+  if (action === undefined) {
+    throw new Error(`the ontology has no action "${name}"`);
+  }
+
+  return action;
+}
+
+function fieldsOf(action: ActionType): string[] {
+  return "fields" in action ? action.fields : [];
 }
 
 function invalidAt(message: string): Applied {

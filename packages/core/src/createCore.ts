@@ -1,18 +1,22 @@
-import { firstValueFrom, type Observable } from "rxjs";
+import { firstValueFrom } from "rxjs";
 
+import type { App, Catalog } from "@origamic/spec";
+
+import { type AppSession, openAppSession } from "./apps/appSession.ts";
 import {
-  type App,
-  type Catalog,
-  type Ontology,
-  type Problem,
-  validateApp,
-} from "@origamic/spec";
-
+  type Compatibility,
+  checkCompatibility,
+} from "./apps/compatibility.ts";
+import { type Builder, createBuilder } from "./builder/builder.ts";
 import type { LlmGatewayPort } from "./ports/llmGatewayPort.ts";
 import type { ObjectStorePort } from "./ports/objectStorePort.ts";
 import type { OntologyStorePort } from "./ports/ontologyStorePort.ts";
 import type { SessionPort } from "./ports/sessionPort.ts";
-import type { LibraryEntry, SpecLibraryPort } from "./ports/specLibraryPort.ts";
+import type { SpecLibraryPort } from "./ports/specLibraryPort.ts";
+import {
+  createWorkspacePresenter,
+  type WorkspacePresenter,
+} from "./workspace/workspacePresenter.ts";
 
 /** Everything the core is handed: one adapter or simulator for each port, and the catalog it checks apps against. */
 export interface CoreDeps {
@@ -24,47 +28,50 @@ export interface CoreDeps {
   catalog: Catalog;
 }
 
-/** What saving an app gives: the app at its new version, or every problem `validateApp` found, with nothing saved. */
-type SavedApp =
-  | { kind: "saved"; app: App }
-  | { kind: "invalid"; problems: readonly Problem[] };
+/** An app as loaded from the library, with whether it still works on the current ontology (ADR-0005). */
+interface LoadedApp {
+  app: App;
+  compatibility: Compatibility;
+}
 
-/** The application, without a screen. The app session and the builder join it in part 4 of the first slice. */
+/** The application, without a screen. */
 export interface Core {
   /** Who is signed in, and signing in and out. */
   readonly session: SessionPort;
-  /** The owner's ontology, as it moves. */
-  ontology(): Observable<Ontology>;
-  /** The latest of each app in the library. */
-  apps(): Observable<readonly LibraryEntry[]>;
-  /** The latest of each workspace in the library. */
-  workspaces(): Observable<readonly LibraryEntry[]>;
-  /** Saves an app once `validateApp` passes it against the current ontology and the catalog: the client validates every spec it saves (ADR-0009). */
-  saveApp(draft: unknown): Promise<SavedApp>;
+  /** The conversation with the model, and accepting what it proposes. */
+  readonly builder: Builder;
+  /** The owner's workspace: its panels and their pins. */
+  readonly workspace: WorkspacePresenter;
+  /** The owner's apps and workspaces, every version of each. */
+  readonly library: SpecLibraryPort;
+  /** Opens an app: its state, its views' rows, and its elements' events. Close it when it leaves the screen. */
+  openApp(app: App): AppSession;
+  /** The app at that version, with the compatibility check against the current ontology; `null` when the library has no such version. */
+  loadApp(id: string, version: number): Promise<LoadedApp | null>;
 }
 
 /** Builds the core over its ports. Only `createCoreHarness` calls it in a test; the composition root calls it in the app. */
 export function createCore(deps: CoreDeps): Core {
+  const workspace = createWorkspacePresenter(deps.library);
+
   return {
     session: deps.session,
-    ontology: (): Observable<Ontology> => {
-      return deps.ontology.current();
+    builder: createBuilder({ ...deps, workspace }),
+    workspace,
+    library: deps.library,
+    openApp: (app: App): AppSession => {
+      return openAppSession(app, deps);
     },
-    apps: (): Observable<readonly LibraryEntry[]> => {
-      return deps.library.apps();
-    },
-    workspaces: (): Observable<readonly LibraryEntry[]> => {
-      return deps.library.workspaces();
-    },
-    saveApp: async (draft: unknown): Promise<SavedApp> => {
-      const ontology = await firstValueFrom(deps.ontology.current());
-      const validated = validateApp(draft, ontology, deps.catalog);
+    loadApp: async (id: string, version: number): Promise<LoadedApp | null> => {
+      const app = await deps.library.loadApp(id, version);
 
-      if (validated.kind === "invalid") {
-        return validated;
+      if (app === null) {
+        return null;
       }
 
-      return { kind: "saved", app: await deps.library.saveApp(validated.app) };
+      const ontology = await firstValueFrom(deps.ontology.current());
+
+      return { app, compatibility: checkCompatibility(app, ontology) };
     },
   };
 }

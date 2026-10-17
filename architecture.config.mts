@@ -69,6 +69,7 @@ const config: ArchitectureConfig = {
       noNodeBuiltins: true,
     },
     // core and spec, and only the app imports it (the app will name it).
+    // RxJS because the ports it implements return observables, as core's do.
     "packages/adapters": {
       role: "explicit",
       mayImport: ["packages/core", "packages/spec"],

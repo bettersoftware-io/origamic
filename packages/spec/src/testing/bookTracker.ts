@@ -66,7 +66,25 @@ export function createBookOntology(): OntologyInput {
   };
 }
 
-/** Slice step 7: "add a 'date finished' field". */
+/** Slice step 2: the change set that makes `createBookOntology` from an empty ontology. */
+export function createBookChange(): ChangeSetInput {
+  const { objectTypes, actionTypes = [] } = createBookOntology();
+
+  return {
+    format: 1,
+    baseVersion: 0,
+    operations: [
+      ...objectTypes.map(({ version: _version, ...objectType }) => {
+        return { op: "addObjectType" as const, objectType };
+      }),
+      ...actionTypes.map(({ version: _version, ...actionType }) => {
+        return { op: "addActionType" as const, actionType };
+      }),
+    ],
+  };
+}
+
+/** Slice step 7: "add a 'date finished' field". `updateBook` keeps everything it had, and also sets the date. */
 export function createDateFinishedChange(): ChangeSetInput {
   return {
     format: 1,
@@ -84,6 +102,7 @@ export function createDateFinishedChange(): ChangeSetInput {
           kind: "update",
           type: "Book",
           fields: ["title", "author", "status", "rating", "dateFinished"],
+          rules: [{ kind: "range", property: "rating", min: 1, max: 5 }],
         },
       },
     ],

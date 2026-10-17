@@ -62,6 +62,18 @@ describe("a workspace", () => {
     ]);
   });
 
+  it("an empty workspace has no panels and no layout", () => {
+    const workspace = { ...createWorkspace(), panels: {}, layout: null };
+
+    expect(issuesOf(WorkspaceDraft, workspace)).toEqual([]);
+    expect(
+      issuesOf(WorkspaceDraft, { ...createWorkspace(), layout: null }),
+    ).toEqual([
+      'the panel "books" is not placed in the layout',
+      'the panel "notes" is not placed in the layout',
+    ]);
+  });
+
   it("splits into two parts at least, each of a size", () => {
     const workspace = createWorkspace();
 

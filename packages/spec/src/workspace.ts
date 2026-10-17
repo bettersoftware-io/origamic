@@ -34,7 +34,7 @@ type LayoutShape = PanelLeaf | Split | Tabs;
 /**
  * Where the panels are: Origamic's own format, which the shell translates
  * to dockview and back (ADR-0003). A tree, because no model writes a layout
- * in v1.
+ * in v1. A workspace with no panel has none (`null`).
  */
 const Layout: z.ZodType<LayoutShape> = z.lazy(() => {
   return z.discriminatedUnion("kind", [
@@ -59,7 +59,7 @@ const WorkspaceFields = z.strictObject({
   id: Id,
   name: z.string().min(1),
   panels: withoutProtoKey(z.record(Id, Panel)),
-  layout: Layout,
+  layout: Layout.nullable(),
 });
 
 type WorkspaceFields = z.infer<typeof WorkspaceFields>;
@@ -81,7 +81,9 @@ function checkPlacement(
 ): void {
   const placed = new Set<string>();
 
-  place(workspace.layout, ["layout"]);
+  if (workspace.layout !== null) {
+    place(workspace.layout, ["layout"]);
+  }
 
   for (const id of Object.keys(workspace.panels)) {
     if (!placed.has(id)) {
