@@ -340,8 +340,8 @@ verified, a case that is not covered.
   `openFromLibrary` before the first sign-in, and the change is saved to
   whatever library the session holds then; the shell never does, and
   `ownersWorkspace()` shows nothing while nobody is signed in. Starting it
-  closed (or closing it in `createCore`) refuses those calls, but 17 tests
-  rely on a change before `open()` opening it first
+  closed (or closing it in `createCore`) refuses those calls, but the
+  presenter's tests rely on a change before `open()` opening it first
   (`workspacePresenter.ts`, "Adding, closing or moving a pin before the
   first `open()` opens the workspace first"), so it waits for a change of
   that rule and of those tests.
