@@ -51,7 +51,7 @@ export interface ShellHarness {
 export function createShellHarness(): ShellHarness {
   const { core, deps } = createCoreHarness({
     catalog,
-    replies: [createReply(proposalOf(0)), createReply(proposalOf(1))],
+    replies: [createReply(createProposal(0)), createReply(createProposal(1))],
   });
   const viewModel = createShellViewModel(core);
 
@@ -95,23 +95,23 @@ export function createShellHarness(): ShellHarness {
     saveBookTracker: async (): Promise<void> => {
       await act(async () => {
         await core.workspace.open();
-        await deps.ontology.apply(changeSetOf(proposalOf(0)));
-        await core.library.saveApp(AppDraft.parse(proposalOf(0).app));
+        await deps.ontology.apply(changeSetOf(createProposal(0)));
+        await core.library.saveApp(AppDraft.parse(createProposal(0).app));
       });
       await settle();
     },
     saveRevisionAhead: async (): Promise<void> => {
       await act(async () => {
-        await core.library.saveApp(AppDraft.parse(proposalOf(1).app));
+        await core.library.saveApp(AppDraft.parse(createProposal(1).app));
       });
       await settle();
     },
     reviseBookTracker: async (panel: string): Promise<void> => {
       await act(async () => {
-        await deps.ontology.apply(changeSetOf(proposalOf(1)));
+        await deps.ontology.apply(changeSetOf(createProposal(1)));
 
         const app = await core.library.saveApp(
-          AppDraft.parse(proposalOf(1).app),
+          AppDraft.parse(createProposal(1).app),
         );
 
         await core.workspace.movePin(panel, app);
@@ -170,7 +170,7 @@ export const BUILDER = {
 };
 
 /** The book tracker's proposal at `index`: 0 the app, 1 its date finished. */
-function proposalOf(index: number): Proposal {
+function createProposal(index: number): Proposal {
   return index === 0
     ? Proposal.parse({
         explanation: "A tracker for your books.",
