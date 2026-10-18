@@ -7,6 +7,7 @@ import {
   createWorkspace,
 } from "@origamic/spec/testing/bookTracker.ts";
 
+import { OWNER_CHANGED } from "#/ownerChanged.ts";
 import { type CoreHarness, createCoreHarness } from "#/testing/coreHarness.ts";
 
 describe("the workspace presenter", () => {
@@ -392,9 +393,6 @@ describe("the workspace presenter", () => {
     expect(await current(core)).toMatchObject({ panels: {} });
   });
 });
-
-const OWNER_CHANGED =
-  "Who is signed in changed while this was under way: nothing was done.";
 
 type Core = CoreHarness["core"];
 

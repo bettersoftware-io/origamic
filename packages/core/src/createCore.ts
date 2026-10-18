@@ -3,7 +3,9 @@ import {
   firstValueFrom,
   type Observable,
   of,
-  shareReplay,
+  ReplaySubject,
+  share,
+  startWith,
   switchMap,
 } from "rxjs";
 
@@ -51,7 +53,8 @@ export interface Core {
    * workspace of whoever signed in. The stores answer whoever their session
    * holds, so nothing decided for one owner may reach them after that.
    * `user()` is the session's, read once by the core and shared by every
-   * reader, the core first.
+   * reader, the core first. When it fails, every reader hears the failure,
+   * and the core forgets the owner as at a sign-out.
    */
   readonly session: SessionPort;
   /** The conversation with the model, and accepting what it proposes. */
@@ -62,7 +65,7 @@ export interface Core {
   readonly library: SpecLibraryPort;
   /** The signed-in owner's workspace: `null` while nobody is signed in, and until theirs is open. */
   ownersWorkspace(): Observable<Workspace | null>;
-  /** The signed-in owner's apps, each at its latest version: none while nobody is signed in, and read afresh at each sign-in. Gives nothing until the library has answered. */
+  /** The signed-in owner's apps, each at its latest version: none while nobody is signed in, and none from a sign-in until their library has answered; read afresh at each sign-in. */
   ownersApps(): Observable<readonly LibraryEntry[]>;
   /** Why the signed-in owner's workspace could not be opened, or `null`. Forgotten at each change of owner. */
   workspaceProblem(): Observable<string | null>;
@@ -76,9 +79,19 @@ export interface Core {
 export function createCore(deps: CoreDeps): Core {
   const workspace = createWorkspacePresenter(deps.library);
   const builder = createBuilder({ ...deps, workspace });
-  const users = deps.session
-    .user()
-    .pipe(shareReplay({ bufferSize: 1, refCount: false }));
+  // One subscription to the port for every reader. A failure is kept and
+  // given to every reader, those who come after it too: one that resubscribed
+  // the port instead would follow a session the core no longer does.
+  const users = deps.session.user().pipe(
+    share({
+      connector: (): ReplaySubject<User | null> => {
+        return new ReplaySubject<User | null>(1);
+      },
+      resetOnError: false,
+      resetOnComplete: false,
+      resetOnRefCountZero: false,
+    }),
+  );
   /** Whose the workspace and the apps the core gives are: the signed-in user's id, or `null`. */
   const owner = new BehaviorSubject<string | null>(null);
   const problem = new BehaviorSubject<string | null>(null);
@@ -123,8 +136,10 @@ export function createCore(deps: CoreDeps): Core {
   users.subscribe({
     next: handOver,
     error: (): void => {
-      // The owner stays who it was. Whoever reads `session.user()` hears
-      // the failure: the shell shows it.
+      // Who is signed in is no longer known, while the stores go on with
+      // whatever session they hold: forget the owner, as at a sign-out.
+      // Whoever reads `session.user()` hears the failure: the shell shows it.
+      handOver(null);
     },
   });
 
@@ -156,7 +171,11 @@ export function createCore(deps: CoreDeps): Core {
     ownersApps: (): Observable<readonly LibraryEntry[]> => {
       return owner.pipe(
         switchMap((id) => {
-          return id === null ? of(NO_APPS) : deps.library.apps();
+          // None until the next owner's library answers: the apps of the
+          // owner before are never given as theirs.
+          return id === null
+            ? of(NO_APPS)
+            : deps.library.apps().pipe(startWith(NO_APPS));
         }),
       );
     },

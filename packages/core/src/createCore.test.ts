@@ -1,4 +1,11 @@
-import { filter, firstValueFrom, type Observable, Subject } from "rxjs";
+import {
+  defer,
+  filter,
+  firstValueFrom,
+  NEVER,
+  type Observable,
+  Subject,
+} from "rxjs";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -143,6 +150,30 @@ describe("createCore", () => {
     await core.session.signUp("b@example.com", PASSWORD);
 
     expect(await opened(core)).toMatchObject({ version: 1, panels: {} });
+  });
+
+  it("never gives the owner before's workspace as the next one's, when another signs in with no sign-out between", async () => {
+    const { ports } = createStoresPerOwner();
+    const { core } = createCoreHarness({ ports });
+    const given = collect(core.ownersWorkspace());
+
+    await core.session.signUp("a@example.com", PASSWORD);
+    await opened(core);
+    await core.workspace.addPanel(
+      await core.library.saveApp(AppDraft.parse(createBookApp())),
+    );
+
+    const since = given.emissions.length;
+
+    await core.session.signUp("b@example.com", PASSWORD);
+
+    expect(await opened(core)).toMatchObject({ version: 1, panels: {} });
+    expect(
+      given.emissions.slice(since).filter((workspace) => {
+        return workspace !== null && Object.hasOwn(workspace.panels, "books");
+      }),
+    ).toEqual([]);
+    given.stop();
   });
 
   it("does not save a change the owner before had queued at the sign-out", async () => {
@@ -306,6 +337,23 @@ describe("createCore", () => {
     apps.stop();
   });
 
+  it("gives the next owner no app until their library answers, not the owner before's", async () => {
+    const { core, deps } = createCoreHarness();
+    const apps = collect(core.ownersApps());
+
+    await core.session.signUp("a@example.com", PASSWORD);
+    await core.library.saveApp(AppDraft.parse(createBookApp()));
+
+    expect(apps.emissions.at(-1)).toHaveLength(1);
+
+    // The next owner's library has not answered yet.
+    vi.spyOn(deps.library, "apps").mockReturnValue(NEVER);
+    await core.session.signUp("b@example.com", PASSWORD);
+
+    expect(apps.emissions.at(-1)).toEqual([]);
+    apps.stop();
+  });
+
   it("asks the library for no app while nobody is signed in, and reads it again at each sign-in", async () => {
     const { core, deps } = createCoreHarness();
     const reads = vi.spyOn(deps.library, "apps");
@@ -332,29 +380,46 @@ describe("createCore", () => {
     apps.stop();
   });
 
-  it("keeps the owner when the session's stream fails, and its readers hear the failure", async () => {
-    const users = new Subject<User | null>();
+  it("forgets the owner when the session's stream fails, and every reader hears the failure, one that comes after it too", async () => {
+    const failing = new Subject<User | null>();
+    const simulator = createSessionSimulator();
+    let reads = 0;
     const { core } = createCoreHarness({
       ports: {
         session: {
-          ...createSessionSimulator(),
+          ...simulator,
+          // Cold, as Supabase's is: each subscription is a listener of its
+          // own. The first is the one that fails; a reader that subscribed
+          // again would follow a session the core no longer does.
           user: (): Observable<User | null> => {
-            return users;
+            return defer(() => {
+              reads += 1;
+
+              return reads === 1 ? failing : simulator.user();
+            });
           },
         },
       },
     });
-    const reader = collect(core.session.user());
+    const before = collect(core.session.user());
+    const apps = collect(core.ownersApps());
 
-    users.next({ id: "user-1", email: READER });
+    failing.next({ id: "user-1", email: READER });
     await opened(core);
-    users.error(new Error("the session expired"));
+    await core.library.saveApp(AppDraft.parse(createBookApp()));
+    expect(apps.emissions.at(-1)).toHaveLength(1);
 
-    await expect(reader.next()).resolves.toBeUndefined();
-    await expect(reader.next()).rejects.toThrow("the session expired");
-    expect(await current(core.ownersWorkspace())).toMatchObject({
-      id: "main",
-    });
+    failing.error(new Error("the session expired"));
+
+    await expect(before.next()).resolves.toBeUndefined();
+    await expect(before.next()).rejects.toThrow("the session expired");
+    expect(failureHeardBy(core.session.user())).toEqual(
+      new Error("the session expired"),
+    );
+    expect(await current(core.ownersWorkspace())).toBeNull();
+    expect(await current(core.workspace.workspace())).toBeNull();
+    expect(apps.emissions.at(-1)).toEqual([]);
+    apps.stop();
   });
 
   it("follows who is signed in through one subscription to the session, however many read it", async () => {
@@ -397,6 +462,21 @@ function createSavedBookApp(): App {
 /** The latest value of a stream that has one at once. */
 function current<T>(stream: Observable<T>): Promise<T> {
   return firstValueFrom(stream);
+}
+
+/** What a reader subscribing now hears the stream failed with, at once; `undefined` when it hears no failure. */
+function failureHeardBy(stream: Observable<unknown>): unknown {
+  let heard: unknown;
+
+  stream
+    .subscribe({
+      error: (error: unknown): void => {
+        heard = error;
+      },
+    })
+    .unsubscribe();
+
+  return heard;
 }
 
 /** The owner's workspace, once it is open. */

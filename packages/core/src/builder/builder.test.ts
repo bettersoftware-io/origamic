@@ -29,6 +29,7 @@ import {
   createDateFinishedChange,
 } from "@origamic/spec/testing/bookTracker.ts";
 
+import { OWNER_CHANGED } from "#/ownerChanged.ts";
 import { collect } from "#/ports/__contracts__/emissions.ts";
 import {
   type CoreHarness,
@@ -653,6 +654,41 @@ describe("the builder", () => {
     });
   });
 
+  it.each([0, 1, 2, 3, 4])(
+    "askForRevision() with a hand-over %i microtask(s) after the app is read never leaves the builder on it",
+    async (ticks) => {
+      const harness = createCoreHarness();
+      const generate = vi.spyOn(harness.deps.llm, "generate");
+
+      await harness.core.workspace.addPanel(await saveBookApp(harness.core));
+      closeWhileLoading(harness, ticks);
+
+      const outcome = await harness.core.builder
+        .askForRevision("books", "add a field")
+        .then(
+          () => {
+            return ASKED;
+          },
+          (error: unknown) => {
+            return error instanceof Error ? error.message : String(error);
+          },
+        );
+
+      // Before the check it is refused; after the ask, the hand-over drops
+      // what was asked. Either way the builder is not left on the app read
+      // for the owner before.
+      expect([OWNER_CHANGED, ASKED]).toContain(outcome);
+      expect(await currentState(harness.core)).toEqual({
+        kind: "idle",
+        target: { kind: "new" },
+      });
+
+      if (outcome === OWNER_CHANGED) {
+        expect(generate).not.toHaveBeenCalled();
+      }
+    },
+  );
+
   it("askForRevision() says the owner changed, not that the app is missing, when the builder is closed while it reads", async () => {
     const harness = createCoreHarness();
 
@@ -975,8 +1011,8 @@ async function loadedApp(core: Core, version: number): Promise<App> {
   return app;
 }
 
-const OWNER_CHANGED =
-  "Who is signed in changed while this was under way: nothing was done.";
+/** What a test of `askForRevision` notes when it asked rather than rejected. */
+const ASKED = "asked";
 
 /** Who is signed in before a test signs out. */
 const OWNER = { email: "reader@example.com", password: "a long password" };
@@ -992,19 +1028,43 @@ async function createSignedIn(
   return harness;
 }
 
-/** Closes the builder while the library reads an app, as a sign-out in another tab would. */
-function closeWhileLoading({ core, deps }: CoreHarness): void {
+/**
+ * Closes the builder, as a hand-over does, while the library reads an app:
+ * before the read gives the app back, or `ticks` microtasks after.
+ */
+function closeWhileLoading({ core, deps }: CoreHarness, ticks = 0): void {
   const loadApp = deps.library.loadApp.bind(deps.library);
 
   vi.spyOn(deps.library, "loadApp").mockImplementation(
     async (id: string, version?: number) => {
       const app = await loadApp(id, version);
 
-      core.builder.close();
+      afterTicks(ticks, () => {
+        core.builder.close();
+      });
 
       return app;
     },
   );
+}
+
+/** Runs `act` now when `ticks` is 0, and otherwise that many microtasks from now. */
+function afterTicks(ticks: number, act: () => void): void {
+  if (ticks === 0) {
+    act();
+
+    return;
+  }
+
+  // Nothing waits for the act: it runs on its own, one microtask later per
+  // tick. The act cannot fail; if it did, the run reports it.
+  void Promise.resolve()
+    .then(() => {
+      afterTicks(ticks - 1, act);
+    })
+    .catch((error: unknown) => {
+      expect.unreachable(`the hand-over failed: ${String(error)}`);
+    });
 }
 
 /** The book tracker saved straight into the library, at the next version: 1 the first time. */

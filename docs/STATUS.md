@@ -335,6 +335,16 @@ verified, a case that is not covered.
   the latest version, then writes), or an object an app's action plans
   (`execute`) into B's rows. The window is one read's round trip plus that
   delay. The narrowing and the fix are under "Next, with no plan yet".
+- **The workspace presenter starts open, before anyone signs in.** A
+  caller of `createCore` other than the shell can `addPanel` or
+  `openFromLibrary` before the first sign-in, and the change is saved to
+  whatever library the session holds then; the shell never does, and
+  `ownersWorkspace()` shows nothing while nobody is signed in. Starting it
+  closed (or closing it in `createCore`) refuses those calls, but 17 tests
+  rely on a change before `open()` opening it first
+  (`workspacePresenter.ts`, "Adding, closing or moving a pin before the
+  first `open()` opens the workspace first"), so it waits for a change of
+  that rule and of those tests.
 - **The workspace presenter saves each change from the copy it holds,**
   not from the library's latest, so a version saved elsewhere since (another
   tab) is overwritten by the next panel added or closed or pin moved here.

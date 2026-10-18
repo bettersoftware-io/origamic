@@ -17,6 +17,7 @@ import {
   type Problem,
   type Proposal,
   validateApp,
+  type Workspace,
 } from "@origamic/spec";
 
 import { OWNER_CHANGED } from "#/ownerChanged.ts";
@@ -329,9 +330,8 @@ export function createBuilder(ports: BuilderPorts): Builder {
     });
   }
 
-  /** The app the panel pins, at the version it pins, read for the owner the builder had when it began. */
-  async function pinnedApp(panel: string): Promise<App> {
-    const owner = owners;
+  /** The pin of the panel, and the app at the version it pins as the library has it (`null` when it has not). */
+  async function readPinned(panel: string): Promise<Pinned> {
     const workspace = await firstValueFrom(ports.workspace.workspace());
     const pin =
       workspace !== null && Object.hasOwn(workspace.panels, panel)
@@ -342,19 +342,7 @@ export function createBuilder(ports: BuilderPorts): Builder {
       throw new Error(`The workspace has no panel "${panel}" to revise.`);
     }
 
-    const app = await ports.library.loadApp(pin.app, pin.appVersion);
-
-    if (owner !== owners) {
-      throw new Error(OWNER_CHANGED);
-    }
-
-    if (app === null) {
-      throw new Error(
-        `The library has no ${pin.app} at version ${String(pin.appVersion)} to revise.`,
-      );
-    }
-
-    return app;
+    return { pin, app: await ports.library.loadApp(pin.app, pin.appVersion) };
   }
 
   return {
@@ -368,7 +356,20 @@ export function createBuilder(ports: BuilderPorts): Builder {
       ask(intent);
     },
     askForRevision: async (panel: string, intent: string): Promise<void> => {
-      const app = await pinnedApp(panel);
+      const owner = owners;
+      const { pin, app } = await readPinned(panel);
+
+      // From here to the ask, nothing awaits: a hand-over can land before
+      // the check, or after the ask (which it then drops), never between.
+      if (owner !== owners) {
+        throw new Error(OWNER_CHANGED);
+      }
+
+      if (app === null) {
+        throw new Error(
+          `The library has no ${pin.app} at version ${String(pin.appVersion)} to revise.`,
+        );
+      }
 
       retarget({ kind: "revise", panel, app });
       ask(intent);
@@ -420,6 +421,12 @@ export function createBuilder(ports: BuilderPorts): Builder {
       show(closedAs);
     },
   };
+}
+
+/** A panel's pin, and the app it pins as the library gave it. */
+interface Pinned {
+  pin: Workspace["panels"][string];
+  app: App | null;
 }
 
 /** What an accept began for one owner and closed under it saw: the owner, and the workspace's epoch, when it began. */
