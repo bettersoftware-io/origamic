@@ -12,12 +12,12 @@ describe("reading Anthropic's message", () => {
   it("reads only the text after the last fallback block", () => {
     const reply = replyOfMessage(
       createMessage("end_turn", [
-        text('{"explanation": "half of a'),
-        fallback("claude-opus-5-5", "claude-opus-5"),
-        text('{"explanation": "a third of'),
-        fallback("claude-opus-5", "claude-opus-4-8"),
-        text('{"explanation":'),
-        text(' "whole"}'),
+        createTextBlock('{"explanation": "half of a'),
+        createFallbackBlock("claude-opus-5-5", "claude-opus-5"),
+        createTextBlock('{"explanation": "a third of'),
+        createFallbackBlock("claude-opus-5", "claude-opus-4-8"),
+        createTextBlock('{"explanation":'),
+        createTextBlock(' "whole"}'),
       ]),
     );
 
@@ -28,8 +28,8 @@ describe("reading Anthropic's message", () => {
     const reply = replyOfMessage(
       createMessage("end_turn", [
         { type: "thinking", thinking: "", signature: "s" },
-        text("[1,"),
-        text("2]"),
+        createTextBlock("[1,"),
+        createTextBlock("2]"),
       ]),
     );
 
@@ -37,7 +37,7 @@ describe("reading Anthropic's message", () => {
   });
 
   it("says a refusal with its category, before reading any content", () => {
-    const message = createMessage("refusal", [text("{ not json")]);
+    const message = createMessage("refusal", [createTextBlock("{ not json")]);
 
     message.stop_details = {
       type: "refusal",
@@ -59,7 +59,9 @@ describe("reading Anthropic's message", () => {
   });
 
   it("says a reply cut short by its stop reason, and one that is not JSON as cut too", () => {
-    expect(replyOfMessage(createMessage("max_tokens", [text("{")]))).toEqual({
+    expect(
+      replyOfMessage(createMessage("max_tokens", [createTextBlock("{")])),
+    ).toEqual({
       kind: "cut",
       reason: "max_tokens",
     });
@@ -67,7 +69,9 @@ describe("reading Anthropic's message", () => {
       kind: "cut",
       reason: "no stop reason",
     });
-    expect(replyOfMessage(createMessage("end_turn", [text("{")]))).toEqual({
+    expect(
+      replyOfMessage(createMessage("end_turn", [createTextBlock("{")])),
+    ).toEqual({
       kind: "cut",
       reason: "the reply is not JSON",
     });
@@ -82,7 +86,7 @@ describe("reading what went wrong", () => {
   ])(
     "a %i is a request the provider refused: asking again changes nothing",
     (status, type) => {
-      const failure = failureOf(apiError(status, type));
+      const failure = failureOf(createApiError(status, type));
 
       expect(failure.reply).toEqual({
         kind: "rejected",
@@ -98,7 +102,7 @@ describe("reading what went wrong", () => {
     [500, "api_error"],
     [529, "overloaded_error"],
   ])("a %i is a provider that cannot answer now", (status, type) => {
-    expect(failureOf(apiError(status, type)).reply).toEqual({
+    expect(failureOf(createApiError(status, type)).reply).toEqual({
       kind: "unavailable",
       reason: `${status} ${type}`,
     });
@@ -122,12 +126,12 @@ describe("reading what went wrong", () => {
       log: "anthropic: the call was aborted (its caller left, or its deadline passed)",
       level: "info",
     });
-    expect(failureOf(apiError(500, "api_error")).level).toBe("error");
+    expect(failureOf(createApiError(500, "api_error")).level).toBe("error");
   });
 
   it("an error event in the middle of the stream is read by its type and logged with its request id", () => {
-    const overloaded = failureOf(streamError("overloaded_error"));
-    const invalid = failureOf(streamError("invalid_request_error"));
+    const overloaded = failureOf(createStreamError("overloaded_error"));
+    const invalid = failureOf(createStreamError("invalid_request_error"));
 
     expect(overloaded.reply).toEqual({
       kind: "unavailable",
@@ -140,7 +144,7 @@ describe("reading what went wrong", () => {
       kind: "rejected",
       reason: "invalid_request_error",
     });
-    expect(failureOf(streamError(null)).reply).toEqual({
+    expect(failureOf(createStreamError(null)).reply).toEqual({
       kind: "unavailable",
       reason: "error",
     });
@@ -154,7 +158,7 @@ describe("reading what went wrong", () => {
   });
 
   it("logs the status, the type, the request id and the message, and never the key", () => {
-    const { log } = failureOf(apiError(401, "authentication_error"));
+    const { log } = failureOf(createApiError(401, "authentication_error"));
 
     expect(log).toMatch(
       /^anthropic: authentication_error, request req_1: 401 .*the authentication_error happened/,
@@ -176,7 +180,7 @@ describe("checking the model when the gateway starts", () => {
     expect(
       verdictOfModelCheck(
         "claude-opus-9",
-        failureOf(apiError(404, "not_found_error")),
+        failureOf(createApiError(404, "not_found_error")),
       ),
     ).toEqual({
       kind: "stop",
@@ -210,11 +214,11 @@ function createMessage(
   return { stop_reason: stopReason, stop_details: null, content };
 }
 
-function text(value: string): Block {
+function createTextBlock(value: string): Block {
   return { type: "text", text: value, citations: null };
 }
 
-function fallback(from: string, to: string): Block {
+function createFallbackBlock(from: string, to: string): Block {
   return {
     type: "fallback",
     from: { model: from },
@@ -223,7 +227,7 @@ function fallback(from: string, to: string): Block {
   };
 }
 
-function apiError(status: number, type: string): APIError {
+function createApiError(status: number, type: string): APIError {
   return Anthropic.APIError.generate(
     status,
     { type: "error", error: { type, message: `the ${type} happened` } },
@@ -233,7 +237,7 @@ function apiError(status: number, type: string): APIError {
 }
 
 /** An error event the API sends in the middle of a stream: an `APIError` with no status. */
-function streamError(
+function createStreamError(
   type: "overloaded_error" | "invalid_request_error" | null,
 ): APIError {
   return new Anthropic.APIError(

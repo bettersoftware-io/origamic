@@ -15,7 +15,7 @@ import { createScriptedModel } from "./testing/scriptedModel.ts";
 
 describe("a generation", () => {
   it("a valid reply becomes one proposal with versions in its bindings", async () => {
-    const model = createScriptedModel([json(createFirstReply())]);
+    const model = createScriptedModel([createJsonReply(createFirstReply())]);
 
     const proposal = proposalOf(await eventsOf(createFirstRequest(), model));
 
@@ -32,7 +32,9 @@ describe("a generation", () => {
   });
 
   it("a revision binds the versions the change set makes", async () => {
-    const model = createScriptedModel([json(createDateFinishedReply())]);
+    const model = createScriptedModel([
+      createJsonReply(createDateFinishedReply()),
+    ]);
 
     const proposal = proposalOf(await eventsOf(createRevisionRequest(), model));
 
@@ -50,8 +52,8 @@ describe("a generation", () => {
 
   it("a reply with a problem is retried once, with the problems in the second request", async () => {
     const model = createScriptedModel([
-      json(createReplyReadingNoSuchField()),
-      json(createFirstReply()),
+      createJsonReply(createReplyReadingNoSuchField()),
+      createJsonReply(createFirstReply()),
     ]);
 
     const events = await eventsOf(createFirstRequest(), model);
@@ -66,9 +68,9 @@ describe("a generation", () => {
 
   it("a second bad reply is a failed event with the problems", async () => {
     const model = createScriptedModel([
-      json(createReplyReadingNoSuchField()),
-      json(createReplyReadingNoSuchField()),
-      json(createFirstReply()),
+      createJsonReply(createReplyReadingNoSuchField()),
+      createJsonReply(createReplyReadingNoSuchField()),
+      createJsonReply(createFirstReply()),
     ]);
 
     const events = await eventsOf(createFirstRequest(), model);
@@ -110,7 +112,7 @@ describe("a generation", () => {
   });
 
   it("progress comes before the proposal", async () => {
-    const model = createScriptedModel([json(createFirstReply())]);
+    const model = createScriptedModel([createJsonReply(createFirstReply())]);
 
     const events = await eventsOf(createFirstRequest(), model);
 
@@ -170,7 +172,9 @@ describe("what goes back to the model", () => {
   });
 
   it("the instructions carry the catalog's schema and the request's ontology", async () => {
-    const model = createScriptedModel([json(createDateFinishedReply())]);
+    const model = createScriptedModel([
+      createJsonReply(createDateFinishedReply()),
+    ]);
 
     await eventsOf(createRevisionRequest(), model);
 
@@ -369,7 +373,7 @@ function kindsOf(events: readonly GenerationEvent[]): string[] {
   });
 }
 
-function json(value: WrittenReply): ModelReply {
+function createJsonReply(value: WrittenReply): ModelReply {
   return { kind: "json", value };
 }
 
@@ -416,7 +420,10 @@ function proposalOf(events: readonly GenerationEvent[]): Proposal {
 
 /** The messages of the second request, after `reply` and then a valid one. */
 async function secondRequestAfter(reply: WrittenReply): Promise<string> {
-  const model = createScriptedModel([json(reply), json(createFirstReply())]);
+  const model = createScriptedModel([
+    createJsonReply(reply),
+    createJsonReply(createFirstReply()),
+  ]);
 
   await eventsOf(createFirstRequest(), model);
 
