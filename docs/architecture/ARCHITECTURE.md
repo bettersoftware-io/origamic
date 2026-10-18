@@ -166,7 +166,12 @@ what it plans, and nothing when it is refused (ADR-0009). Loading an app
 against a newer ontology runs `checkCompatibility`, which answers
 `compatible` or a report of each break. `createCore` builds the core over
 the five ports and the catalog; a test asks `createCoreHarness`, which runs
-it on the simulators.
+it on the simulators. The core follows who is signed in: at each change of
+owner it closes the workspace, drops the builder's conversation, and opens
+the next owner's workspace, and the intents that read a store before they
+write (revising a panel's app, opening a library's app in a panel) refuse
+to go on when the owner changed meanwhile. So any caller of `createCore`,
+not only the shell, has those safeguards.
 
 Supabase and the Fly.io gateway are adapters behind these. Beyond the stores,
 `core` holds the builder: a state machine for the conversation with the

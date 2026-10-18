@@ -2,6 +2,7 @@ import { BehaviorSubject, type Observable } from "rxjs";
 
 import type { App, Workspace, WorkspaceDraft } from "@origamic/spec";
 
+import { OWNER_CHANGED } from "#/ownerChanged.ts";
 import type { SpecLibraryPort } from "#/ports/specLibraryPort.ts";
 
 /**
@@ -25,6 +26,13 @@ export interface WorkspacePresenter {
    * lands in the next one's workspace. Left out, it is the epoch now.
    */
   addPanel(app: App, asOf?: number): Promise<void>;
+  /**
+   * Opens the library's app in a new panel, at `version` or the latest.
+   * Rejects when the library has no such app, and opens nothing when the
+   * workspace was closed while the app was read (another signed in, or the
+   * owner signed out): the app read was the owner before's.
+   */
+  openFromLibrary(id: string, version?: number): Promise<void>;
   /** Closes the panel, and closes up the layout around it. */
   closePanel(panel: string, asOf?: number): Promise<void>;
   /** Pins the panel to another version of an app: what accepting a revision does (ADR-0005). */
@@ -127,6 +135,21 @@ export function createWorkspacePresenter(
     });
   }
 
+  function addPanel(app: App, asOf?: number): Promise<void> {
+    return save((workspace) => {
+      const panel = freeId(workspace, app.id);
+
+      return {
+        ...withoutVersion(workspace),
+        panels: {
+          ...workspace.panels,
+          [panel]: { app: app.id, appVersion: app.version },
+        },
+        layout: besides(workspace.layout, { kind: "panel", panel }),
+      };
+    }, asOf);
+  }
+
   return {
     workspace: (): Observable<Workspace | null> => {
       return current.asObservable();
@@ -138,19 +161,24 @@ export function createWorkspacePresenter(
         await load(since);
       });
     },
-    addPanel: (app: App, asOf?: number): Promise<void> => {
-      return save((workspace) => {
-        const panel = freeId(workspace, app.id);
+    addPanel,
+    openFromLibrary: async (id: string, version?: number): Promise<void> => {
+      const asOf = closes;
+      const app = await library.loadApp(id, version);
 
-        return {
-          ...withoutVersion(workspace),
-          panels: {
-            ...workspace.panels,
-            [panel]: { app: app.id, appVersion: app.version },
-          },
-          layout: besides(workspace.layout, { kind: "panel", panel }),
-        };
-      }, asOf);
+      if (asOf !== closes) {
+        throw new Error(OWNER_CHANGED);
+      }
+
+      if (app === null) {
+        throw new Error(
+          version === undefined
+            ? `The library has no app "${id}".`
+            : `The library has no app "${id}" at version ${String(version)}.`,
+        );
+      }
+
+      await addPanel(app, asOf);
     },
     closePanel: (panel: string, asOf?: number): Promise<void> => {
       return save((workspace) => {

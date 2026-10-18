@@ -1,11 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import {
-  BehaviorSubject,
-  distinctUntilChanged,
-  type Observable,
-  of,
-  switchMap,
-} from "rxjs";
+import type { Observable } from "rxjs";
 
 import type {
   AppSession,
@@ -38,7 +32,7 @@ export interface ShellViewModel {
   useWorkspace(): Workspace | null;
   /** The signed-in user's apps, each at its latest version: none while nobody is signed in, and none until the library has answered. */
   useLibrary(): readonly LibraryEntry[];
-  /** Why the signed-in user's workspace could not be opened, or `null`. It is opened at each sign-in. */
+  /** Why the signed-in user's workspace could not be opened, or `null`. The core opens it at each sign-in. */
   useWorkspaceProblem(): string | null;
   /** The app at the version a panel pins, loaded from the library with its compatibility check; loading until it is read, and read again for another id or version. */
   usePinnedApp(id: string, version: number): PinnedApp;
@@ -55,85 +49,21 @@ export interface ShellViewModel {
  * once, and a core whose stream does not is refused here, rather than
  * guessed. Who is signed in and the library's apps come from a store, which
  * answers when it has read them: until then the user is `undefined` and the
- * library has no app. The library is the signed-in user's, read again at
- * each sign-in, and has no app while nobody is signed in.
+ * library has no app. Whose workspace and apps they are is the core's to
+ * say: it follows who is signed in, and gives the signed-in owner's.
  */
 export function createShellViewModel(core: Core): ShellViewModel {
-  const workspaceProblem = new BehaviorSubject<string | null>(null);
-  /** Whose library and workspace are shown: the signed-in user's id, or `null`. */
-  const owner = new BehaviorSubject<string | null>(null);
-  let signedIn: string | null = null;
-
-  /**
-   * Hands the shell to whoever is signed in now. When that changes (a
-   * sign-out, another sign-in) the core forgets the owner before first
-   * (`handOver`): the workspace is closed, so none of their panels shows
-   * and no change of theirs is saved after, and the builder drops what it
-   * was asked or proposed, an accept under way included. Then the new
-   * owner's workspace is opened, when there is one.
-   * The library follows the owner too.
-   */
-  function handOver(next: User | null | undefined): void {
-    const id = next?.id ?? null;
-
-    if (id === signedIn) {
-      return;
-    }
-
-    signedIn = id;
-    core.handOver();
-    workspaceProblem.next(null);
-    owner.next(id);
-
-    if (id !== null) {
-      openWorkspaceFor(id);
-    }
-  }
-
-  function openWorkspaceFor(id: string): void {
-    // Nothing waits: the workspace arrives through its stream, and a
-    // failure is shown through `useWorkspaceProblem`, unless the owner has
-    // changed since.
-    void core.workspace.open().catch((error: unknown) => {
-      if (signedIn === id) {
-        workspaceProblem.next(
-          `Your workspace could not be opened: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    });
-  }
-
   const user = follow<User | null | undefined>(
     core.session.user(),
     "who is signed in",
-    { before: { value: undefined }, onValue: handOver },
+    { value: undefined },
   );
   const builder = follow(core.builder.state(), "the builder's state");
-  // The workspace is the signed-in owner's, and none while nobody is: what
-  // the core held for the owner before never reaches the next one's shell.
-  const workspace = follow(
-    owner.pipe(
-      distinctUntilChanged(),
-      switchMap((id) => {
-        return id === null ? of(null) : core.workspace.workspace();
-      }),
-    ),
-    "the workspace",
-  );
-
-  // The library is read for each owner afresh: a store answers only a
-  // signed-in user, and only with their own apps.
-  const library = follow(
-    owner.pipe(
-      distinctUntilChanged(),
-      switchMap((id) => {
-        return id === null ? of(NO_APPS) : core.library.apps();
-      }),
-    ),
-    "the library's apps",
-    { before: { value: NO_APPS } },
-  );
-  const problem = follow(workspaceProblem, "the workspace's problem");
+  const workspace = follow(core.ownersWorkspace(), "the workspace");
+  const library = follow(core.ownersApps(), "the library's apps", {
+    value: NO_APPS,
+  });
+  const problem = follow(core.workspaceProblem(), "the workspace's problem");
   const loadPinned = createPinnedAppLoader(core);
   const intents = createShellIntents(core);
 
@@ -179,14 +109,12 @@ interface Followed<T> {
  * read once. The value it gives on subscribing is its
  * first; a failure it ends with is kept, and thrown where the value is read,
  * for an error boundary to catch. A stream with nothing `before` must give
- * a value on subscribing. `onValue` hears each value before the listeners
- * do, so what one starts (a workspace opened at a sign-in) needs no second
- * subscription.
+ * a value on subscribing.
  */
 function follow<T>(
   stream: Observable<T>,
   what: string,
-  { before, onValue = ignore }: Following<T> = {},
+  before?: Given<T>,
 ): Followed<T> {
   const held: Held<T> = { latest: before ?? null, failure: null };
   const listeners = new Set<() => void>();
@@ -200,7 +128,6 @@ function follow<T>(
   stream.subscribe({
     next: (value: T): void => {
       held.latest = { value };
-      onValue(value);
       tellListeners();
     },
     error: (error: unknown): void => {
@@ -233,18 +160,7 @@ function follow<T>(
   };
 }
 
-/** How a stream is followed: what stands for it until its first value, and what its values start besides the listeners. */
-interface Following<T> {
-  before?: Given<T>;
-  onValue?: (value: T) => void;
-}
-
 const NO_APPS: readonly LibraryEntry[] = [];
-
-/** What a followed stream's value starts besides its listeners, when nothing is asked for. */
-function ignore(): void {
-  // Nothing to start.
-}
 
 /** What a followed stream gave last: its latest value, or the failure it ended with. */
 interface Held<T> {

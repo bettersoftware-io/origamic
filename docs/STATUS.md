@@ -322,19 +322,29 @@ verified, a case that is not covered.
   affects the book tracker; it matters once a change set adds a property
   with a default that a view filters on.
 - **A store call in flight when the owner changes can write into the next
-  owner's rows.** At each change of owner the shell hands the core over
-  (`core.handOver()`): the workspace closes, the builder drops what it was
-  asked or proposed, an accept under way stops before its next store, and
-  a workspace change decided before is refused. Each check is made right
+  owner's rows.** At each change of owner the core hands over (`createCore`
+  follows the session's `user()`): the workspace closes, the builder drops
+  what it was asked or proposed, an accept under way stops before its next
+  store, and a workspace change decided before is refused. Each check is made right
   before a store is called. But a call already under way when the owner
   changes in another tab (a sign-out there, or a token refresh that fails;
   a sign-out in this tab waits for an accept) goes on, and the Supabase
   client sends B's token on its next request as soon as it has switched,
-  before `onAuthStateChange` reaches `handOver`. So it can write A's next
+  before `onAuthStateChange` reaches the core. So it can write A's next
   ontology version (`apply` reads, then writes), A's app (`saveApp` reads
   the latest version, then writes), or an object an app's action plans
   (`execute`) into B's rows. The window is one read's round trip plus that
   delay. The narrowing and the fix are under "Next, with no plan yet".
+- **The workspace presenter starts open, before anyone signs in.** A
+  caller of `createCore` other than the shell can `addPanel` or
+  `openFromLibrary` before the first sign-in, and the change is saved to
+  whatever library the session holds then; the shell never does, and
+  `ownersWorkspace()` shows nothing while nobody is signed in. Starting it
+  closed (or closing it in `createCore`) refuses those calls, but the
+  presenter's tests rely on a change before `open()` opening it first
+  (`workspacePresenter.ts`, "Adding, closing or moving a pin before the
+  first `open()` opens the workspace first"), so it waits for a change of
+  that rule and of those tests.
 - **The workspace presenter saves each change from the copy it holds,**
   not from the library's latest, so a version saved elsewhere since (another
   tab) is overwritten by the next panel added or closed or pin moved here.

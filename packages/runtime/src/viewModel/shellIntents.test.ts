@@ -22,6 +22,8 @@ import {
 import { createShellIntents } from "./shellIntents.ts";
 
 describe("the shell's intents", () => {
+  // The rules behind them (whose workspace, what a change of owner refuses)
+  // are the core's, and tested there: each intent here passes through.
   it("signs up, signs out and signs in again through the session", async () => {
     const { core } = createCoreHarness();
     const intents = createShellIntents(core);
@@ -85,18 +87,6 @@ describe("the shell's intents", () => {
     expect(generate).not.toHaveBeenCalled();
   });
 
-  it("refuses to revise a panel whose app the library no longer has", async () => {
-    const harness = await createBookHarness();
-    const intents = createShellIntents(harness.core);
-
-    await intents.openApp("books");
-    vi.spyOn(harness.deps.library, "loadApp").mockResolvedValue(null);
-
-    await expect(intents.ask("add a field", "books")).rejects.toThrow(
-      "The library has no books at version 1 to revise.",
-    );
-  });
-
   it("drops a proposal on reject, and stores nothing", async () => {
     const { core } = createCoreHarness({ replies: [createNewBookReply()] });
     const intents = createShellIntents(core);
@@ -128,40 +118,6 @@ describe("the shell's intents", () => {
       panels: {},
       layout: null,
     });
-  });
-
-  it("asks nothing when another signs in while the panel's app is read", async () => {
-    const harness = await createBookHarness();
-    const intents = createShellIntents(harness.core);
-    const generate = vi.spyOn(harness.deps.llm, "generate");
-
-    await intents.openApp("books");
-    handOverWhileLoading(harness);
-
-    await expect(intents.ask("add a field", "books")).rejects.toThrow(
-      "Who is signed in changed while this was under way: nothing was done.",
-    );
-    expect(generate).not.toHaveBeenCalled();
-    expect(await currentState(harness.core)).toEqual({
-      kind: "idle",
-      target: { kind: "new" },
-    });
-  });
-
-  it("opens nothing when another signs in while the app is read", async () => {
-    const harness = await createBookHarness();
-    const intents = createShellIntents(harness.core);
-
-    await harness.core.workspace.open();
-
-    const saveWorkspace = vi.spyOn(harness.deps.library, "saveWorkspace");
-
-    handOverWhileLoading(harness);
-
-    await expect(intents.openApp("books")).rejects.toThrow(
-      "Who is signed in changed while this was under way: nothing was done.",
-    );
-    expect(saveWorkspace).not.toHaveBeenCalled();
   });
 
   it("opens an app at the version asked for, and says when the library has none", async () => {
@@ -212,21 +168,6 @@ function createNewBookReply(): GenerationEvent[] {
       }),
     },
   ];
-}
-
-/** Hands the core over to the next owner while the library reads an app, as a sign-in in another tab would. */
-function handOverWhileLoading({ core, deps }: CoreHarness): void {
-  const loadApp = deps.library.loadApp.bind(deps.library);
-
-  vi.spyOn(deps.library, "loadApp").mockImplementation(
-    async (id: string, version?: number) => {
-      const app = await loadApp(id, version);
-
-      core.handOver();
-
-      return app;
-    },
-  );
 }
 
 function currentState(core: Core): Promise<BuilderState> {
