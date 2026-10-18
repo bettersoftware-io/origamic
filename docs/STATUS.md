@@ -12,7 +12,7 @@ One bullet for each entry: its name in bold, what is left, and a link to its
 plan when it has one. `AGENTS.md` says when an entry is added, moved and
 removed.
 
-**Last updated: 2026-10-17**
+**Last updated: 2026-10-18**
 
 ## In progress
 
@@ -292,15 +292,15 @@ verified, a case that is not covered.
   affects the book tracker; it matters once a change set adds a property
   with a default that a view filters on.
 - **A store call in flight when the owner changes can write into the next
-  owner's rows.** At each change of owner the shell hands the core over
-  (`core.handOver()`): the workspace closes, the builder drops what it was
-  asked or proposed, an accept under way stops before its next store, and
-  a workspace change decided before is refused. Each check is made right
+  owner's rows.** At each change of owner the core hands over (`createCore`
+  follows the session's `user()`): the workspace closes, the builder drops
+  what it was asked or proposed, an accept under way stops before its next
+  store, and a workspace change decided before is refused. Each check is made right
   before a store is called. But a call already under way when the owner
   changes in another tab (a sign-out there, or a token refresh that fails;
   a sign-out in this tab waits for an accept) goes on, and the Supabase
   client sends B's token on its next request as soon as it has switched,
-  before `onAuthStateChange` reaches `handOver`. So it can write A's next
+  before `onAuthStateChange` reaches the core. So it can write A's next
   ontology version (`apply` reads, then writes), A's app (`saveApp` reads
   the latest version, then writes), or an object an app's action plans
   (`execute`) into B's rows. The window is one read's round trip plus that

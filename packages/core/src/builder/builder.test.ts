@@ -30,7 +30,11 @@ import {
 } from "@origamic/spec/testing/bookTracker.ts";
 
 import { collect } from "#/ports/__contracts__/emissions.ts";
-import { type CoreHarness, createCoreHarness } from "#/testing/coreHarness.ts";
+import {
+  type CoreHarness,
+  type CoreHarnessOptions,
+  createCoreHarness,
+} from "#/testing/coreHarness.ts";
 
 import type { BuilderState } from "./builder.ts";
 
@@ -561,6 +565,109 @@ describe("the builder", () => {
     });
   });
 
+  it("askForNew() works on a new app from now on, and asks for it", async () => {
+    const { core, deps } = createCoreHarness({
+      ontology: Ontology.parse(createBookOntology()),
+    });
+    const sent = hangNext(vi.spyOn(deps.llm, "generate"));
+    const app = await saveBookApp(core);
+
+    core.builder.target({ kind: "revise", panel: "books", app });
+    core.builder.askForNew("a tracker for the films I watch");
+
+    expect(await sent).toEqual<GenerationRequest>({
+      format: 1,
+      intent: "a tracker for the films I watch",
+      ontology: Ontology.parse(createBookOntology()),
+    });
+    expect(await currentState(core)).toMatchObject({
+      kind: "generating",
+      target: { kind: "new" },
+    });
+  });
+
+  it("askForRevision() asks for a revision of the app the panel pins, at the version it pins", async () => {
+    const { core, deps } = createCoreHarness({
+      ontology: Ontology.parse(createBookOntology()),
+    });
+    const sent = hangNext(vi.spyOn(deps.llm, "generate"));
+    const pinned = await saveBookApp(core);
+
+    await saveBookApp(core);
+    await core.workspace.addPanel(pinned);
+    await core.builder.askForRevision("books", "add a 'date finished' field");
+
+    expect(await sent).toMatchObject({
+      intent: "add a 'date finished' field",
+      app: { id: "books", version: 1 },
+    });
+    expect(await currentState(core)).toMatchObject({
+      kind: "generating",
+      target: { kind: "revise", panel: "books", app: { version: 1 } },
+    });
+  });
+
+  it("askForRevision() refuses a panel the workspace does not have, and asks nothing", async () => {
+    const { core, deps } = createCoreHarness();
+    const generate = vi.spyOn(deps.llm, "generate");
+
+    await expect(
+      core.builder.askForRevision("books", "add a field"),
+    ).rejects.toThrow('The workspace has no panel "books" to revise.');
+
+    await core.workspace.open();
+
+    await expect(
+      core.builder.askForRevision("toString", "add a field"),
+    ).rejects.toThrow('The workspace has no panel "toString" to revise.');
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("askForRevision() refuses a panel whose app the library no longer has, and asks nothing", async () => {
+    const { core, deps } = createCoreHarness();
+    const generate = vi.spyOn(deps.llm, "generate");
+
+    await core.workspace.addPanel(await saveBookApp(core));
+    vi.spyOn(deps.library, "loadApp").mockResolvedValue(null);
+
+    await expect(
+      core.builder.askForRevision("books", "add a field"),
+    ).rejects.toThrow("The library has no books at version 1 to revise.");
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("askForRevision() asks nothing when the builder is closed while the panel's app is read", async () => {
+    const harness = createCoreHarness();
+    const generate = vi.spyOn(harness.deps.llm, "generate");
+
+    await harness.core.workspace.addPanel(await saveBookApp(harness.core));
+    closeWhileLoading(harness);
+
+    await expect(
+      harness.core.builder.askForRevision("books", "add a field"),
+    ).rejects.toThrow(OWNER_CHANGED);
+    expect(generate).not.toHaveBeenCalled();
+    expect(await currentState(harness.core)).toEqual({
+      kind: "idle",
+      target: { kind: "new" },
+    });
+  });
+
+  it("askForRevision() says the owner changed, not that the app is missing, when the builder is closed while it reads", async () => {
+    const harness = createCoreHarness();
+
+    await harness.core.workspace.addPanel(await saveBookApp(harness.core));
+    vi.spyOn(harness.deps.library, "loadApp").mockImplementation(() => {
+      harness.core.builder.close();
+
+      return Promise.resolve(null);
+    });
+
+    await expect(
+      harness.core.builder.askForRevision("books", "add a field"),
+    ).rejects.toThrow(OWNER_CHANGED);
+  });
+
   it("an intent the request refuses fails at once, and asks the model nothing", async () => {
     const { core, deps } = createCoreHarness();
     const generate = vi.spyOn(deps.llm, "generate");
@@ -703,13 +810,13 @@ describe("the builder", () => {
   });
 
   it("a hand-over just as the accept ends leaves the builder saying the accept was stopped", async () => {
-    const { core } = createCoreHarness({ replies: [createNewBookReply()] });
+    const { core } = await createSignedIn({ replies: [createNewBookReply()] });
     const addPanel = core.workspace.addPanel.bind(core.workspace);
 
     vi.spyOn(core.workspace, "addPanel").mockImplementation(
       async (app, asOf) => {
         await addPanel(app, asOf);
-        core.handOver();
+        await core.session.signOut();
       },
     );
     await core.workspace.open();
@@ -725,7 +832,7 @@ describe("the builder", () => {
   });
 
   it("a stopped accept that ends after the next owner asked leaves the next owner's proposal as it is", async () => {
-    const { core, deps } = createCoreHarness({
+    const { core, deps } = await createSignedIn({
       replies: [createNewBookReply(), createNewBookReply()],
     });
     const loadApp = deps.library.loadApp.bind(deps.library);
@@ -744,7 +851,7 @@ describe("the builder", () => {
 
     const accepting = core.builder.accept();
 
-    core.handOver();
+    await core.session.signOut();
     core.builder.ask("a tracker for the books I'm reading");
     await until(core, "proposed");
     hold.release();
@@ -779,7 +886,7 @@ describe("the builder", () => {
   });
 
   it("an owner's hand-over after the app is saved keeps its panel out of the next owner's workspace", async () => {
-    const { core, deps } = createCoreHarness({
+    const { core, deps } = await createSignedIn({
       replies: [createNewBookReply()],
     });
     const saveApp = deps.library.saveApp.bind(deps.library);
@@ -787,7 +894,7 @@ describe("the builder", () => {
     vi.spyOn(deps.library, "saveApp").mockImplementation(async (draft) => {
       const app = await saveApp(draft);
 
-      core.handOver();
+      await core.session.signOut();
       // The next owner's workspace opens before the accept takes its turn.
       await core.workspace.open();
 
@@ -868,7 +975,39 @@ async function loadedApp(core: Core, version: number): Promise<App> {
   return app;
 }
 
-/** The book tracker saved straight into the library, at version 1. */
+const OWNER_CHANGED =
+  "Who is signed in changed while this was under way: nothing was done.";
+
+/** Who is signed in before a test signs out. */
+const OWNER = { email: "reader@example.com", password: "a long password" };
+
+/** The core with its owner signed in, so that a sign-out hands it over. */
+async function createSignedIn(
+  options: CoreHarnessOptions,
+): Promise<CoreHarness> {
+  const harness = createCoreHarness({ ...options, accounts: [OWNER] });
+
+  await harness.core.session.signIn(OWNER.email, OWNER.password);
+
+  return harness;
+}
+
+/** Closes the builder while the library reads an app, as a sign-out in another tab would. */
+function closeWhileLoading({ core, deps }: CoreHarness): void {
+  const loadApp = deps.library.loadApp.bind(deps.library);
+
+  vi.spyOn(deps.library, "loadApp").mockImplementation(
+    async (id: string, version?: number) => {
+      const app = await loadApp(id, version);
+
+      core.builder.close();
+
+      return app;
+    },
+  );
+}
+
+/** The book tracker saved straight into the library, at the next version: 1 the first time. */
 async function saveBookApp(core: Core): Promise<App> {
   return core.library.saveApp(
     Proposal.parse({

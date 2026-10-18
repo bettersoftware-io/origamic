@@ -1,7 +1,7 @@
 import { firstValueFrom } from "rxjs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { App, type Workspace, WorkspaceDraft } from "@origamic/spec";
+import { App, AppDraft, type Workspace, WorkspaceDraft } from "@origamic/spec";
 import {
   createBookApp,
   createWorkspace,
@@ -311,9 +311,117 @@ describe("the workspace presenter", () => {
     ).rejects.toThrow("the workspace was closed since this change was decided");
     expect(await current(core)).toMatchObject({ version: 1, panels: {} });
   });
+
+  it("openFromLibrary() opens the latest version of the library's app in a new panel", async () => {
+    const { core } = await createWithBookApp();
+
+    await core.workspace.open();
+    await core.workspace.openFromLibrary("books");
+
+    expect(await current(core)).toMatchObject({
+      panels: { books: { app: "books", appVersion: 2 } },
+    });
+  });
+
+  it("openFromLibrary() opens the version asked for, and says when the library has none", async () => {
+    const { core } = await createWithBookApp();
+
+    await core.workspace.open();
+    await core.workspace.openFromLibrary("books", 1);
+
+    expect(await current(core)).toMatchObject({
+      panels: { books: { app: "books", appVersion: 1 } },
+    });
+    await expect(core.workspace.openFromLibrary("books", 4)).rejects.toThrow(
+      'The library has no app "books" at version 4.',
+    );
+  });
+
+  it("openFromLibrary() refuses an app the library does not have", async () => {
+    const { core } = createCoreHarness();
+
+    await expect(core.workspace.openFromLibrary("books")).rejects.toThrow(
+      'The library has no app "books".',
+    );
+  });
+
+  it("openFromLibrary() opens nothing when the workspace is closed while the app is read", async () => {
+    const harness = await createWithBookApp();
+
+    await harness.core.workspace.open();
+    closeWhileLoading(harness);
+
+    const saveWorkspace = vi.spyOn(harness.deps.library, "saveWorkspace");
+
+    await expect(
+      harness.core.workspace.openFromLibrary("books"),
+    ).rejects.toThrow(OWNER_CHANGED);
+    expect(saveWorkspace).not.toHaveBeenCalled();
+  });
+
+  it("openFromLibrary() says the owner changed, not that the app is missing, when the workspace is closed while it reads", async () => {
+    const harness = await createWithBookApp();
+
+    await harness.core.workspace.open();
+    closeWhileLoading(harness);
+
+    await expect(
+      harness.core.workspace.openFromLibrary("films"),
+    ).rejects.toThrow(OWNER_CHANGED);
+  });
+
+  it("openFromLibrary() opens nothing when the workspace is closed and opened again while the app is read", async () => {
+    const { core, deps } = await createWithBookApp();
+    const loadApp = deps.library.loadApp.bind(deps.library);
+
+    await core.workspace.open();
+    vi.spyOn(deps.library, "loadApp").mockImplementation(
+      async (id: string, version?: number) => {
+        const app = await loadApp(id, version);
+
+        core.workspace.close();
+        await core.workspace.open();
+
+        return app;
+      },
+    );
+
+    await expect(core.workspace.openFromLibrary("books")).rejects.toThrow(
+      OWNER_CHANGED,
+    );
+    expect(await current(core)).toMatchObject({ panels: {} });
+  });
 });
 
+const OWNER_CHANGED =
+  "Who is signed in changed while this was under way: nothing was done.";
+
 type Core = CoreHarness["core"];
+
+/** The book tracker saved in the library at versions 1 and 2. */
+async function createWithBookApp(): Promise<CoreHarness> {
+  const harness = createCoreHarness();
+
+  await harness.deps.library.saveApp(AppDraft.parse(createBookApp()));
+  await harness.deps.library.saveApp(AppDraft.parse(createBookApp()));
+
+  return harness;
+}
+
+/** Closes the workspace while the library reads an app, as a sign-out in another tab would. */
+function closeWhileLoading({ core, deps }: CoreHarness): void {
+  const loadApp = deps.library.loadApp.bind(deps.library);
+
+  vi.spyOn(deps.library, "loadApp").mockImplementation(
+    async (id: string, version?: number) => {
+      const app = await loadApp(id, version);
+
+      core.workspace.close();
+
+      return app;
+    },
+  );
+}
 
 function current(core: Core): Promise<Workspace | null> {
   return firstValueFrom(core.workspace.workspace());

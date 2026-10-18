@@ -19,6 +19,7 @@ import {
   validateApp,
 } from "@origamic/spec";
 
+import { OWNER_CHANGED } from "#/ownerChanged.ts";
 import type { LlmGatewayPort } from "#/ports/llmGatewayPort.ts";
 import type { OntologyStorePort } from "#/ports/ontologyStorePort.ts";
 import type { SpecLibraryPort } from "#/ports/specLibraryPort.ts";
@@ -63,6 +64,17 @@ export interface Builder {
   target(target: BuilderTarget): void;
   /** Asks the model for a proposal for the target, dropping one asked before. Ignored while accepting. */
   ask(intent: string): void;
+  /** Works on a new app from now on, and asks the model for it. Ignored while accepting. */
+  askForNew(intent: string): void;
+  /**
+   * Works on the app the panel pins, at the version it pins, and asks the
+   * model for a revision of it. Rejects, and asks nothing, when the
+   * workspace has no such panel or the library no longer has its app, and
+   * when the builder was closed while it read the library (another signed
+   * in, or the owner signed out): what it read was the owner before's.
+   * Ignored while accepting, as `target` and `ask` are.
+   */
+  askForRevision(panel: string, intent: string): Promise<void>;
   /**
    * Accepts the proposal: applies its change set first, then saves the
    * app, then adds a panel for a new app or moves the panel's pin for a
@@ -128,13 +140,13 @@ export function createBuilder(ports: BuilderPorts): Builder {
   }
 
   async function generate(
-    ask: number,
+    asking: number,
     intent: string,
     target: BuilderTarget,
   ): Promise<void> {
     const ontology = await firstValueFrom(ports.ontology.current());
 
-    if (ask !== asked) {
+    if (asking !== asked) {
       return;
     }
 
@@ -164,7 +176,7 @@ export function createBuilder(ports: BuilderPorts): Builder {
 
     /** Whether this generation still owns the state: not dropped, and not ended. */
     function owns(): boolean {
-      return ask === asked && !ended;
+      return asking === asked && !ended;
     }
 
     generation = ports.llm
@@ -292,32 +304,74 @@ export function createBuilder(ports: BuilderPorts): Builder {
     }
   }
 
+  function retarget(target: BuilderTarget): void {
+    if (drop() !== undefined) {
+      show({ kind: "idle", target });
+    }
+  }
+
+  function ask(intent: string): void {
+    const target = drop();
+
+    if (target === undefined) {
+      return;
+    }
+
+    const asking = asked;
+
+    show({ kind: "generating", target, progress: [] });
+    // `ask` answers through the state, so nothing waits here; a failure is
+    // shown as one, unless the ask was dropped since.
+    void generate(asking, intent, target).catch((error: unknown) => {
+      if (asking === asked) {
+        show(failed(target, messageOf(error), []));
+      }
+    });
+  }
+
+  /** The app the panel pins, at the version it pins, read for the owner the builder had when it began. */
+  async function pinnedApp(panel: string): Promise<App> {
+    const owner = owners;
+    const workspace = await firstValueFrom(ports.workspace.workspace());
+    const pin =
+      workspace !== null && Object.hasOwn(workspace.panels, panel)
+        ? workspace.panels[panel]
+        : undefined;
+
+    if (pin === undefined) {
+      throw new Error(`The workspace has no panel "${panel}" to revise.`);
+    }
+
+    const app = await ports.library.loadApp(pin.app, pin.appVersion);
+
+    if (owner !== owners) {
+      throw new Error(OWNER_CHANGED);
+    }
+
+    if (app === null) {
+      throw new Error(
+        `The library has no ${pin.app} at version ${String(pin.appVersion)} to revise.`,
+      );
+    }
+
+    return app;
+  }
+
   return {
     state: (): Observable<BuilderState> => {
       return state.asObservable();
     },
-    target: (target: BuilderTarget): void => {
-      if (drop() !== undefined) {
-        show({ kind: "idle", target });
-      }
+    target: retarget,
+    ask,
+    askForNew: (intent: string): void => {
+      retarget({ kind: "new" });
+      ask(intent);
     },
-    ask: (intent: string): void => {
-      const target = drop();
+    askForRevision: async (panel: string, intent: string): Promise<void> => {
+      const app = await pinnedApp(panel);
 
-      if (target === undefined) {
-        return;
-      }
-
-      const ask = asked;
-
-      show({ kind: "generating", target, progress: [] });
-      // `ask` answers through the state, so nothing waits here; a failure is
-      // shown as one, unless the ask was dropped since.
-      void generate(ask, intent, target).catch((error: unknown) => {
-        if (ask === asked) {
-          show(failed(target, messageOf(error), []));
-        }
-      });
+      retarget({ kind: "revise", panel, app });
+      ask(intent);
     },
     accept: async (): Promise<void> => {
       const current = state.getValue();
