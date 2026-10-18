@@ -12,7 +12,7 @@ One bullet for each entry: its name in bold, what is left, and a link to its
 plan when it has one. `AGENTS.md` says when an entry is added, moved and
 removed.
 
-**Last updated: 2026-10-17**
+**Last updated: 2026-10-18**
 
 ## In progress
 
@@ -26,10 +26,15 @@ Work that has started and is not finished.
   (6), the Supabase adapters (7), the gateway and its client (8), the web
   app (9), and the starter's price list removed, with `AGENTS.md`'s tables
   rewritten for Origamic's packages (10). Left: part 11, which is what
-  FIRST-SLICE.md's "Done means" asks for. A fresh Claude Code session runs
-  `reviewing-architecture` over the diff from `fcbbd02` (main before the
-  slice's plan merged) to main, and the author walks the loop with the real
-  model on a clean database (see "Waiting on a person").
+  FIRST-SLICE.md's "Done means" asks for. Its review ran on 2026-10-18: a
+  fresh agent ran `reviewing-architecture` over the diff from `fcbbd02`
+  (main before the slice's plan merged) to main, and found nothing in the
+  dependency rule or the three non-negotiables to object to. Of its two
+  findings, the fixture factories' names are fixed; the other, that the
+  owner's hand-over and two of the shell's intents live in `runtime` rather
+  than `core`, is being fixed in a pull request of its own. Its notes are
+  under "Next" and "Waiting on a person". Then the author walks the loop
+  with the real model on a clean database (see "Waiting on a person").
 
 ## Designed, not built
 
@@ -88,6 +93,21 @@ The next step is known, and nobody has written a plan for it.
   `packages/core/src/ports/__contracts__/fixtures.ts` keeps a small copy of
   the book tracker for the contracts instead. The fix is the kit's, in
   `bettersoftware-io/skills`; then the copy goes.
+- **Every open view reads the ontology again at each change.** The Supabase
+  stores' streams are cold: each subscriber gets its own read
+  (`supabaseOntologyStore.ts`, `supabaseObjectStore.ts`,
+  `supabaseSpecLibrary.ts`), and `AppSession.rows()` subscribes to
+  `ontology.current()` once per view. With N views open, an apply reads the
+  ontology N times, and an action reads every open view again, of any type.
+  Requests, not connections. The fix: one shared ontology stream in
+  `createCore` (`shareReplay({ bufferSize: 1, refCount: true })`) handed to
+  the app sessions, and each store's stream shared inside its adapter.
+- **The request to Anthropic is built where no test runs.**
+  `apps/gateway/src/anthropicModel.ts` is left out of coverage (ADR-0011),
+  and it assembles the model, `max_tokens`, `thinking`, `output_config` and
+  `betas` inline. The reply's and the schema's mappings are tested; the
+  request's shape is not. The fix: a pure `anthropicParamsOf(config,
+  request)` with its own test, as `replyOfMessage` has.
 - **Merges on main have two kinds of subject.** "Merge PR #5: …" and GitHub's
   own "Merge pull request #6 from …". `AGENTS.md` names no subject. Pick one,
   or leave GitHub's.
@@ -141,6 +161,16 @@ between options. Each entry says who, and gives the command or the question.
   it; the `db reset` above is the author's choice, and touches the dev
   stack only, not the tests' (`origamic-test`).
 
+- **Whether a tightened action rule breaks an app.** The author decides. A
+  binding's action version is a floor, not a pin: an app bound to
+  `createBook@1` runs the ontology's current `createBook@N` whenever that
+  version still sets every field the app passes
+  (`packages/core/src/actions/planWrite.ts`). So when a later version adds a
+  `required` or a `range` rule, the compatibility check
+  (`packages/core/src/apps/compatibility.ts`) reports nothing, and the
+  app's writes are refused, with the problem shown on the element. That
+  matches ADR-0005's list of what breaks an app. The question: should a
+  tightened rule count as a break, and be reported when the app is opened?
 - **Two Scorecard alerts to dismiss, or to accept as open.** "Code review"
   (alert 4) and "Branch protection" (alert 1) ask for a second person to
   approve every pull request. That is against merging a green change at
