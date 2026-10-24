@@ -16,7 +16,7 @@
   </head>
   <body>
     <h1>Coverage report</h1>
-    <p class="build">Built from commit 25a6787 (main) on 2026-10-18 15:57 UTC.</p>
+    <p class="build">Built from commit bbae8a0 (main) on 2026-10-24 19:07 UTC.</p>
     <p>A published report shows the commit that built it, not the newest one. Compare the commit above with the code you are reading before you trust a number here.</p>
     <p>The bar, for every file: lines ≥ 95%, statements ≥ 95%, functions ≥ 95%, branches ≥ 85%.</p>
     <table>
@@ -45,6 +45,6 @@
       <li><code>apps/gateway/src/main.ts</code> — the gateway's entry point: it only reads the environment and calls createGatewayServer(), which is tested; importing it in a test would start a server</li>
       <li><code>apps/gateway/src/anthropicModel.ts</code> — the one call to the real model: no test in the gate calls a model (ADR-0011), and what it sends is anthropicSchemaOf(), which is tested</li>
     </ul>
-    <p><a href="https://github.com/bettersoftware-io/origamic/actions/runs/39142683110">The run that built this report</a></p>
+    <p><a href="https://github.com/bettersoftware-io/origamic/actions/runs/40123711900">The run that built this report</a></p>
   </body>
 </html>
