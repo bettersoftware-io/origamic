@@ -103,14 +103,15 @@
       "tools/ci-security/lib/settings.mts": "dc8c4f767fcccdbb92a39ed7930ae3212b1073780b3b1aa07d27fe02bc3eb31e",
       "tools/ci-security/lib/system.mts": "6fc11113bbe7bb516aff2dfe6db4cd4839924b57112abb18e1df5810b5760d44",
       "tools/ci-security/lint-workflows.mts": "e3cf7ddb033053576320cb9306219d001c20e6af58fb997b0b8e92ade8a8ac41",
-      "tools/templates/ci-security..github__renovate.json5.txt": "d43b62098041e00f3e243da91a4a599c980b3430076990b4d4e3094638710b9e",
+      "tools/templates/ci-security..github__renovate.json5.txt": "d99a66cc46fe9c05da90909403e0ec73f03c68eb58456385a5955e6749a2929f",
       "tools/templates/ci-security.SECURITY.md.txt": "26f35258a2f70849dfcde6cf15374a94ebbd20bb71e93891f3ba836fe4925874"
     },
     "choice": "renovate",
     "starting": [
       ".github/renovate.json5",
       "SECURITY.md"
-    ]
+    ],
+    "releasesSeen": []
   },
   "coverage": {
     "files": {

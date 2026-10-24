@@ -40,3 +40,13 @@ allowBuilds:
 #   # Reach: <direct dependency> > <package>, in the server at run time.
 #   # Drop when: <direct dependency> asks for >= 2.1.7 itself.
 #   "<package>@<2.1.7": ^2.1.7
+
+overrides:
+  # GHSA-mrhx-c7xc-m3w5 (HIGH, zod < 4.6.6): validating an oversized
+  # constrained collection can exhaust memory.
+  # Reach: apps/gateway > @anthropic-ai/sdk, whose optional zod peer resolved
+  # to 4.6.5, in the gateway at run time; and eslint-plugin-react-hooks and
+  # knip, in the tooling. The packages that name zod ask for ^4.6.7.
+  # Drop when: without this entry, `pnpm why zod -r` shows nothing below
+  # 4.6.6. Then delete it.
+  "zod@<4.6.6": ^4.6.7
