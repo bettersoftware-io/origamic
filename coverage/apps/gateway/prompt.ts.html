@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>9/9</span>
+                <span class='fraction'>0/9</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>2/2</span>
+                <span class='fraction'>0/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>4/4</span>
+                <span class='fraction'>0/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>9/9</span>
+                <span class='fraction'>0/9</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -127,7 +127,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -143,30 +143,18 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">23x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">23x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">23x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">10x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -174,8 +162,20 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">32x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { GenerationRequest, Problem } from "@origamic/spec";
 &nbsp;
@@ -184,7 +184,7 @@
 // ontology, the app) goes in the first message.
 &nbsp;
 /** The model's instructions: what Origamic is, and what its reply must be. */
-export const SYSTEM_PROMPT = `You build small apps in Origamic. An app is data, never code: a runtime interprets it.
+export const SYSTEM_PROMPT = <span class="cstat-no" title="statement not covered" >`You build small apps in Origamic. An app is data, never code: a runtime interprets it.</span>
 &nbsp;
 Your reply is one JSON object, held to the schema you are given:
 &nbsp;
@@ -199,31 +199,31 @@ Every write is an action of the ontology. An app binds the types its views read 
 When you revise an app, keep the ids of what stays, and change only what the builder asked for.`;
 &nbsp;
 /** The first message: what the builder asked, against which ontology, and the app it revises if any. */
-export function requestMessage(request: GenerationRequest): string {
-  const parts = [
+export function <span class="fstat-no" title="function not covered" >requestMessage(r</span>equest: GenerationRequest): string {
+  const parts = <span class="cstat-no" title="statement not covered" >[</span>
     `The builder asks: ${request.intent}`,
     `The owner's ontology, at version ${request.ontology.version}:\n${fenced(request.ontology)}`,
   ];
 &nbsp;
-  if (request.app !== undefined) {
-    parts.push(
+<span class="cstat-no" title="statement not covered" >  if (request.app !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    parts.push(</span>
       `The app to revise, as it is saved. Its elements, views and state are maps keyed by id; your reply writes them as lists, each entry with its id or key:\n${fenced(request.app)}`,
     );
   }
 &nbsp;
-  return parts.join("\n\n");
+<span class="cstat-no" title="statement not covered" >  return parts.join("\n\n");</span>
 }
 &nbsp;
 /** What goes back to the model after a reply that cannot be used: the reply, and each problem with where it is. */
-export function retryMessage(
+export function <span class="fstat-no" title="function not covered" >retryMessage(</span>
   reply: unknown,
   problems: readonly Problem[],
 ): string {
-  const listed = problems.map(({ path, message }) =&gt; {
-    return `- \`${path}\`: ${message}`;
+  const listed = <span class="cstat-no" title="statement not covered" >problems.<span class="fstat-no" title="function not covered" >map(({</span> path, message }) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    return `- \`${path}\`: ${message}`;</span>
   });
 &nbsp;
-  return [
+<span class="cstat-no" title="statement not covered" >  return [</span>
     `Your reply was:\n${fenced(reply)}`,
     `It cannot be used, for these reasons:\n${listed.join("\n")}`,
     'A path that starts with "app." or "operations." points into your reply. Any other points into the app as it would be saved, where elements, views and state are maps keyed by id or key, and "bindings" holds the types and actions you named.',
@@ -231,8 +231,8 @@ export function retryMessage(
   ].join("\n\n");
 }
 &nbsp;
-function fenced(value: unknown): string {
-  return `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``;
+function <span class="fstat-no" title="function not covered" >fenced(v</span>alue: unknown): string {
+<span class="cstat-no" title="statement not covered" >  return `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``;</span>
 }
 &nbsp;</pre></td></tr></table></pre>
 
@@ -241,7 +241,7 @@ function fenced(value: unknown): string {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-24T19:13:40.395Z
+                at 2026-10-24T20:22:38.011Z
             </div>
         <script src="prettify.js"></script>
         <script>

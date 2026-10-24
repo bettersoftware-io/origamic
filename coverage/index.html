@@ -16,14 +16,14 @@
   </head>
   <body>
     <h1>Coverage report</h1>
-    <p class="build">Built from commit a229710 (main) on 2026-10-24 19:14 UTC.</p>
+    <p class="build">Built from commit cf74a0f (main) on 2026-10-24 20:23 UTC.</p>
     <p>A published report shows the commit that built it, not the newest one. Compare the commit above with the code you are reading before you trust a number here.</p>
     <p>The bar, for every file: lines ≥ 95%, statements ≥ 95%, functions ≥ 95%, branches ≥ 85%.</p>
     <table>
       <tr><th>Package</th><th>Verdict</th><th>Why</th><th class="number">lines</th><th class="number">statements</th><th class="number">functions</th><th class="number">branches</th></tr>
-      <tr><td><a href="./apps/gateway/index.html">apps/gateway</a></td><td class="pass">PASS</td><td>8 files at or above the bar</td><td class="number">99.35%</td><td class="number">99.36%</td><td class="number">100%</td><td class="number">95.37%</td></tr>
+      <tr><td><a href="./apps/gateway/index.html">apps/gateway</a></td><td class="fail">FAIL</td><td>8 of 8 files under the bar</td><td class="number">0%</td><td class="number">0%</td><td class="number">0%</td><td class="number">0%</td></tr>
       <tr><td><a href="./apps/web/index.html">apps/web</a></td><td class="pass">PASS</td><td>14 files at or above the bar</td><td class="number">98.82%</td><td class="number">98.82%</td><td class="number">100%</td><td class="number">95.97%</td></tr>
-      <tr><td><a href="./packages/adapters/index.html">packages/adapters</a></td><td class="pass">PASS</td><td>7 files at or above the bar</td><td class="number">99.04%</td><td class="number">99.05%</td><td class="number">100%</td><td class="number">95.19%</td></tr>
+      <tr><td><a href="./packages/adapters/index.html">packages/adapters</a></td><td class="fail">FAIL</td><td>7 of 7 files under the bar</td><td class="number">0%</td><td class="number">0%</td><td class="number">0%</td><td class="number">0%</td></tr>
       <tr><td><a href="./packages/catalog/index.html">packages/catalog</a></td><td class="pass">PASS</td><td>36 files at or above the bar</td><td class="number">99.58%</td><td class="number">99.58%</td><td class="number">100%</td><td class="number">97.97%</td></tr>
       <tr><td><a href="./packages/core/index.html">packages/core</a></td><td class="pass">PASS</td><td>16 files at or above the bar</td><td class="number">99.21%</td><td class="number">99.21%</td><td class="number">100%</td><td class="number">96.48%</td></tr>
       <tr><td>packages/e2e</td><td class="skip">SKIP</td><td>its tests are Playwright's (playwright.config.ts, and no test script): they drive the built application in a browser, in another process, so there is nothing here for this tool to run or to measure</td><td class="number">–</td><td class="number">–</td><td class="number">–</td><td class="number">–</td></tr>
@@ -32,7 +32,23 @@
       <tr><td><a href="./packages/spec/index.html">packages/spec</a></td><td class="pass">PASS</td><td>10 files at or above the bar</td><td class="number">99.71%</td><td class="number">99.71%</td><td class="number">100%</td><td class="number">98.02%</td></tr>
     </table>
     <h2>Findings</h2>
-    <p>None.</p>
+    <ul>
+      <li><code>apps/gateway/src/anthropicReply.ts</code> — lines 0% (needs 95%, 33 not covered) · statements 0% (needs 95%, 33 not covered) · functions 0% (needs 95%, 6 not covered) · branches 0% (needs 85%, 34 not covered)</li>
+      <li><code>apps/gateway/src/anthropicSchema.ts</code> — lines 0% (needs 95%, 52 not covered) · statements 0% (needs 95%, 52 not covered) · functions 0% (needs 95%, 11 not covered) · branches 0% (needs 85%, 59 not covered)</li>
+      <li><code>apps/gateway/src/config.ts</code> — lines 0% (needs 95%, 31 not covered) · statements 0% (needs 95%, 31 not covered) · functions 0% (needs 95%, 8 not covered) · branches 0% (needs 85%, 27 not covered)</li>
+      <li><code>apps/gateway/src/generate.ts</code> — lines 0% (needs 95%, 64 not covered) · statements 0% (needs 95%, 65 not covered) · functions 0% (needs 95%, 13 not covered) · branches 0% (needs 85%, 38 not covered)</li>
+      <li><code>apps/gateway/src/prompt.ts</code> — lines 0% (needs 95%, 9 not covered) · statements 0% (needs 95%, 9 not covered) · functions 0% (needs 95%, 4 not covered) · branches 0% (needs 85%, 2 not covered)</li>
+      <li><code>apps/gateway/src/resolveBindings.ts</code> — lines 0% (needs 95%, 19 not covered) · statements 0% (needs 95%, 19 not covered) · functions 0% (needs 95%, 9 not covered) · branches 0% (needs 85%, 6 not covered)</li>
+      <li><code>apps/gateway/src/server.ts</code> — lines 0% (needs 95%, 84 not covered) · statements 0% (needs 95%, 84 not covered) · functions 0% (needs 95%, 16 not covered) · branches 0% (needs 85%, 33 not covered)</li>
+      <li><code>apps/gateway/src/verify.ts</code> — lines 0% (needs 95%, 20 not covered) · statements 0% (needs 95%, 20 not covered) · functions 0% (needs 95%, 6 not covered) · branches 0% (needs 85%, 17 not covered)</li>
+      <li><code>packages/adapters/src/gateway/httpLlmGateway.ts</code> — lines 0% (needs 95%, 68 not covered) · statements 0% (needs 95%, 68 not covered) · functions 0% (needs 95%, 14 not covered) · branches 0% (needs 85%, 27 not covered)</li>
+      <li><code>packages/adapters/src/supabase/createSupabase.ts</code> — lines 0% (needs 95%, 4 not covered) · statements 0% (needs 95%, 4 not covered) · functions 0% (needs 95%, 2 not covered) · branches 0% (needs 85%, 2 not covered)</li>
+      <li><code>packages/adapters/src/supabase/rows.ts</code> — lines 0% (needs 95%, 15 not covered) · statements 0% (needs 95%, 15 not covered) · functions 0% (needs 95%, 5 not covered) · branches 0% (needs 85%, 11 not covered)</li>
+      <li><code>packages/adapters/src/supabase/supabaseObjectStore.ts</code> — lines 0% (needs 95%, 49 not covered) · statements 0% (needs 95%, 50 not covered) · functions 0% (needs 95%, 12 not covered) · branches 0% (needs 85%, 31 not covered)</li>
+      <li><code>packages/adapters/src/supabase/supabaseOntologyStore.ts</code> — lines 0% (needs 95%, 18 not covered) · statements 0% (needs 95%, 18 not covered) · functions 0% (needs 95%, 6 not covered) · branches 0% (needs 85%, 9 not covered)</li>
+      <li><code>packages/adapters/src/supabase/supabaseSession.ts</code> — lines 0% (needs 95%, 17 not covered) · statements 0% (needs 95%, 17 not covered) · functions 0% (needs 95%, 13 not covered) · branches 0% (needs 85%, 10 not covered)</li>
+      <li><code>packages/adapters/src/supabase/supabaseSpecLibrary.ts</code> — lines 0% (needs 95%, 38 not covered) · statements 0% (needs 95%, 39 not covered) · functions 0% (needs 95%, 18 not covered) · branches 0% (needs 85%, 14 not covered)</li>
+    </ul>
     <h2>Left out of the measurement</h2>
     <ul>
       <li><code>**/*.d.ts</code> — declarations hold no code</li>
@@ -45,6 +61,6 @@
       <li><code>apps/gateway/src/main.ts</code> — the gateway's entry point: it only reads the environment and calls createGatewayServer(), which is tested; importing it in a test would start a server</li>
       <li><code>apps/gateway/src/anthropicModel.ts</code> — the one call to the real model: no test in the gate calls a model (ADR-0011), and what it sends is anthropicSchemaOf(), which is tested</li>
     </ul>
-    <p><a href="https://github.com/bettersoftware-io/origamic/actions/runs/40124221098">The run that built this report</a></p>
+    <p><a href="https://github.com/bettersoftware-io/origamic/actions/runs/40129467454">The run that built this report</a></p>
   </body>
 </html>
