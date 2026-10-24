@@ -50,3 +50,6 @@ overrides:
   # Drop when: without this entry, `pnpm why zod -r` shows nothing below
   # 4.6.6. Then delete it.
   "zod@<4.6.6": ^4.6.7
+minimumReleaseAgeExclude:
+  # Renovate security update: vite@8.3.3
+  - vite@8.3.3
