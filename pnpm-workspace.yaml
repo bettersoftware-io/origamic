@@ -17,6 +17,9 @@ minimumReleaseAge: 1440
 # install asks for it and you have read what its script does.
 allowBuilds:
   esbuild: true
+minimumReleaseAgeExclude:
+  # Renovate security update: vite@8.3.3
+  - vite@8.3.3
 
 # An advisory with no fix yet is the one case for `auditConfig.ignoreGhsas`,
 # and a fix the direct dependency has not taken up is the one for `overrides`.
