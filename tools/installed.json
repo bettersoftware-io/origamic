@@ -236,7 +236,7 @@
   },
   "e2e": {
     "files": {
-      ".github/workflows/e2e.yml": "eb62610d6095788d78ec3397b5bf08a4e3144ef2c5aa4b6ea29395d976945be6",
+      ".github/workflows/e2e.yml": "d9fcba4d8b5c6e658e7034c7f1e3979755bd46ef96690ab3fe84363616cd6e14",
       "packages/e2e/notStarted.setup.ts": "6cdd4a1e0a82009d569c424f92b6d972b4fe4ea54b1ec882514e335976e59b7d",
       "packages/e2e/playwright.config.ts": "0f2048b875d8babfc7cacf8ad922c9e9879c18bc38480b5ebe8b90bbdec97913",
       "packages/e2e/tsconfig.json": "4ece0153f0ce930a46a62b75fdb6d7be3828f873c0712ab67ab55848d1253db7",
@@ -254,6 +254,9 @@
       "tools/templates/e2e.packages__e2e__src__sim__selection.spec.ts.txt": "5da2200fc4d31431d8fbdd42ecc8f0a6979901420bcd90ef5f693e44085ae5b8",
       "tools/templates/e2e.packages__e2e__src__testing__test.ts.txt": "c8d87f480e040b769262fcedc4ef18ef57078f7b4ce3a94ad1b53e13f687376c",
       "tools/templates/e2e.tools__e2e.config.mts.txt": "ccaab6dfe31a5b3ecb7cd85bef969c07e8ccaeadd7a4f83f04b631e7cc137bc6"
+    },
+    "withoutActionRefs": {
+      ".github/workflows/e2e.yml": "5f21b99eb545c1debb27086889055c31949c1cb89a69671bfe523fbaa33c670b"
     },
     "starting": [
       "packages/e2e/package.json",
