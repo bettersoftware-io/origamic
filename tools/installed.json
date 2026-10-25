@@ -1,9 +1,9 @@
 {
   "kit": {
     "files": {
-      "tools/arch/README.md": "a50b7498086c8e5206c98c26ac39a7e5459c6b7e23e5c446b0a32af0ef5d03a5",
-      "tools/arch/check-compiler.mts": "e98d7c2d26d317e28061b59d909da00f887644f5fab67984f9d7b5c9f7eb7c04",
-      "tools/arch/check-react-policies.mts": "ebd225939d0f842d7b5a3e8260d929a371d51c98532514c82a3102a4fdde07a7",
+      "tools/arch/README.md": "9bf99e45c5c1e76e66f2fa1044bc0e7dd752a09b9314417b3ec3e3d6b528785d",
+      "tools/arch/check-compiler.mts": "855603968b48d5d0bfde07bf4d02120e785c245dea2f581e8de047b1244d5fb8",
+      "tools/arch/check-react-policies.mts": "94f71013d6e759cc75656bef2a2cdd82ac7766507431d17e131e766f74279527",
       "tools/arch/ci/corepack/package-lock.json": "e832aaa8d3c5beb67be8887533a3eaaa327beebbc6a6ab447eae0c2da39bab35",
       "tools/arch/ci/corepack/package.json": "0e6a36f6156ab759f1237ca6ea293c88d3e5110265e28b2bb394d2b52be68cce",
       "tools/arch/ci/enable-corepack.mts": "fb39770927805de1ac39d90fd00e0771959341b57f2f612e225daecbc5459c5a",
@@ -25,15 +25,16 @@
       "tools/arch/eslint-rules/one-import-per-module.mts": "2ff9d8a85fb9a7ed4e0044050782584371fa4cd4d974e90614cd873fed4e6ea8",
       "tools/arch/eslint-rules/page-objects-own-their-component.mts": "c149be0134a5839b50718ae4ee3cb4cb751094db376b9c1caf7e89f8c66836a3",
       "tools/arch/eslint.config.mts": "50780717638d94afef5086adf69acfd67fb9bfdd18f1ec727d417251ae78bacc",
-      "tools/arch/gates/fails-on.json": "6a7e6905de7913a3c43889374c2f5b18f8776edc41f01e37fa8182ea60bd31e4",
-      "tools/arch/gates/gates.json": "09e7a7ba6a5934f08288ba7f4ea18ed6a776ce8286167185977e3983d6d8fa06",
+      "tools/arch/gates/fails-on.json": "ea07aac5d70cd1ff28faf0b29e0db2409b019a85742ac8fc34d2019de66a01e6",
+      "tools/arch/gates/gates.json": "d220571b2c287a5b7beb50d058512e6f634e10ddcdd477a973b27c93cb9e52bb",
       "tools/arch/gates/lib/app-harness.mts": "eb5f70719281663aa6a414560d4cd3c907a346bc363ef6b75ddfce998ed1a42c",
       "tools/arch/gates/lib/config.mts": "7990fa2a583539c35ccb610f21bb1ab9c6def9cddd2835e2156f7caa446fee60",
       "tools/arch/gates/lib/contracts.mts": "cfafde8a785c341da8b07d594b6a75f0e7e64a76def3c919fcd1f2f50828f154",
-      "tools/arch/gates/lib/depcruise.mts": "beef553d8f46011fa811ba61e7fb61f7d3b20afabfe73d712d9a89d677dd628d",
+      "tools/arch/gates/lib/depcruise.mts": "a81067d3c774f97610def9e2b1de3f9e96c391c25c2d7d459656b8d04c83b31e",
       "tools/arch/gates/lib/files.mts": "18fe405917d0785e9ed96e2cbeb29427f6a8014be3225d42fc6a4e989aa9654e",
       "tools/arch/gates/lib/instructions.mts": "c038d0c981033aaa976ee8d67ec0c01a04c62f4cb2601926eaf6c345fb65810f",
       "tools/arch/gates/lib/language.mts": "f718fdddbc04a1058b78820a98e10fde2fcf1ae6ba338608319e06bfd8bcec32",
+      "tools/arch/gates/lib/lockfile.mts": "f7b470847cfd5152d37ac6fc07cea9a142ba3424c683cdd3869ce04feb7899fb",
       "tools/arch/gates/lib/node-floor.mts": "1212a8a39e1e05370b57db297a6251cece4f21134a8779ef71c6df04214b2725",
       "tools/arch/gates/lib/package-manager.mts": "3a18d3589727b315f8200aefa1bd883bb333d0cd90a2c93114d1a016cfb80ec1",
       "tools/arch/gates/lib/package-scripts.mts": "1d6e8ccd66accb044ee20ec41970d15eecc08457cbd901075cd25386eb560b1d",
@@ -44,7 +45,7 @@
       "tools/arch/gates/lib/types-only.mts": "fc3207813793f440ec3233e8183fba3f3e272dd296b570baa88244ebb8e5089f",
       "tools/arch/gates/lib/ui-bans.mts": "b8aea78943e779a05913db1f0db0840ddfe45979fe8e39c4b7568d859e960357",
       "tools/arch/gates/quiet.mts": "0b1bc587c460e39b831f21e0b78365d1ce914c4f828d651898e6e58561d3780a",
-      "tools/arch/gates/run.mts": "f2f44eee8fc39701a45f86504e10bf26b63f37a4c55cd2383d7fb4b467e82049",
+      "tools/arch/gates/run.mts": "a889927e485e4e6dc4430803f2a21265c35e503fd3ca13172480cb0c2bd84811",
       "tools/arch/hooks/after-edit.mts": "1de0ed2f2bc8d104a09d250bcf8efc3e883d936c0a58ad407e868a0eb4d416ea",
       "tools/arch/hooks/before-stop.mts": "b0271a46b7cd19346f7327dc467b30ffb3f9722f75de5de781899b58f077393f",
       "tools/arch/hooks/claude.settings.json": "6e11703439c3bb4265b5c0bea7bf94a1962414db2f5617d5924d7047bd3ed7ea",
@@ -55,7 +56,7 @@
       "tools/arch/templates/.nvmrc.txt": "20d2add851bf39edcc6b5e830930f962db7e19dffa2cab8610eed551eda6c302",
       "tools/arch/templates/AGENTS.md.txt": "8458b6590c188a906a15a6829455c300ebbd7357fa583397f20236b36f7e3da8",
       "tools/arch/templates/CLAUDE.md.txt": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49",
-      "tools/arch/templates/architecture.config.mts.txt": "fbb3a490b1b6eb0a589a981bfdf53ce1e6f1e931c8b54ce89a44adc50713ff43",
+      "tools/arch/templates/architecture.config.mts.txt": "2bdc0294eb406baf9b0ccc88d27fbbe710c173da8f1ef61d9f75d4658e18fe5a",
       "tools/arch/templates/eslint.config.mts.txt": "2e36ca2344ae2d9e4a45741f170630d908a89ccbe6a1fd4294d8523f753c6ddf",
       "tools/arch/templates/package.json.txt": "197f56ee531fa2d29b99921c109d52ee1cc8daabc6dfa1b7893f34ccc0cccec5",
       "tools/arch/templates/packages__client-core__package.json.txt": "889831746aa7f6da76de4f2915405daac2c7f2661d6ff099429fda80985a0b5e",
@@ -91,20 +92,25 @@
   },
   "ci-security": {
     "files": {
-      ".github/workflows/ci-security.yml": "43e8b4770dc6274f4ff920344fbb5c84b21241d2d3dfc7c0784bea8c965b8f62",
+      ".github/workflows/ci-security.yml": "25a68b6b0790770f56306d538ef0a1393363d6508ddb1b89e2502fab9b5a42d4",
       ".github/workflows/dependency-review.yml": "775d67ae2fb061a8a5dd93b9acacdcfa8e85d3a90f08e36e385e29e0f56c6c7b",
-      ".github/workflows/scorecard.yml": "75971979909395745f4d7b7c8abe65da9985c868dc41d9766b8bfd2cf4db7dce",
+      ".github/workflows/scorecard.yml": "62df75646fee0eff084ac4f645f06bc6e61f7d8ef2b8ed0912afaf7f7f47835e",
       "tools/ci-security/check-dockerfiles.mts": "932ac146a2defc999611db86ddcf7f5921ddf51adc6fc24c976bb3406e578bf7",
       "tools/ci-security/check-settings.mts": "36f12a795f14e0cfc29b89e7f4aeef1dca07f08650a5a56d45cc4de47ea8a50a",
       "tools/ci-security/lib/install.mts": "0dd644ee915bcd45cd32c1bc196d93cd0ee131460ba4fc70c9e945e12228a751",
       "tools/ci-security/lib/lint.mts": "47f6d21e29513b78ae3bba5b0b68155f20121d86597e3b1c18336c219f37f097",
       "tools/ci-security/lib/pins.mts": "f795c255b8bc1f8121cf3374a40d4a9a26a73dd8e8045f4a9bc14cfcb178b682",
-      "tools/ci-security/lib/required-checks.mts": "439b4a0bb42236c73d5598438ddd81e7930a8229b5febe33b4c9abe2a45c1bdd",
+      "tools/ci-security/lib/required-checks.mts": "fd39b4684ea2c2f9581aa518f71558c33142a96c0a59195bd232d925dfba58ea",
       "tools/ci-security/lib/settings.mts": "dc8c4f767fcccdbb92a39ed7930ae3212b1073780b3b1aa07d27fe02bc3eb31e",
       "tools/ci-security/lib/system.mts": "6fc11113bbe7bb516aff2dfe6db4cd4839924b57112abb18e1df5810b5760d44",
       "tools/ci-security/lint-workflows.mts": "e3cf7ddb033053576320cb9306219d001c20e6af58fb997b0b8e92ade8a8ac41",
       "tools/templates/ci-security..github__renovate.json5.txt": "d99a66cc46fe9c05da90909403e0ec73f03c68eb58456385a5955e6749a2929f",
       "tools/templates/ci-security.SECURITY.md.txt": "26f35258a2f70849dfcde6cf15374a94ebbd20bb71e93891f3ba836fe4925874"
+    },
+    "withoutActionRefs": {
+      ".github/workflows/ci-security.yml": "557fab259b66e3ec61be215db27bd66aaf42974cd5074d7c451659368e5e97ec",
+      ".github/workflows/dependency-review.yml": "925f57afc2517b4eb038bdcd39f94939ae0d6ac1b2d85894a7a207dccd3f7c43",
+      ".github/workflows/scorecard.yml": "060608bbce33ed542137810140ede91077678b268fcaa1c284b56beb30a5daba"
     },
     "choice": "renovate",
     "starting": [
@@ -117,7 +123,7 @@
     "files": {
       ".github/workflows/coverage.yml": "f7a3943a56889660d2554167fa32cc5daf8be19e79751ed3ab126db9992fb79f",
       "tools/.gitignore": "4424513510f3bbbe04155cd812f9a7bb6731a8c06ccb25cd3b20de9512c556eb",
-      "tools/coverage/gaps.mts": "6828ac6fa0a7c77327683d3f6143e92e802026f0d6bca79435f6b00fae2aa9e4",
+      "tools/coverage/gaps.mts": "3e9fbd7629a193aa9307c929c4da3db7a9f5cb0819a4926846b8c439e108fd68",
       "tools/coverage/lib/config.mts": "106bf9ccecb16de01d8f08c7c238c9712c534788826a27460e8c4a7666320d29",
       "tools/coverage/lib/ignores.mts": "0ee998bfa1dfce2c0b94255bdf7d929163c6225e53621603408c7e45dc8b51c3",
       "tools/coverage/lib/judge.mts": "e74caf810d4560e98c17c808f1796bdb910593b41e332a3f1ca3c2fad9042bdb",
@@ -126,12 +132,15 @@
       "tools/coverage/lib/measure.mts": "9b0093560aba89ae5a9841ad89083214927e6669a6c2232626b460530f45ccf4",
       "tools/coverage/lib/report.mts": "de83c9b68d153fdbd25af2b224b42b31f9c6145b3c91ea8db6965caef0a77291",
       "tools/coverage/lib/site.mts": "855e11fa5388cbe6f9022a79892bf2d14ad01c6fbf0dc1b98609f82117b203cf",
-      "tools/coverage/lib/visualReach.mts": "66dae45430b6fe6a3c5550ac76e86ba1064485b9d7f14751c14139645b174ab9",
+      "tools/coverage/lib/visualReach.mts": "5be6da462df9413b66dd10bef974e284b2e8e46731273fa58f5ea8fbf7f33fbb",
       "tools/coverage/lib/workspace.mts": "5ebdd7291cfeb30d2ee4516dccf91bb02083c4c6558a6ec9f07a72ece6fddea8",
       "tools/coverage/mutation-check.mts": "ccc959758bc44c68e2eedb990d1a6ef0ed96e969865fb59f1ebac8982d9ab43a",
       "tools/coverage/publish-to-pages.mts": "005e5a8f60cbb66275b47a5bee7a636a6e848362ae492d86948f05a309ef9383",
       "tools/coverage/run.mts": "71a720658afa7fb70a7cfbb5c7492756b54cde7a3572c17c43a3f573ad739039",
       "tools/templates/coverage.tools__coverage.config.mts.txt": "c2a2446495d7557fb6ec7761ae199900e7a1744c025f32eaeda42c3fe848bb7f"
+    },
+    "withoutActionRefs": {
+      ".github/workflows/coverage.yml": "a1aac2e002d70d21dcd8c2dda86f7213adbcdeec212aaaec28880839cb420e77"
     },
     "starting": [
       "tools/coverage.config.mts"
@@ -165,52 +174,69 @@
   },
   "agent-workflow": {
     "files": {
-      ".agents/skills/workflow-changelog/SKILL.md": "03b0d90e1444276f27fb4328f6b23667c0c35e03589a8441baa02ca34d5b1673",
+      ".agents/skills/workflow-changelog/SKILL.md": "842780109b0849bfa76f7f073c76d468418c3e4d9788858488dd741eed1c11f7",
       ".agents/skills/workflow-coverage-backfill/SKILL.md": "38134357f0d257f547bfac07c369ee6ab0ca19018e33b9e7d0e5c2f852f5c09e",
       ".agents/skills/workflow-docs/SKILL.md": "d6fa09dbcddd971bc99854f43d5a2b628c0612aec9130fad91d31d2fa45c6798",
       ".agents/skills/workflow-perf-audit/SKILL.md": "48432dadbc5f33b271eb308e348477fbcbdcaa27eb8bbabf9d951d14c8821d4f",
       ".agents/skills/workflow-status/SKILL.md": "9a30902ad4d744c7427107ea6da2187abccbe017d124c2afd491da03df129baf",
       ".agents/skills/workflow-visual-tolerance-audit/SKILL.md": "e150f0c53b21a7ced1488a898f0ef6312617789691fc27e6b7c623a869e93d42",
       ".agents/skills/workflow-worktrees/SKILL.md": "d41f580d4a247b7211d6b72910ffa4289039ea33fee254e67c9f1972582f3b3a",
-      ".claude/commands/workflow/changelog.md": "535e3da381cab86e2345d7fc8f5107f7e2b3ef42b183066245898fe94ef7ae2f",
+      ".claude/commands/workflow/changelog.md": "22aaf45d6daadd2fffe7375061986c56e0059b748b1a60641e9192ca44319e9c",
       ".claude/commands/workflow/coverage-backfill.md": "aeb296a44f1a9fa3369bf9f1546eaebc0eb300e57ea106d655de087e577df7de",
       ".claude/commands/workflow/docs.md": "599979aea1d31869bc56979663db3277d8c53a464d72b84cbc62af71eb03b971",
       ".claude/commands/workflow/perf-audit.md": "b5cfde8cd0fac1f76a3fa98243d2f3b11d063b83e2ae7b4021c95cb8078516d3",
       ".claude/commands/workflow/status.md": "2258289e1c54d3b794befe0de2096db431aed12c1565d9aa402bd3e186d23e49",
       ".claude/commands/workflow/visual-tolerance-audit.md": "ccb18c05854944717e993852d32a1c84238fba64545b8d3f2c1d64c68b0d6b7e",
       ".claude/commands/workflow/worktrees.md": "8270c4183281d8183ea31680b02b8606eb2a9022921ab5ec4e66025629d07e9d",
-      ".github/workflows/weekly-tag.yml": "16fee2035d4fe7ffa984b62d408c46e6c9307737fb4b64f197ce2f3c173ae7aa",
+      ".github/workflows/changelog-writer.yml": "27ce292f7d05e93136501561428c61e61d30340a0771f069d7e8c94b70ddaace",
+      ".github/workflows/sync-releases.yml": "dfe04fbf16fe905fbefa99b6945ca4e5bc5a28617ee0a0ce1ecea55fe6939c54",
+      ".github/workflows/weekly-tag.yml": "92ba0882807e85f3a259f4ea35f7253d33c2b442692b9c5d4a33c4ac867552bf",
       "tools/agent-workflow/audit-worktrees.mts": "3a9e6ebaf2039495b5f6067f3420c6cb3a8ae674a23e5751cd03fca615a8fb40",
-      "tools/agent-workflow/changelog.mts": "718cf9de0e72c2d758d74af050d2c9d6d9422e77fb5eeca5b88812ed65e98a70",
+      "tools/agent-workflow/changelog.mts": "10c8d4c76ed4df38fb1756e5772c43e1a6143e8ce0e2eb69babf9a748fd34c69",
       "tools/agent-workflow/check-status.mts": "d2b5d5c93096738e77ea8ca420f1faf2722f6a39ab03d8567fa59f792f03757d",
-      "tools/agent-workflow/check.mts": "d53f74e097027501acd7b27eed7cf7c883b1e011eab8bbfbfbbd79c7a791bfdc",
-      "tools/agent-workflow/close-week.mts": "1111709ac7fa46d7f9b2c1a03181216350b1a890cf0fc88f766ec1b14da1b9c1",
-      "tools/agent-workflow/hooks/split-outward-commands.mts": "0cf79b7c2ad2ba800e6d19df46e2cfaa7ed17ca616ecb7f53ed09cfd608968f9",
-      "tools/agent-workflow/lib/changelog.mts": "4da87a7cc7620a754c20bc4d88519ba2f9c08aa3f7ab53f2e03cb2781f04f670",
+      "tools/agent-workflow/check.mts": "eea7286bfced1f932e2ce183592c2851653d582f7cd610bfe037e2cfd42f280f",
+      "tools/agent-workflow/close-week.mts": "351638b71c9d7ca20e7b8a5de292633ded2aad89e9badd6b41391505b41307c8",
+      "tools/agent-workflow/hooks/changelog-due.mts": "bc9e9743d33ae75323e83f7d34df93d95536237d8dbe2b53cb4ff479d29a541a",
+      "tools/agent-workflow/hooks/split-outward-commands.mts": "b055e933e9ede1e8b0caed379ceccbbb1f59231f89338426a11e3800e4dfa6ca",
+      "tools/agent-workflow/lib/changelog.mts": "d98cd64655da58085322e445f725ea15b546e516156f70b32fa1a762c6fd20d0",
+      "tools/agent-workflow/lib/due-reminder.mts": "0c36b8a37f6f48352783d28e70faf4c99ce926ef79ead4db57b3c7cc95bbd2c9",
+      "tools/agent-workflow/lib/due.mts": "4eb8b3c7687ec0372df9b320f9f826b22bc9cff284df16f69891a2ce547de426",
+      "tools/agent-workflow/lib/history.mts": "6dd78e3f4a4235fff1c207291de8c54c8997a69e5935729df98c8632a7e404ef",
       "tools/agent-workflow/lib/hook-registration.mts": "a88ee68abbdaa63b8d733a0b97fa5102948e05a09ab7b7b07fcbbf97a44aa199",
-      "tools/agent-workflow/lib/host.mts": "5d9057d1072700e2ffb8d48e7bceb9b727ae580627046de655ffa2d98dec61f0",
+      "tools/agent-workflow/lib/host.mts": "9dfeff37093b5c1b9072a3a003bd03873e86e98c050fdab74c880ec1d9fb569e",
       "tools/agent-workflow/lib/main.mts": "b9510ffce92e72c31b519bffcd5b2d464d723a11e9d2755b065afb91bca5d54c",
-      "tools/agent-workflow/lib/outward.mts": "cd6d8d6bfa25b350b1b9fd56fe43234ba052aa6dba62a2dd5514264254189db7",
-      "tools/agent-workflow/lib/shell.mts": "7427abeaadb0fadff16e41e6ea589cc56f707a9a7342592468d65d74f4ca2a01",
+      "tools/agent-workflow/lib/outward.mts": "1fbd27a8f424150aa96a70f327a9ad33e4827fd3cba26f0160d046da65abe0eb",
+      "tools/agent-workflow/lib/releases.mts": "173d68726a1e5a6be758eb2dfbb426dd89d4139c7d78649598c2c21136326238",
+      "tools/agent-workflow/lib/shell.mts": "2fd79e4949295c9a1adf306a7b8829b8eac399546b29a5c2e74a1c6a57db4419",
       "tools/agent-workflow/lib/shown.mts": "aa8f086b0a46c74ca04ef7e514f61ef95e4fc3cfac194e0c2687cdbd31bc6e8e",
       "tools/agent-workflow/lib/system.mts": "3604d709390ad2c8aca8797951160071668017460a5b43ab097068076baa4369",
+      "tools/agent-workflow/lib/tag.mts": "fb237592fbcbd529a6711625fe1cd12304c0f2babbb0d830703d6d51c471a1a7",
       "tools/agent-workflow/lib/week.mts": "4db4f77058b85b439fe7126a131d9cfea1c99b75027e39fc91c81d0e8cb934f0",
       "tools/agent-workflow/lib/worktree-audit.mts": "27048a70fd5a53a86b7bf66f67757f777524b981cd84293a0198b98ec85bed5e",
       "tools/agent-workflow/new-worktree.mts": "fa3785e68f65e50273ee354b91f72b225776a13eb9f9970371cbf42194f1c1f3",
       "tools/agent-workflow/requires.mts": "0d6555c1112fc35e211e77a85298ac31fbf033d95db56b5e992e69c877926dd3",
-      "tools/templates/agent-workflow.CHANGELOG.md.txt": "9b0fb93cadcc10a6075ef70ffa8e38bcc59655410bb2f07f3410677fbe3cf96d",
+      "tools/agent-workflow/sync-releases.mts": "d0b1e985130b54f752058fff3bc6a6f25407f032fb6fc88f3dd2f885158ce3d1",
+      "tools/templates/agent-workflow.CHANGELOG.md.txt": "04cc722c39225da69db2942d06c405d2768518ad3d9db48d6b9b1719e95b99c7",
       "tools/templates/agent-workflow.docs__IDEAS.md.txt": "8472595386eb9ac467efb7cdf424bd5552007297ecb94d99793b08222acead55",
       "tools/templates/agent-workflow.docs__STATUS.md.txt": "0d79af20527d350ded8bebc82b40c76692febb4fee1566eace45ced555a1618a"
+    },
+    "withoutActionRefs": {
+      ".github/workflows/changelog-writer.yml": "dd1489d13c6939dde74fbbded7f7abc702676ebc3f7299fd63602f86913e928d",
+      ".github/workflows/sync-releases.yml": "0e72ca7ea31f71af7f7983957254c3bd1d0b327f567c44648d2dc7a286b7419d",
+      ".github/workflows/weekly-tag.yml": "6866d90a9de74c77c502b038173efca8a44ee8d104d8cd9362aa1814ecdbdfd0"
     },
     "starting": [
       "CHANGELOG.md",
       "docs/IDEAS.md",
       "docs/STATUS.md"
+    ],
+    "releasesSeen": [
+      "0.21.0"
     ]
   },
   "e2e": {
     "files": {
-      ".github/workflows/e2e.yml": "eb62610d6095788d78ec3397b5bf08a4e3144ef2c5aa4b6ea29395d976945be6",
+      ".github/workflows/e2e.yml": "d9fcba4d8b5c6e658e7034c7f1e3979755bd46ef96690ab3fe84363616cd6e14",
       "packages/e2e/notStarted.setup.ts": "6cdd4a1e0a82009d569c424f92b6d972b4fe4ea54b1ec882514e335976e59b7d",
       "packages/e2e/playwright.config.ts": "0f2048b875d8babfc7cacf8ad922c9e9879c18bc38480b5ebe8b90bbdec97913",
       "packages/e2e/tsconfig.json": "4ece0153f0ce930a46a62b75fdb6d7be3828f873c0712ab67ab55848d1253db7",
@@ -228,6 +254,9 @@
       "tools/templates/e2e.packages__e2e__src__sim__selection.spec.ts.txt": "5da2200fc4d31431d8fbdd42ecc8f0a6979901420bcd90ef5f693e44085ae5b8",
       "tools/templates/e2e.packages__e2e__src__testing__test.ts.txt": "c8d87f480e040b769262fcedc4ef18ef57078f7b4ce3a94ad1b53e13f687376c",
       "tools/templates/e2e.tools__e2e.config.mts.txt": "ccaab6dfe31a5b3ecb7cd85bef969c07e8ccaeadd7a4f83f04b631e7cc137bc6"
+    },
+    "withoutActionRefs": {
+      ".github/workflows/e2e.yml": "5f21b99eb545c1debb27086889055c31949c1cb89a69671bfe523fbaa33c670b"
     },
     "starting": [
       "packages/e2e/package.json",

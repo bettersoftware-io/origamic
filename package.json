@@ -43,7 +43,8 @@
     "worktree:audit": "node tools/agent-workflow/audit-worktrees.mts",
     "e2e": "node tools/e2e/run.mts",
     "e2e:install": "pnpm --dir packages/e2e exec playwright install chromium",
-    "check:status": "node tools/agent-workflow/check-status.mts"
+    "check:status": "node tools/agent-workflow/check-status.mts",
+    "changelog:releases": "node tools/agent-workflow/sync-releases.mts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
