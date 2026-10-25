@@ -92,20 +92,25 @@
   },
   "ci-security": {
     "files": {
-      ".github/workflows/ci-security.yml": "43e8b4770dc6274f4ff920344fbb5c84b21241d2d3dfc7c0784bea8c965b8f62",
+      ".github/workflows/ci-security.yml": "25a68b6b0790770f56306d538ef0a1393363d6508ddb1b89e2502fab9b5a42d4",
       ".github/workflows/dependency-review.yml": "775d67ae2fb061a8a5dd93b9acacdcfa8e85d3a90f08e36e385e29e0f56c6c7b",
-      ".github/workflows/scorecard.yml": "75971979909395745f4d7b7c8abe65da9985c868dc41d9766b8bfd2cf4db7dce",
+      ".github/workflows/scorecard.yml": "62df75646fee0eff084ac4f645f06bc6e61f7d8ef2b8ed0912afaf7f7f47835e",
       "tools/ci-security/check-dockerfiles.mts": "932ac146a2defc999611db86ddcf7f5921ddf51adc6fc24c976bb3406e578bf7",
       "tools/ci-security/check-settings.mts": "36f12a795f14e0cfc29b89e7f4aeef1dca07f08650a5a56d45cc4de47ea8a50a",
       "tools/ci-security/lib/install.mts": "0dd644ee915bcd45cd32c1bc196d93cd0ee131460ba4fc70c9e945e12228a751",
       "tools/ci-security/lib/lint.mts": "47f6d21e29513b78ae3bba5b0b68155f20121d86597e3b1c18336c219f37f097",
       "tools/ci-security/lib/pins.mts": "f795c255b8bc1f8121cf3374a40d4a9a26a73dd8e8045f4a9bc14cfcb178b682",
-      "tools/ci-security/lib/required-checks.mts": "439b4a0bb42236c73d5598438ddd81e7930a8229b5febe33b4c9abe2a45c1bdd",
+      "tools/ci-security/lib/required-checks.mts": "fd39b4684ea2c2f9581aa518f71558c33142a96c0a59195bd232d925dfba58ea",
       "tools/ci-security/lib/settings.mts": "dc8c4f767fcccdbb92a39ed7930ae3212b1073780b3b1aa07d27fe02bc3eb31e",
       "tools/ci-security/lib/system.mts": "6fc11113bbe7bb516aff2dfe6db4cd4839924b57112abb18e1df5810b5760d44",
       "tools/ci-security/lint-workflows.mts": "e3cf7ddb033053576320cb9306219d001c20e6af58fb997b0b8e92ade8a8ac41",
       "tools/templates/ci-security..github__renovate.json5.txt": "d99a66cc46fe9c05da90909403e0ec73f03c68eb58456385a5955e6749a2929f",
       "tools/templates/ci-security.SECURITY.md.txt": "26f35258a2f70849dfcde6cf15374a94ebbd20bb71e93891f3ba836fe4925874"
+    },
+    "withoutActionRefs": {
+      ".github/workflows/ci-security.yml": "557fab259b66e3ec61be215db27bd66aaf42974cd5074d7c451659368e5e97ec",
+      ".github/workflows/dependency-review.yml": "925f57afc2517b4eb038bdcd39f94939ae0d6ac1b2d85894a7a207dccd3f7c43",
+      ".github/workflows/scorecard.yml": "060608bbce33ed542137810140ede91077678b268fcaa1c284b56beb30a5daba"
     },
     "choice": "renovate",
     "starting": [
