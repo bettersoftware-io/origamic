@@ -47,6 +47,18 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/tools/agent-workflow/hooks/changelog-due.mts\"",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   },
   "permissions": {
@@ -63,7 +75,13 @@
       "Bash(git push *--tags*)",
       "Bash(git push *--prune*)",
       "Bash(gh pr merge *--admin*)",
-      "Edit(/tools/agent-workflow/**)"
+      "Edit(/tools/agent-workflow/**)",
+      "Bash(pnpm changelog tag *--apply*)",
+      "Bash(pnpm changelog:releases *--apply*)",
+      "Bash(pnpm run changelog tag *--apply*)",
+      "Bash(node tools/agent-workflow/changelog.mts tag *--apply*)",
+      "Bash(pnpm run changelog:releases *--apply*)",
+      "Bash(node tools/agent-workflow/sync-releases.mts *--apply*)"
     ]
   }
 }

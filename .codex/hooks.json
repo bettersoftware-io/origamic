@@ -38,6 +38,19 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node tools/agent-workflow/hooks/changelog-due.mts",
+            "statusMessage": "Checking the changelog",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }
