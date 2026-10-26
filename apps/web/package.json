@@ -16,7 +16,7 @@
     "@origamic/core": "workspace:*",
     "@origamic/runtime": "workspace:*",
     "@origamic/spec": "workspace:*",
-    "dockview": "8.6.0",
+    "dockview": "8.6.1",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
