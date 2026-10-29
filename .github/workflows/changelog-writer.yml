@@ -151,7 +151,7 @@ jobs:
       # `--setting-sources user` keeps a committed .claude/settings.json from
       # widening its tools (parse-sdk-options.ts of the pinned release reads it).
       # The next job refuses a file that holds a token.
-      - uses: anthropics/claude-code-action@5eb090f3c3afd701a0672cd32981197ca27688f6 # v1.0.253
+      - uses: anthropics/claude-code-action@6b6870e649b5ff408753befeaee5fc7989d4e6a9 # v1.0.258
         if: steps.due.outputs.due == 'true'
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
