@@ -189,6 +189,18 @@ between options. Each entry says who, and gives the command or the question.
   that `.codex/hooks.json` gained with bettersoftware-skills 0.25.0. Until
   then Codex does not run them. Remove this entry once it is done.
 
+- **Whether to take the Anthropic SDK 1.x (Renovate's
+  [#51](https://github.com/bettersoftware-io/origamic/pull/51)).** The
+  author decides, after one call to the real model. 1.0.0's only breaking
+  change is that it sends the new API version, `2026-10-21`. The gateway
+  typechecks against 1.3.0 and its tests pass, but they run on the scripted
+  model (ADR-0011), so no test shows that the real model still answers the
+  gateway's request (`apps/gateway/src/anthropicModel.ts`: structured
+  output, adaptive thinking, the server-side fallback beta) the same way.
+  Rerun the pull request's red check first: it failed on the Docker probe
+  (see Known limits), not on the SDK. Then run "Ask the real model once, by
+  hand" above on the pull request's branch, and merge it or close it.
+
 ## Known limits
 
 What is true of the project and will not be fixed soon: a thing that was not
@@ -262,6 +274,15 @@ verified, a case that is not covered.
   the code. CI always has Docker. The fix is the coverage add-on's, in
   `bettersoftware-io/skills`: a package whose tests were left out is not
   judged.
+- **In CI, a package's tests can fail because Docker answered too slowly.**
+  Each package whose tests reach the local Supabase asks `docker info`
+  first, with a five-second deadline (`tools/supabase/cli.mts`). The task
+  runner starts every package's tests at once, and while
+  `packages/adapters` starts the stack, the gateway's probe once missed the
+  deadline. Its global setup then failed, and vitest printed "No test files
+  found" above the real error (Renovate's #51 on 2026-11-02). A rerun
+  passes. The fix is the project's own, in that file: a longer deadline, or
+  a second try before the probe says Docker is not there.
 - **Every checkout on a machine shares one test stack, one run at a time.**
   The adapters' tests run against the local Supabase `origamic-test` (the API
   on 54421, Postgres on 54422), apart from the dev stack `origamic` that
