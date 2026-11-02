@@ -16,12 +16,12 @@
     "@origamic/core": "workspace:*",
     "@origamic/runtime": "workspace:*",
     "@origamic/spec": "workspace:*",
-    "dockview": "8.6.1",
+    "dockview": "8.6.2",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@babel/core": "8.0.7",
+    "@babel/core": "8.0.9",
     "@rolldown/plugin-babel": "0.2.4",
     "@tailwindcss/vite": "4.3.3",
     "@testing-library/dom": "10.4.2",
@@ -33,7 +33,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "jsdom": "30.1.3",
     "tailwindcss": "4.3.3",
-    "vite": "8.3.4",
+    "vite": "8.3.5",
     "vitest": "5.0.5"
   }
 }
