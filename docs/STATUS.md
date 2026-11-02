@@ -12,7 +12,7 @@ One bullet for each entry: its name in bold, what is left, and a link to its
 plan when it has one. `AGENTS.md` says when an entry is added, moved and
 removed.
 
-**Last updated: 2026-10-18**
+**Last updated: 2026-11-02**
 
 ## In progress
 
@@ -184,6 +184,11 @@ between options. Each entry says who, and gives the command or the question.
   disclosure within 90) are the add-on's, not times anyone here chose, and
   "Supported versions" waits for a first release.
 
+- **Register the new Codex hooks.** A person, in Codex in this project:
+  run `/hooks` and trust the `SubagentStart` and `SubagentStop` entries
+  that `.codex/hooks.json` gained with bettersoftware-skills 0.25.0. Until
+  then Codex does not run them. Remove this entry once it is done.
+
 ## Known limits
 
 What is true of the project and will not be fixed soon: a thing that was not
@@ -213,10 +218,19 @@ verified, a case that is not covered.
   check again until its pin moves or the page is loaded again.
 - **The web app is one script of 1.1 MB** (300 kB compressed), and its build
   says so. Nothing splits it yet.
-- **AGENTS.md's end-to-end section is the add-on's.** Part 9 pointed it at
-  Origamic's modes and specs (the `agent-docs` gate requires a named file to
-  exist); the add-on's next update rewrites the section from its template,
-  and its references then need the same care again.
+- **The e2e add-on is not updated.** Part 9 pointed AGENTS.md's end-to-end
+  section at Origamic's modes and specs (the `agent-docs` gate requires a
+  named file to exist), and `.github/workflows/e2e.yml`'s header names the
+  web app. So every update of the add-on stops on those two and writes
+  nothing; at 0.25.0 its other files were already the add-on's. Left so on
+  2026-11-02, by the author's choice. Taking it means `--force`, then moving
+  Origamic's text out of the section's markers.
+- **No end-to-end mode starts the gateway.** Both modes script the model in
+  the browser, and `apps/gateway/src/main.ts` starts only the real one
+  (ADR-0011), so `serversWithoutEndToEnd` in `architecture.config.mts`
+  exempts it from the kit's `end-to-end` gate. The wire between the client
+  and the server is held by `packages/integration`. A mode that starts the
+  gateway on a scripted model would remove the entry.
 - **A form drawn afresh after a submit loses the keyboard's focus.** The
   runtime remounts an element whose event wrote through an action and was
   not refused, which is how a create Form starts empty again; the focus

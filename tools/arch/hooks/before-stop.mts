@@ -43,25 +43,70 @@
 // an input the hash leaves out (an environment variable, a tool installed
 // outside the project) can change the verdict without changing the record.
 //
-// `stop_hook_active` means the agent is already continuing because of this
-// hook; it is let through then, so a gate the agent cannot fix ends in a
-// report to the user and never in a loop.
+// The payload says two more things the hook reads. `stop_hook_active` means
+// the agent is already continuing because of this hook; it is let through
+// then, so a gate the agent cannot fix ends in a report to the user and never
+// in a loop.
+//
+// `background_tasks` (Claude Code only) lists the session's tasks still in
+// flight. A controller that sends a subagent off in the background, into the
+// same tree, and ends its turn while it waits, stops with that tree half
+// edited: the gate failed on it and blocked the controller mid-task (issue
+// #72). So while an entry is an agent (`subagent`, `teammate`, `workflow`)
+// whose status is `pending` or `running`, the gate is not run, nothing is
+// recorded, and the user is told which agents are still at work. The agent's
+// report starts a new turn, and that turn's stop is judged. A `shell` or a
+// `monitor` (a dev server, a watch) does not count, or one left running would
+// switch the gate off for good. An entry in any other shape (no status, a
+// status or a type not listed, no object) does not count either: what cannot
+// be read never skips the gate.
+//
+// A subagent can end its own turn to wait on a shell it started (a test run,
+// a wait on the checks). While it waits the host lists the shell, not the
+// subagent, and the shell's entry does not say whose it is. Two live sessions
+// showed it: the controller stopped with only a running shell in the list, and
+// the gate failed on the subagent's half-done edit. While it waits, the host
+// counts the subagent as done (its `.meta.json` says `"finished": true`, the
+// controller is told it completed); the shell's end is what wakes it again.
+// So a running shell or monitor counts as that subagent at work when the
+// transcript of one of the session's subagents
+// (`<session>/subagents/agent-<id>.jsonl`, beside `transcript_path`) records
+// it as a task that subagent started: a tool's result with that
+// `backgroundTaskId`, at a time in the last thirty minutes. Past that, a
+// server a subagent left running stops holding the gate back. The hooks
+// reference shows that folder; the record inside it is the host's and not
+// documented, so the hook believes it only in that shape. A transcript that is
+// not there, cannot be read, or records the task in any other way or with no
+// time names no subagent, and the gate runs as before. So does one the host
+// has not written yet: the reference says a transcript may lag.
 //
 // Apart from that second stop, the agent finishes without a gate having
-// passed in two cases only: no folder from `cwd` upward has a gate script,
-// or the tree is the one a green run is on record for. Anything that goes
-// wrong on the way (a package.json that is not JSON, a file that cannot be
-// read) is sent back as "nothing is verified", never passed over.
+// passed in three cases only: no folder from `cwd` upward has a gate script,
+// the tree is the one a green run is on record for, or an agent is still at
+// work. Anything that goes wrong on the way (a package.json that is not JSON,
+// a file that cannot be read) is sent back as "nothing is verified", never
+// passed over.
+//
+// The third case has a gap: a session that ends for good while an agent is
+// still at work (the user closes it, the agent is never waited for) ends with
+// no gate run on its last tree. CI, which runs the same script, catches what
+// that leaves.
 //
 // Works under Claude Code and Codex: both send `stop_hook_active` and both read
-// `{"decision":"block","reason":…}`.
+// `{"decision":"block","reason":…}`. Codex sends no `background_tasks` and does
+// not wait for a subagent, so there `watch-subagents.mts` keeps a record of
+// the ones at work, which this reads, and judges the tree when the last one
+// stops: no `Stop` follows that under Codex. A `Stop` can come before the
+// `SubagentStart` of the subagent the turn just started (seen live, a second
+// apart). That stop is judged, on a tree the subagent has not touched yet.
 
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { isMainModule, isPlainPath } from "../gates/lib/files.mts";
+import { subagentsOnRecord } from "./subagent-records.mts";
 
 /** Tried in order: the gate CI runs, then the fast one for a project that has no other. */
 const SCRIPTS = ["gate:full", "gate:fast"];
@@ -86,10 +131,50 @@ export interface RunLimits {
  */
 export const RUN_LIMITS: RunLimits = { runMs: 9 * 60 * 1000, stopMs: 20 * 1000, killMs: 5 * 1000 };
 
-/** The fields both hosts send that this hook reads. */
+/** The kinds of background task that are agents, and so may be editing the tree. A `shell` or a `monitor` is not one. */
+const AGENT_TASKS = ["subagent", "teammate", "workflow"];
+/** The kinds of background task a subagent can end its turn to wait on, and be listed by instead of itself. */
+const WAITED_ON_TASKS = ["shell", "monitor"];
+/** A subagent's transcript, beside the session's: `<session>/subagents/agent-<id>.jsonl`. */
+const SUBAGENT_TRANSCRIPT = /^agent-([\w-]+)\.jsonl$/;
+/**
+ * How long a shell a subagent started holds the gate back. Long enough for a
+ * test run or a wait on the checks; a server the subagent left running stops
+ * holding it back after this.
+ */
+const SUBAGENT_WAIT_MS = 30 * 60 * 1000;
+/**
+ * The statuses of a task that has not ended. The Agent SDK's
+ * `SDKTaskUpdatedMessage` lists the five a task goes through; the other three
+ * are "completed", "failed" and "killed".
+ */
+const IN_FLIGHT = ["pending", "running"];
+const DESCRIPTION_CHARACTERS = 120;
+
+/** The fields the hosts send that this hook reads. Only Claude Code sends `background_tasks`. */
 export interface StopPayload {
   cwd?: string;
   stop_hook_active?: boolean;
+  /** Read as unknown: an entry is believed only in the shape the hooks reference documents. */
+  background_tasks?: unknown;
+  /** The session's transcript; its subagents' are kept beside it. */
+  transcript_path?: unknown;
+  session_id?: unknown;
+}
+
+/** What the hook writes back: a block with its reason, or a message to the user and nothing else. */
+export interface StopReply {
+  decision?: "block";
+  reason?: string;
+  systemMessage?: string;
+}
+
+/** An entry of `background_tasks` that is an agent still at work. */
+interface AgentAtWork {
+  id?: string;
+  type: string;
+  description: string;
+  agentType?: string;
 }
 
 export interface GateRun {
@@ -97,6 +182,184 @@ export interface GateRun {
   output: string;
   /** The gate was stopped before it finished, so it verified nothing. */
   timedOut?: boolean;
+}
+
+/**
+ * The hook's answer to a stop. While an agent of the session is still at work
+ * the gate is not run: the agent may be halfway through an edit of this very
+ * tree, and its report starts the turn whose stop is judged.
+ */
+export async function replyToStop(payload: StopPayload, run: (root: string, script: string) => GateRun | Promise<GateRun> = runGate): Promise<StopReply | undefined> {
+  // A host that sends no list, as Codex does not, has told `watch-subagents.mts` instead.
+  const agents = Array.isArray(payload.background_tasks) ? agentsAtWork(payload.background_tasks, payload.transcript_path) : agentsOnRecord(payload);
+
+  if (agents.length > 0) {
+    return { systemMessage: deferral(agents) };
+  }
+
+  const reason = await judgeStop(payload, run);
+
+  return reason ? { decision: "block", reason } : undefined;
+}
+
+/**
+ * The agents in a payload's `background_tasks` that have not ended, and the
+ * subagents that ended their turn to wait on a shell or a monitor still
+ * running. An entry in any other shape is not one: it never skips the gate.
+ */
+function agentsAtWork(tasks: unknown[], transcriptPath: unknown): AgentAtWork[] {
+  const inFlight = tasks.flatMap((task: unknown): AgentAtWork[] => {
+    if (typeof task !== "object" || task === null) {
+      return [];
+    }
+
+    const { id, type, status, description, agent_type: agentType } = task as Record<string, unknown>;
+
+    if (typeof type !== "string" || typeof status !== "string" || !IN_FLIGHT.includes(status)) {
+      return [];
+    }
+
+    return [
+      {
+        id: typeof id === "string" && id !== "" ? id : undefined,
+        type,
+        description: typeof description === "string" ? description : "",
+        agentType: typeof agentType === "string" && agentType !== "" ? agentType : undefined,
+      },
+    ];
+  });
+  const agents = inFlight.filter((task) => AGENT_TASKS.includes(task.type));
+  const waitedOn = inFlight.filter((task) => WAITED_ON_TASKS.includes(task.type) && task.id !== undefined);
+  const listed = new Set(agents.map((agent) => agent.id));
+
+  return [...agents, ...subagentsWaitingOn(waitedOn, transcriptPath).filter((agent) => !listed.has(agent.id))];
+}
+
+/**
+ * The subagents of the session that started one of these tasks in the last
+ * thirty minutes. While a subagent waits on a shell of its own, the host lists
+ * the shell and not the subagent, and the shell's entry does not say whose it
+ * is: the subagent's transcript, which records the id and the time of each
+ * task it started in the background, does. A transcript that cannot be read
+ * names no subagent, and the gate runs.
+ */
+function subagentsWaitingOn(tasks: AgentAtWork[], transcriptPath: unknown, now = Date.now()): AgentAtWork[] {
+  if (tasks.length === 0 || typeof transcriptPath !== "string" || !transcriptPath.endsWith(".jsonl")) {
+    return [];
+  }
+
+  const folder = join(transcriptPath.slice(0, -".jsonl".length), "subagents");
+  let names: string[];
+
+  try {
+    names = readdirSync(folder);
+  } catch {
+    return [];
+  }
+
+  return names.flatMap((name): AgentAtWork[] => {
+    const id = SUBAGENT_TRANSCRIPT.exec(name)?.[1];
+    const started = id === undefined ? new Map<string, number>() : tasksStartedIn(readOrUndefined(join(folder, name)));
+    const task = tasks.find((waited) => {
+      const at = waited.id === undefined ? undefined : started.get(waited.id);
+
+      return at !== undefined && at <= now && now - at <= SUBAGENT_WAIT_MS;
+    });
+
+    if (id === undefined || task === undefined) {
+      return [];
+    }
+
+    // Read for the subagent's name only: while it waits it says `"finished": true`, as after any turn of its own.
+    const meta = readMeta(join(folder, `agent-${id}.meta.json`));
+
+    return [
+      {
+        id,
+        type: "subagent",
+        description: typeof meta.description === "string" && meta.description !== "" ? meta.description : task.description,
+        agentType: typeof meta.agentType === "string" && meta.agentType !== "" ? meta.agentType : undefined,
+      },
+    ];
+  });
+}
+
+function readOrUndefined(path: string): string | undefined {
+  try {
+    return readFileSync(path, "utf8");
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The tasks a transcript records as started in the background, each with the
+ * time of the record: a tool's result whose `backgroundTaskId` is the id. The
+ * id written anywhere else (in a tool's output, in a record of another kind)
+ * is not one, a record with no time it can read is passed over, and so is a
+ * line that is not JSON.
+ */
+function tasksStartedIn(transcript: string | undefined): Map<string, number> {
+  const started = new Map<string, number>();
+
+  for (const line of transcript?.split("\n") ?? []) {
+    let record: unknown;
+
+    try {
+      record = JSON.parse(line);
+    } catch {
+      continue;
+    }
+
+    const { toolUseResult: result, timestamp } = typeof record === "object" && record !== null ? (record as Record<string, unknown>) : {};
+    const id: unknown = typeof result === "object" && result !== null ? (result as Record<string, unknown>).backgroundTaskId : undefined;
+    const at = typeof timestamp === "string" ? Date.parse(timestamp) : Number.NaN;
+
+    if (typeof id === "string" && id !== "" && !Number.isNaN(at)) {
+      started.set(id, at);
+    }
+  }
+
+  return started;
+}
+
+/** What a subagent's `.meta.json` says of it, or nothing when it cannot be read. */
+function readMeta(path: string): Record<string, unknown> {
+  try {
+    const meta: unknown = JSON.parse(readFileSync(path, "utf8"));
+
+    return typeof meta === "object" && meta !== null ? (meta as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** The subagents `watch-subagents.mts` has on record for this session. A project that cannot be found has none. */
+function agentsOnRecord({ cwd, session_id: session }: StopPayload): AgentAtWork[] {
+  if (typeof cwd !== "string" || typeof session !== "string") {
+    return [];
+  }
+
+  try {
+    const project = findProject(cwd);
+
+    return project === undefined ? [] : subagentsOnRecord(project.root, session).map(({ id, type }) => ({ id, type: "subagent", description: "", agentType: type }));
+  } catch {
+    return [];
+  }
+}
+
+function deferral(agents: AgentAtWork[]): string {
+  const named = agents.map((agent) => {
+    const description = agent.description.length > DESCRIPTION_CHARACTERS ? `${agent.description.slice(0, DESCRIPTION_CHARACTERS)}…` : agent.description;
+
+    return `${agent.agentType ?? agent.type}${description === "" ? "" : ` "${description}"`}`;
+  });
+
+  return [
+    `The gate was not run: ${agents.length === 1 ? "an agent of this session is" : `${agents.length} agents of this session are`} still at work, and may be editing this tree (${named.join("; ")}).`,
+    `It runs at the next stop, once ${agents.length === 1 ? "it has" : "they have"} finished.`,
+  ].join(" ");
 }
 
 export async function judgeStop(
@@ -376,7 +639,7 @@ function writeLastGreen(root: string, tree: string): void {
 }
 
 /** What the host sent. A payload that cannot be read is an empty one: the gate is then run, never skipped. */
-function readPayload(): StopPayload {
+export function readPayload(): StopPayload {
   try {
     const payload: unknown = JSON.parse(readFileSync(0, "utf8") || "{}");
 
@@ -387,8 +650,8 @@ function readPayload(): StopPayload {
 }
 
 if (isMainModule(import.meta.url)) {
-  const reason = await judgeStop(readPayload());
-  const reply = reason ? `${JSON.stringify({ decision: "block", reason })}\n` : "";
+  const answer = await replyToStop(readPayload());
+  const reply = answer ? `${JSON.stringify(answer)}\n` : "";
 
   // Exits by itself once the reply is written: a gate that was left behind must not keep the hook alive.
   process.stdout.write(reply, () => {

@@ -47,7 +47,7 @@
     "changelog:releases": "node tools/agent-workflow/sync-releases.mts"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
+    "@biomejs/biome": "2.6.2",
     "@types/node": "^26.2.0",
     "@typescript-eslint/utils": "^8.70.1",
     "@typescript/native": "npm:typescript@^7.0.2",
