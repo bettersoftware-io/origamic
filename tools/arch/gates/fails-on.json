@@ -1,6 +1,6 @@
 {
   "structure": "a workspace package has no declared role, a required role is missing, a package has no ports folder where it declares one, a package has a runtime dependency outside its closed list, or a client, an integration package or an e2e package holds a file its role does not allow",
-  "typescript-only": "the project holds a .js, .jsx, .mjs or .cjs source file that is not listed under javascriptAllowed",
+  "typescript-only": "the project holds a .js, .jsx, .mjs or .cjs source file that is not listed under javascriptAllowed, by itself or by its folder",
   "dumb-ui": "a UI file imports the stream library, touches storage, reads configuration, opens a connection or sets a timer",
   "port-contracts": "a port has no contract test, the contract never calls one of the port's methods, the contract imports an implementation, an adapter folder does not run the contract of a port it implements, or adapter folders are declared and no port is found",
   "dependencies": "an import points outward, a package that asked for none uses a Node built-in, the core imports a UI framework or an adapter, production code imports test scaffolding, a library named in vendorOnlyIn is imported outside its packages, or there is a cycle. It needs dependency-cruiser installed",
@@ -13,5 +13,6 @@
   "app-harness": "a test calls the function that builds the whole application, anywhere but the one harness file",
   "test-ids": "a test id is written as a string literal, in a component, a selector or a query, outside the client's test-ids file",
   "types-only": "a package declared typesOnly exports a runtime value",
-  "playwright-pin": "a package.json asks for Playwright by a range, two packages ask for two versions, or a workflow's container image is another version"
+  "playwright-pin": "a package.json asks for Playwright by a range, two packages ask for two versions, or a workflow's container image is another version",
+  "end-to-end": "a package is a client and no package of role e2e drives it in a browser, a server that no mode starts, a mode with no spec, or a withoutEndToEnd left after the e2e package came"
 }

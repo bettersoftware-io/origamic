@@ -122,6 +122,13 @@ const config: ArchitectureConfig = {
   // Remove a line when its package gets a test script.
   packagesWithoutTests: {},
 
+  // A server that no end-to-end mode starts, with the reason. Remove the line
+  // when a mode of tools/e2e.config.mts starts it.
+  serversWithoutEndToEnd: {
+    "apps/gateway":
+      "both e2e modes script the model and leave VITE_GATEWAY_URL empty (tools/e2e.config.mts, plan decision 8); no test in the gate calls a model (ADR-0011) and apps/gateway/src/main.ts starts only the real one; packages/integration runs the HTTP client against the gateway's server on a real port",
+  },
+
   // A library named here may be imported only from the packages listed, so it
   // can be replaced by changing those alone.
   vendorOnlyIn: {

@@ -47,10 +47,11 @@ A project declares its layers once, in `architecture.config.mts`
 | `test-ids` | A test id is written as a string literal, in a component, a selector or a query, outside the client's test-ids file |
 | `types-only` | A package declared `typesOnly` exports a runtime value |
 | `playwright-pin` | A `package.json` asks for `@playwright/test` or `playwright` as a range; two ask for two versions; another version is installed; a workflow's Playwright image has another version |
+| `end-to-end` | A package is a client and no package of role `e2e` drives it in a browser, with no reason given in `withoutEndToEnd`; a server that no mode of `tools/e2e.config.mts` starts, unless `serversWithoutEndToEnd` gives the reason; a client it does not build; a mode with no spec; a `withoutEndToEnd` left once an `e2e` package is there, or a `serversWithoutEndToEnd` entry once a mode starts that server |
 
 ```bash
 node tools/arch/gates/run.mts                 # every gate
-node tools/arch/gates/run.mts --file src/ui/A.tsx   # per-file gates only: all but dependencies, agent-docs, task-cache, lockfile, playwright-pin
+node tools/arch/gates/run.mts --file src/ui/A.tsx   # per-file gates only: all but dependencies, agent-docs, task-cache, lockfile, playwright-pin, end-to-end
 node tools/arch/gates/run.mts --json          # machine-readable
 ```
 
@@ -60,13 +61,21 @@ Exit `0` is no findings, `1` is findings, `2` is "could not run".
 
 TypeScript is the default. With it, any JavaScript source file fails the
 `typescript-only` gate, in the editor hook as well as in the full run. A file
-whose loader cannot read TypeScript is listed with the reason:
+whose loader cannot read TypeScript is listed with the reason. A key that ends
+in `/` is a folder: it covers every file under it, for a tool that loads its
+JavaScript from a whole folder, so a new file there needs no new entry:
 
 ```ts
 javascriptAllowed: {
   "stylelint.config.mjs": "stylelint's config loader cannot read .mts",
+  "tools/legacy/": "the legacy loader reads every .js file in its folder",
 },
 ```
+
+The ESLint ban leaves out the same files: a folder becomes `tools/legacy/**`
+there. `tools/legacy/` covers `tools/legacy/plugins/a.js` but not
+`tools/legacy-x/a.js`. A key is a path, not a pattern: `tools/legacy/**` or
+`*.cjs` stops the gates with a message that names the folder to write instead.
 
 A project on a runtime too old to run `.mts` declares `language: "javascript"`
 (in an `architecture.config.mjs`). The gate then reports `SKIP` with that
@@ -584,7 +593,7 @@ The block holds three kinds of rule. Each has its reason beside it in
 |---|---|---|
 | The kit's own, in `eslint-rules/` | Fourteen, under the `arch/` name | By kind of file: every source file, tests, page objects, components |
 | ESLint's, with the kit's settings | `func-style`, `arrow-body-style`, `func-names`, `lines-between-class-members`, `padding-line-between-statements`, `max-classes-per-file`; `no-restricted-syntax` (an object type with no name, in six positions; the view model kept whole or called through); `no-restricted-globals` (the CommonJS names) | Every `.ts`, `.tsx` and `.mts` file |
-| | `no-restricted-syntax` on the whole file | Every `.js`, `.mjs`, `.cjs`, `.jsx` and `.cts` file. The exemptions are `javascriptAllowed` in the architecture config |
+| | `no-restricted-syntax` on the whole file | Every `.js`, `.mjs`, `.cjs`, `.jsx` and `.cts` file. The exemptions are `javascriptAllowed` in the architecture config: a file, or a folder whose key ends in `/` |
 | By role | `eslint-plugin-react-hooks` (its `recommended-latest` rules, all as errors); no `style={{…}}` | The `src` of a `client` package |
 | | No `useMemo`, `useCallback`, `memo` or default React import | The `src` of a `bindings` package, tests left out |
 | | The same four, for another reason: the React Compiler memoizes | The `src` of a `client` package that declares `reactCompiler: true`, tests and page objects left out |
@@ -822,8 +831,9 @@ with the same files as a green primary checkout is still judged, and a
 - **What it cannot judge it sends back.** A `package.json` that is not JSON,
   a runner that cannot start, anything that throws: the answer is "nothing is
   verified", not silence. Apart from the second stop below, the agent
-  finishes without a green gate in two cases only: no folder from `cwd`
-  upward has a gate script, or the tree is on record as green.
+  finishes without a green gate in three cases only: no folder from `cwd`
+  upward has a gate script, the tree is on record as green, or an agent of
+  the session is still at work (next paragraph).
 - **It is a guard against stopping early, not a lock.** The record is a file.
   An agent that sets out to cheat can write it, as it can rewrite the
   `gate:full` script or the hook itself. CI, which runs the same script from
@@ -841,6 +851,83 @@ with the same files as a green primary checkout is still judged, and a
 - It blocks once. If the gate is still red when the agent tries to stop a
   second time, the agent is let through to report the problem, so an
   unfixable finding ends in a message to you and never in a loop.
+
+**While an agent is still at work, the gate waits.** A controller that sends
+a subagent off in the background, into the tree it works in, and ends its turn while
+it waits, stops on a tree the subagent is halfway through editing. The gate
+failed on such a tree and blocked the controller mid-task, then passed once
+the subagent had committed
+([#72](https://github.com/bettersoftware-io/skills/issues/72)). Claude Code's
+`Stop` payload lists the session's tasks still in flight in
+`background_tasks`, "to distinguish 'session is done' from 'session is paused
+waiting for background work'" ([the hooks
+reference](https://code.claude.com/docs/en/hooks#stop-input)). While one of
+them is a `subagent`, a `teammate` or a `workflow` whose status is `pending`
+or `running`, the hook runs no gate and records nothing; it tells you which
+agents are still at work. The agent's report starts a new turn, and that
+turn's stop is judged as usual.
+
+- A `shell` or a `monitor` task does not hold the gate back: a dev server left
+  running would otherwise switch it off for good. The one exception is a
+  shell a subagent started and ended its turn to wait on. While it waits,
+  Claude Code lists the shell and not the subagent, so the hook looks for the
+  shell's id in the session's subagent transcripts
+  (`<session>/subagents/agent-<id>.jsonl`, beside `transcript_path`). If a
+  subagent started it in the last thirty minutes, the gate waits for that
+  subagent too; past that, a server a subagent left running stops holding it
+  back. The hooks reference shows that folder, but the record inside it is
+  Claude Code's own and not documented: when it is not there, not written
+  yet, cannot be read or records the shell in any other shape, the gate runs.
+- An entry in a shape the reference does not document (no status, a type or
+  a status it does not list) does not either: what cannot be read runs the
+  gate.
+- A session that ends for good while an agent is still at work ends with no
+  gate run on its last tree. CI catches what that leaves.
+- Codex sends no such list and does not wait for a subagent, so
+  `hooks/watch-subagents.mts` does the same work there, registered in
+  `.codex/hooks.json` under `SubagentStart` and `SubagentStop`. It records
+  each subagent, in a file of its own under `node_modules/.cache/arch/`, and
+  the stop hook waits for those of its session, for thirty minutes at most.
+- Under Codex no `Stop` follows a subagent's end, so `watch-subagents.mts`
+  runs the gate when the last subagent of a session stops. If it is red, that
+  subagent is sent back to fix it, once. When it stops again the gate runs
+  again, and if it is still red the subagent is let through and you are told.
+  A tree found green needs no second run at the next stop. A subagent that is
+  not the last stops without a gate. The wait falls on the last subagent.
+- Codex skips a hook nobody has trusted. After an update that adds these two,
+  a person runs `/hooks` in that project; until then Codex behaves as before.
+- How it was tested: against the payload documented in the hooks reference,
+  quoted in `hooks/hooks.test.mts`, and against the timeline of the session
+  that hit it (the gate's block came 69 seconds after a background agent was
+  launched into the same checkout, and 38 seconds before it reported done).
+  Each of its mutants (`scripts/mutants/stop-waits-for-agents.json`) is
+  killed.
+- Live, on 2026-10-25 (Claude Code 2.1.310, a project made by
+  `create-project.mts`): a background subagent wrote a file that fails the
+  typecheck, waited 90 seconds on a background shell, then deleted it. The
+  controller's first stop listed the subagent and the gate waited. Its second
+  stop listed only the subagent's shell, and the gate ran on the broken file
+  and blocked. That second case is what the transcript lookup is for.
+- Live again on 2026-10-26, the same way, with a hook that logged each
+  subagent's `.meta.json`: while the subagent waited on its shell, its record
+  said `"finished": true`, and it said nothing about finishing while the
+  subagent worked. The lookup therefore does not read that field. The lookup
+  is tested against the payloads logged in both runs and a copy of the first
+  run's subagent transcript.
+- Live a third time on 2026-10-26, the same way, with this hook: the
+  controller's stop while the subagent worked and its stop while only the
+  subagent's shell was listed both let the turn end without the gate, and
+  the stop after the subagent deleted the file ran it, with no block.
+- Live under Codex 0.166.0 on 2026-11-01, before `watch-subagents.mts`: a
+  controller that started a subagent and then ran `sleep 30` stopped with the
+  subagent's broken file on disk. The gate blocked it, the controller deleted
+  the file, and no `Stop` followed the subagent's end. The hook is tested on
+  the payloads logged in that run.
+- Live again the same day, with the hook: the same prompt, with a file that
+  stayed broken. The controller stopped with the file on disk and was not
+  blocked. When the subagent stopped, the gate went red and sent it back. Its
+  next stop was let through and took it off the record. This ran in a project
+  made by `create-project.mts`, with a logging hook beside this one.
 
 It was `gate:fast` until a run with the smallest model stopped there with
 `gate:full` red and reported green
