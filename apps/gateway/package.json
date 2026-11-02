@@ -16,7 +16,7 @@
     "test": "vitest run --no-fsModuleCache"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "0.135.0",
+    "@anthropic-ai/sdk": "0.137.0",
     "@origamic/catalog": "workspace:*",
     "@origamic/spec": "workspace:*"
   },
