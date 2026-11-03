@@ -12,7 +12,7 @@ One bullet for each entry: its name in bold, what is left, and a link to its
 plan when it has one. `AGENTS.md` says when an entry is added, moved and
 removed.
 
-**Last updated: 2026-11-02**
+**Last updated: 2026-11-03**
 
 ## In progress
 
@@ -183,11 +183,6 @@ between options. Each entry says who, and gives the command or the question.
   its top: the two times under "What to expect" (an answer in 7 days,
   disclosure within 90) are the add-on's, not times anyone here chose, and
   "Supported versions" waits for a first release.
-
-- **Register the new Codex hooks.** A person, in Codex in this project:
-  run `/hooks` and trust the `SubagentStart` and `SubagentStop` entries
-  that `.codex/hooks.json` gained with bettersoftware-skills 0.25.0. Until
-  then Codex does not run them. Remove this entry once it is done.
 
 - **Whether to take the Anthropic SDK 1.x (Renovate's
   [#51](https://github.com/bettersoftware-io/origamic/pull/51)).** The
