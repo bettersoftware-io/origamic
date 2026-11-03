@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // biome-ignore-start lint/style/noRestrictedImports: the tool is in tools/, outside every package, where no #/ alias reaches; this test holds its rule because tools/ has no test runner
 import {
@@ -7,6 +7,8 @@ import {
   supabaseIn,
 } from "../../../tools/supabase/cli.mts";
 import {
+  DOCKER_ASKS,
+  DOCKER_WAIT_MS,
   type StartOptions,
   startDevSupabase,
   startLocalSupabase,
@@ -164,13 +166,42 @@ describe("starting the test stack", () => {
     );
   });
 
-  it("fails, and says Docker is needed, where Docker does not answer", async () => {
-    const cli = createCli({ docker: false });
+  describe("when Docker is slow to answer", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
 
-    await expect(startLocalSupabase(cli.options)).rejects.toThrow(
-      "A local Supabase needs Docker",
-    );
-    expect(cli.ran).toEqual([]);
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("asks Docker again after a wait, and starts once it answers", async () => {
+      const cli = createCli({ docker: [false, true], status: [UP, UP, UP] });
+
+      const started = startLocalSupabase(cli.options);
+      await vi.advanceTimersByTimeAsync(DOCKER_WAIT_MS - 1);
+
+      expect(cli.asked()).toBe(1);
+
+      await vi.advanceTimersByTimeAsync(1);
+
+      await expect(started).resolves.toEqual(KEYS);
+      expect(cli.asked()).toBe(2);
+    });
+
+    it("fails, and says Docker is needed, once Docker has not answered any of its asks", async () => {
+      const cli = createCli({ docker: false });
+
+      const started = startLocalSupabase(cli.options);
+      const failed = expect(started).rejects.toThrow(
+        `A local Supabase needs Docker, and Docker did not answer ${String(DOCKER_ASKS)} times`,
+      );
+      await vi.advanceTimersByTimeAsync(DOCKER_WAIT_MS * (DOCKER_ASKS - 1));
+
+      await failed;
+      expect(cli.asked()).toBe(DOCKER_ASKS);
+      expect(cli.ran).toEqual([]);
+    });
   });
 });
 
@@ -286,7 +317,8 @@ const DONE: Answer = { code: 0, stdout: "", stderr: "" };
 type Answer = Finished;
 
 interface Script {
-  docker?: boolean;
+  /** Whether Docker answers: always, or at each ask in turn, the last for every ask after. */
+  docker?: boolean | boolean[];
   status?: Answer[];
   migrationUp?: Answer[];
   dbReset?: Answer[];
@@ -294,6 +326,8 @@ interface Script {
 
 interface Cli {
   options: StartOptions;
+  /** How many times Docker was asked whether it answers. */
+  asked: () => number;
   /** Each command run, without `supabase` and the workdir. */
   ran: string[];
   /** The workdir of each command run. */
@@ -311,6 +345,8 @@ function createCli({
   const ran: string[] = [];
   const workdirs: string[] = [];
   const said: string[] = [];
+  const dockerAnswers = Array.isArray(docker) ? docker : [docker];
+  let asks = 0;
   const answers: Record<string, Answer[]> = {
     "status -o json": [...status],
     "migration up --local": [...migrationUp],
@@ -321,9 +357,16 @@ function createCli({
     ran,
     workdirs,
     said,
+    asked: () => {
+      return asks;
+    },
     options: {
       probe: () => {
-        return Promise.resolve(docker);
+        asks += 1;
+
+        return Promise.resolve(
+          dockerAnswers[Math.min(asks, dockerAnswers.length) - 1] ?? false,
+        );
       },
       say: (line: string) => {
         said.push(line);

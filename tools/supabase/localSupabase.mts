@@ -162,12 +162,37 @@ const STATUS = ["status", "-o", "json"];
 
 const MIGRATION_UP = ["migration", "up", "--local"];
 
+/**
+ * How many times a stack's start asks Docker before it gives up. In CI the
+ * task runner starts every package's tests at once, and while one of them
+ * brings the stack up, `docker info` can miss its deadline: one ask turned
+ * main red twice on 2026-11-02.
+ */
+export const DOCKER_ASKS = 3;
+
+/** How long a stack's start waits between two asks. */
+export const DOCKER_WAIT_MS = 5000;
+
 async function requireDocker(probe: () => Promise<boolean>): Promise<void> {
-  if (!(await probe())) {
-    throw new Error(
-      "A local Supabase needs Docker, and Docker does not answer here (`docker info` failed). Start Docker and run again. In CI the tests against it are never left out, so this is a failure there.",
-    );
+  for (let ask = 1; ask <= DOCKER_ASKS; ask += 1) {
+    if (await probe()) {
+      return;
+    }
+
+    if (ask < DOCKER_ASKS) {
+      await waitFor(DOCKER_WAIT_MS);
+    }
   }
+
+  throw new Error(
+    `A local Supabase needs Docker, and Docker did not answer ${String(DOCKER_ASKS)} times, ${String(DOCKER_WAIT_MS / 1000)} s apart (\`docker info\` failed). Start Docker and run again. In CI the tests against it are never left out, so this is a failure there.`,
+  );
+}
+
+function waitFor(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, milliseconds);
+  });
 }
 
 /**
