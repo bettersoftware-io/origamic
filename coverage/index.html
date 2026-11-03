@@ -16,14 +16,14 @@
   </head>
   <body>
     <h1>Coverage report</h1>
-    <p class="build">Built from commit f6f9ced (main) on 2026-11-03 07:44 UTC.</p>
+    <p class="build">Built from commit b1a9e51 (main) on 2026-11-03 09:08 UTC.</p>
     <p>A published report shows the commit that built it, not the newest one. Compare the commit above with the code you are reading before you trust a number here.</p>
     <p>The bar, for every file: lines ≥ 95%, statements ≥ 95%, functions ≥ 95%, branches ≥ 85%.</p>
     <table>
       <tr><th>Package</th><th>Verdict</th><th>Why</th><th class="number">lines</th><th class="number">statements</th><th class="number">functions</th><th class="number">branches</th></tr>
       <tr><td><a href="./apps/gateway/index.html">apps/gateway</a></td><td class="pass">PASS</td><td>8 files at or above the bar</td><td class="number">99.35%</td><td class="number">99.36%</td><td class="number">100%</td><td class="number">95.37%</td></tr>
       <tr><td><a href="./apps/web/index.html">apps/web</a></td><td class="pass">PASS</td><td>14 files at or above the bar</td><td class="number">98.82%</td><td class="number">98.82%</td><td class="number">100%</td><td class="number">95.97%</td></tr>
-      <tr><td><a href="./packages/adapters/index.html">packages/adapters</a></td><td class="pass">PASS</td><td>7 files at or above the bar</td><td class="number">99.04%</td><td class="number">99.05%</td><td class="number">100%</td><td class="number">94.23%</td></tr>
+      <tr><td><a href="./packages/adapters/index.html">packages/adapters</a></td><td class="pass">PASS</td><td>7 files at or above the bar</td><td class="number">99.04%</td><td class="number">99.05%</td><td class="number">100%</td><td class="number">95.19%</td></tr>
       <tr><td><a href="./packages/catalog/index.html">packages/catalog</a></td><td class="pass">PASS</td><td>36 files at or above the bar</td><td class="number">99.58%</td><td class="number">99.58%</td><td class="number">100%</td><td class="number">97.97%</td></tr>
       <tr><td><a href="./packages/core/index.html">packages/core</a></td><td class="pass">PASS</td><td>16 files at or above the bar</td><td class="number">99.21%</td><td class="number">99.21%</td><td class="number">100%</td><td class="number">96.48%</td></tr>
       <tr><td>packages/e2e</td><td class="skip">SKIP</td><td>its tests are Playwright's (playwright.config.ts, and no test script): they drive the built application in a browser, in another process, so there is nothing here for this tool to run or to measure</td><td class="number">–</td><td class="number">–</td><td class="number">–</td><td class="number">–</td></tr>
@@ -45,6 +45,6 @@
       <li><code>apps/gateway/src/main.ts</code> — the gateway's entry point: it only reads the environment and calls createGatewayServer(), which is tested; importing it in a test would start a server</li>
       <li><code>apps/gateway/src/anthropicModel.ts</code> — the one call to the real model: no test in the gate calls a model (ADR-0011), and what it sends is anthropicSchemaOf(), which is tested</li>
     </ul>
-    <p><a href="https://github.com/bettersoftware-io/origamic/actions/runs/41598143409">The run that built this report</a></p>
+    <p><a href="https://github.com/bettersoftware-io/origamic/actions/runs/41608380390">The run that built this report</a></p>
   </body>
 </html>
