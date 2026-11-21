@@ -16,11 +16,11 @@
   "dependencies": {
     "@origamic/core": "workspace:*",
     "@origamic/spec": "workspace:*",
-    "@supabase/supabase-js": "2.118.0",
+    "@supabase/supabase-js": "2.119.0",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "supabase": "2.122.0",
-    "vitest": "5.0.5"
+    "supabase": "2.122.1",
+    "vitest": "5.1.0"
   }
 }
